@@ -388,6 +388,9 @@ interface WhakoomComic {
             } @else {
               <!-- Lista de resultados -->
               @if (whakoomResults().length > 0) {
+                @if (whakoomTotal() > 0) {
+                  <p class="text-xs text-[#505050] mb-3">{{ whakoomTotal() }} resultados</p>
+                }
                 <div class="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6">
                   @for (result of whakoomResults(); track result.id) {
                     <button type="button" (click)="loadWhakoomDetail(result.id, result.type)"
@@ -409,6 +412,13 @@ interface WhakoomComic {
                     </button>
                   }
                 </div>
+                @if (whakoomHasMore() && !whakoomLoading()) {
+                  <button type="button" (click)="loadMoreWhakoom()"
+                    class="mt-4 w-full py-2 rounded-xl text-xs text-[#a0a0a0] bg-[#1a1a1a] border border-[#2a2a2a]
+                           hover:bg-[#222] hover:text-white transition-colors">
+                    Cargar más resultados
+                  </button>
+                }
               } @else if (!whakoomLoading() && whakoomSearched()) {
                 <div class="text-center py-12 text-[#404040]">
                   <svg class="w-10 h-10 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
@@ -465,6 +475,9 @@ export class ComicFormComponent implements OnInit {
   whakoomResults = signal<WhakoomResult[]>([]);
   whakoomDetail = signal<WhakoomComic | null>(null);
   whakoomSearched = signal(false);
+  whakoomPage = signal(1);
+  whakoomHasMore = signal(false);
+  whakoomTotal = signal(0);
 
   form = this.fb.nonNullable.group({
     title: ['', Validators.required],
@@ -538,27 +551,41 @@ export class ComicFormComponent implements OnInit {
     this.whakoomDetail.set(null);
     this.whakoomError.set('');
     this.whakoomSearched.set(false);
+    this.whakoomPage.set(1);
+    this.whakoomHasMore.set(false);
+    this.whakoomTotal.set(0);
   }
 
   closeWhakoom() {
     this.whakoomOpen.set(false);
   }
 
-  searchWhakoom() {
+  searchWhakoom(loadMore = false) {
     if (!this.whakoomQuery.trim()) return;
     this.whakoomLoading.set(true);
     this.whakoomError.set('');
     this.whakoomDetail.set(null);
-    this.whakoomSearched.set(false);
 
-    const params = new HttpParams().set('q', this.whakoomQuery.trim());
-    this.http.get<WhakoomResult[] | { error: string }>(`${this.base}/whakoom/search`, { params }).subscribe({
+    if (!loadMore) {
+      this.whakoomResults.set([]);
+      this.whakoomPage.set(1);
+      this.whakoomSearched.set(false);
+    }
+
+    const params = new HttpParams()
+      .set('q', this.whakoomQuery.trim())
+      .set('page', this.whakoomPage().toString());
+
+    this.http.get<{ data: WhakoomResult[]; total: number; page: number; hasMore: boolean } | { error: string }>(
+      `${this.base}/whakoom/search`, { params }
+    ).subscribe({
       next: (res) => {
-        if (!Array.isArray(res)) {
-          this.whakoomError.set((res as { error: string }).error);
-          this.whakoomResults.set([]);
+        if ('error' in res) {
+          this.whakoomError.set(res.error);
         } else {
-          this.whakoomResults.set(res);
+          this.whakoomResults.update(prev => loadMore ? [...prev, ...res.data] : res.data);
+          this.whakoomTotal.set(res.total);
+          this.whakoomHasMore.set(res.hasMore);
         }
         this.whakoomSearched.set(true);
         this.whakoomLoading.set(false);
@@ -568,6 +595,11 @@ export class ComicFormComponent implements OnInit {
         this.whakoomLoading.set(false);
       }
     });
+  }
+
+  loadMoreWhakoom() {
+    this.whakoomPage.update(p => p + 1);
+    this.searchWhakoom(true);
   }
 
   loadWhakoomDetail(id: string, type: string = 'comic') {
