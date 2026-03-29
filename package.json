@@ -1,0 +1,40 @@
+{
+  "name": "front",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "prebuild": "node scripts/build-tailwind.js",
+    "prestart": "node scripts/build-tailwind.js",
+    "start": "ng serve",
+    "build": "ng build",
+    "build:prod": "ng build --configuration production",
+    "watch": "ng build --watch --configuration development",
+    "tailwind": "node scripts/build-tailwind.js",
+    "tailwind:watch": "node scripts/build-tailwind.js --watch",
+    "test": "ng test"
+  },
+  "private": true,
+  "packageManager": "npm@11.7.0",
+  "dependencies": {
+    "@angular/common": "^21.2.0",
+    "@angular/compiler": "^21.2.0",
+    "@angular/core": "^21.2.0",
+    "@angular/forms": "^21.2.0",
+    "@angular/platform-browser": "^21.2.0",
+    "@angular/router": "^21.2.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^21.2.5",
+    "@angular/cli": "^21.2.5",
+    "@angular/compiler-cli": "^21.2.0",
+    "@tailwindcss/cli": "^4.2.2",
+    "@tailwindcss/postcss": "^4.2.2",
+    "jsdom": "^28.0.0",
+    "prettier": "^3.8.1",
+    "tailwindcss": "^4.2.2",
+    "typescript": "~5.9.2",
+    "vitest": "^4.0.8"
+  }
+}
