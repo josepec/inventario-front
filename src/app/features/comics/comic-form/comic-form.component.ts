@@ -10,6 +10,7 @@ interface WhakoomResult {
   id: string;
   title: string;
   cover: string | null;
+  type: string;
 }
 
 interface WhakoomComic {
@@ -389,7 +390,7 @@ interface WhakoomComic {
               @if (whakoomResults().length > 0) {
                 <div class="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6">
                   @for (result of whakoomResults(); track result.id) {
-                    <button type="button" (click)="loadWhakoomDetail(result.id)"
+                    <button type="button" (click)="loadWhakoomDetail(result.id, result.type)"
                       [disabled]="whakoomLoading()"
                       class="group text-left disabled:opacity-50">
                       <div class="aspect-[2/3] rounded-lg overflow-hidden bg-[#1a1a1a] border border-[#2a2a2a]
@@ -569,11 +570,12 @@ export class ComicFormComponent implements OnInit {
     });
   }
 
-  loadWhakoomDetail(id: string) {
+  loadWhakoomDetail(id: string, type: string = 'comic') {
     this.whakoomLoading.set(true);
     this.whakoomError.set('');
 
-    this.http.get<WhakoomComic | { error: string }>(`${this.base}/whakoom/comic/${id}`).subscribe({
+    const params = new HttpParams().set('type', type);
+    this.http.get<WhakoomComic | { error: string }>(`${this.base}/whakoom/comic/${id}`, { params }).subscribe({
       next: (res) => {
         if ('error' in res) {
           this.whakoomError.set((res as { error: string }).error);
