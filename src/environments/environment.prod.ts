@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://inventario-back.josepec.workers.dev',
+  apiUrl: 'https://inventario-api.josepec.workers.dev',
 };
