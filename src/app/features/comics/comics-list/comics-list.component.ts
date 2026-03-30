@@ -143,7 +143,7 @@ import { Comic } from '../../../shared/models/comic.model';
                 <!-- Info -->
                 <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ comic.title }}</p>
                 @if (comic.series) {
-                  <p class="text-[10px] text-[#8b5cf6] truncate">{{ comic.series }}</p>
+                  <p class="text-[10px] text-[#606060] truncate">{{ comic.series }}</p>
                 }
               </a>
             }

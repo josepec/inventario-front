@@ -69,10 +69,12 @@ import { Comic } from '../../../shared/models/comic.model';
             <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-5 space-y-4">
               <div class="flex items-center justify-between">
                 <span class="text-xs text-[#606060] uppercase tracking-wider">Estado</span>
-                <span class="text-sm px-3 py-1 rounded-full font-medium"
+                <button (click)="toggleReadStatus()" type="button"
+                  class="text-sm px-3 py-1 rounded-full font-medium cursor-pointer
+                         hover:opacity-80 active:scale-95 transition-all"
                   [class]="statusClass(comic()!.read_status)">
                   {{ statusLabel(comic()!.read_status) }}
-                </span>
+                </button>
               </div>
               @if (comic()!.collection_name) {
                 <div class="flex items-center justify-between">
@@ -219,6 +221,15 @@ export class ComicDetailComponent implements OnInit {
     if (!confirm('¿Eliminar este cómic? Esta acción no se puede deshacer.')) return;
     this.api.delete(`/comics/${this.comic()!.id}`).subscribe({
       next: () => this.router.navigate(['/app/comics'])
+    });
+  }
+
+  toggleReadStatus() {
+    const c = this.comic();
+    if (!c) return;
+    const newStatus = c.read_status === 'read' ? 'unread' : 'read';
+    this.api.put<Comic>(`/comics/${c.id}`, { ...c, read_status: newStatus }).subscribe({
+      next: (updated) => this.comic.set(updated),
     });
   }
 
