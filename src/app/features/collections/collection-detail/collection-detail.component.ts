@@ -70,7 +70,7 @@ interface WhakoomEdition {
   standalone: true,
   imports: [RouterLink],
   template: `
-    <div class="p-8 max-w-5xl mx-auto">
+    <div class="p-4 md:p-8 max-w-5xl mx-auto">
 
       @if (loading()) {
         <div class="flex justify-center py-20">
@@ -80,32 +80,32 @@ interface WhakoomEdition {
 
       @if (!loading() && collection()) {
         <!-- Back + actions -->
-        <div class="flex items-center justify-between mb-6">
+        <div class="flex items-center justify-between mb-5 md:mb-6">
           <a routerLink="/app/comics"
             class="flex items-center gap-2 text-sm text-[#606060] hover:text-white transition-colors">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
             </svg>
-            Volver a Cómics
+            Volver
           </a>
           <div class="flex gap-2">
             <button (click)="confirmDelete()"
-              class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm bg-[#ef444411] border border-[#ef444433]
+              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#ef444411] border border-[#ef444433]
                      text-[#ef4444] hover:bg-[#ef444422] transition-colors">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
               </svg>
-              Eliminar
+              <span class="hidden sm:inline">Eliminar</span>
             </button>
           </div>
         </div>
 
         <!-- Header card -->
-        <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-6 mb-6">
-          <div class="flex gap-6">
+        <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-6 mb-5 md:mb-6">
+          <div class="flex gap-4 md:gap-6">
             <!-- Cover -->
-            <div class="w-28 shrink-0">
+            <div class="w-20 md:w-28 shrink-0">
               <div class="aspect-[2/3] rounded-xl overflow-hidden bg-[#0d0d0d] border border-[#2a2a2a]">
                 @if (collection()!.cover_url) {
                   <img [src]="collection()!.cover_url!" [alt]="collection()!.title"
@@ -119,16 +119,17 @@ interface WhakoomEdition {
               @if (collection()!.publisher) {
                 <p class="text-[#8b5cf6] text-xs font-semibold uppercase tracking-wider mb-1">{{ collection()!.publisher }}</p>
               }
-              <h1 class="text-2xl font-bold text-white tracking-tight">{{ collection()!.title }}</h1>
+              <h1 class="text-lg md:text-2xl font-bold text-white tracking-tight leading-tight">{{ collection()!.title }}</h1>
 
-              <div class="flex items-center gap-4 mt-3">
+              <!-- Badges — wrapping flex -->
+              <div class="flex flex-wrap items-center gap-2 mt-3">
                 @if (collection()!.total_issues) {
-                  <span class="text-sm text-[#a0a0a0]">
+                  <span class="text-xs text-[#a0a0a0]">
                     {{ collection()!.total_issues }} cómics
                   </span>
                 }
                 @if (collection()!.format) {
-                  <span class="text-sm text-[#606060]">{{ collection()!.format }}</span>
+                  <span class="text-xs text-[#606060]">{{ collection()!.format }}</span>
                 }
                 @if (collection()!.status) {
                   <span class="text-xs px-2.5 py-1 rounded-full font-medium"
@@ -171,7 +172,7 @@ interface WhakoomEdition {
               </div>
 
               @if (collection()!.description) {
-                <p class="mt-4 text-xs text-[#606060] leading-relaxed line-clamp-3">{{ collection()!.description }}</p>
+                <p class="mt-3 text-xs text-[#606060] leading-relaxed line-clamp-3">{{ collection()!.description }}</p>
               }
             </div>
           </div>
@@ -179,8 +180,8 @@ interface WhakoomEdition {
 
         <!-- Edition info -->
         @if (collection()!.edition_details || collection()!.synopsis || collection()!.authors.length) {
-          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-6 mb-6">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-6 mb-5 md:mb-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 md:gap-6">
               <!-- Left: Edition + Synopsis -->
               <div class="space-y-5">
                 @if (collection()!.edition_details) {
@@ -216,7 +217,7 @@ interface WhakoomEdition {
         }
 
         <!-- Issues grid -->
-        <div class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-3">
+        <div class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 xl:grid-cols-8 gap-2 md:gap-3">
           @for (issue of mergedIssues(); track issue.whakoomId || issue.comicId) {
             @if (issue.comicId) {
               <!-- Owned issue — link to comic detail -->
@@ -233,21 +234,20 @@ interface WhakoomEdition {
                     </div>
                   }
                   @if (issue.number) {
-                    <span class="absolute bottom-1.5 right-1.5 bg-black/70 text-white text-[10px] font-bold
-                                 px-1.5 py-0.5 rounded-md leading-none backdrop-blur-sm">#{{ issue.number }}</span>
+                    <span class="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] md:text-[10px] font-bold
+                                 px-1 md:px-1.5 py-0.5 rounded-md leading-none backdrop-blur-sm">#{{ issue.number }}</span>
                   }
-                  <!-- Owned indicator -->
-                  <span class="absolute top-1.5 left-1.5 w-4 h-4 rounded-full bg-[#7c3aed] flex items-center justify-center">
-                    <svg class="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                  <span class="absolute top-1 left-1 w-3.5 h-3.5 md:w-4 md:h-4 rounded-full bg-[#7c3aed] flex items-center justify-center">
+                    <svg class="w-2 h-2 md:w-2.5 md:h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                     </svg>
                   </span>
                   <div class="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-xl"></div>
                 </div>
-                <p class="mt-1 text-[10px] text-[#a0a0a0] truncate">{{ issue.subtitle || issue.title }}</p>
+                <p class="mt-1 text-[9px] md:text-[10px] text-[#a0a0a0] truncate">{{ issue.subtitle || issue.title }}</p>
               </a>
             } @else if (!issue.published) {
-              <!-- Not published yet — no add button -->
+              <!-- Not published yet -->
               <div class="group">
                 <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#0d0d0d] border border-dashed border-[#2a2a2a]">
                   @if (issue.cover) {
@@ -260,20 +260,19 @@ interface WhakoomEdition {
                     </div>
                   }
                   @if (issue.number) {
-                    <span class="absolute bottom-1.5 right-1.5 bg-black/70 text-white/30 text-[10px] font-bold
-                                 px-1.5 py-0.5 rounded-md leading-none">#{{ issue.number }}</span>
+                    <span class="absolute bottom-1 right-1 bg-black/70 text-white/30 text-[9px] md:text-[10px] font-bold
+                                 px-1 md:px-1.5 py-0.5 rounded-md leading-none">#{{ issue.number }}</span>
                   }
-                  <!-- Upcoming badge -->
-                  <span class="absolute top-1.5 left-1.5 bg-[#f59e0b]/20 text-[#f59e0b] text-[9px] font-semibold
-                               px-1.5 py-0.5 rounded-md leading-none backdrop-blur-sm">
+                  <span class="absolute top-1 left-1 bg-[#f59e0b]/20 text-[#f59e0b] text-[8px] md:text-[9px] font-semibold
+                               px-1 md:px-1.5 py-0.5 rounded-md leading-none backdrop-blur-sm">
                     @if (issue.releaseDate) {
                       {{ issue.releaseDate }}
                     } @else {
-                      Próximamente
+                      Próx.
                     }
                   </span>
                 </div>
-                <p class="mt-1 text-[10px] text-[#303030] truncate">{{ issue.subtitle || issue.title }}</p>
+                <p class="mt-1 text-[9px] md:text-[10px] text-[#303030] truncate">{{ issue.subtitle || issue.title }}</p>
               </div>
             } @else {
               <!-- Not owned, published — show add button -->
@@ -292,23 +291,22 @@ interface WhakoomEdition {
                     </div>
                   }
                   @if (issue.number) {
-                    <span class="absolute bottom-1.5 right-1.5 bg-black/70 text-white/50 text-[10px] font-bold
-                                 px-1.5 py-0.5 rounded-md leading-none">#{{ issue.number }}</span>
+                    <span class="absolute bottom-1 right-1 bg-black/70 text-white/50 text-[9px] md:text-[10px] font-bold
+                                 px-1 md:px-1.5 py-0.5 rounded-md leading-none">#{{ issue.number }}</span>
                   }
-                  <!-- Add overlay -->
                   <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     @if (addingIssue() === issue.whakoomId) {
                       <div class="w-5 h-5 border-2 border-[#2a2a2a] border-t-[#7c3aed] rounded-full animate-spin"></div>
                     } @else {
-                      <span class="w-8 h-8 rounded-full bg-[#7c3aed] flex items-center justify-center shadow-lg">
-                        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                      <span class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#7c3aed] flex items-center justify-center shadow-lg">
+                        <svg class="w-3.5 h-3.5 md:w-4 md:h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
                       </span>
                     }
                   </div>
                 </div>
-                <p class="mt-1 text-[10px] text-[#404040] truncate">{{ issue.subtitle || issue.title }}</p>
+                <p class="mt-1 text-[9px] md:text-[10px] text-[#404040] truncate">{{ issue.subtitle || issue.title }}</p>
               </button>
             }
           }
@@ -338,7 +336,6 @@ export class CollectionDetailComponent implements OnInit {
       if (c.number != null) ownedByNumber.set(c.number, c);
     }
 
-    // Use DB issues (persisted), with live Whakoom as override if available
     const catalogIssues = this.whakoomEdition()?.issues ?? col.issues ?? [];
 
     if (catalogIssues.length > 0) {
@@ -359,7 +356,6 @@ export class CollectionDetailComponent implements OnInit {
       });
     }
 
-    // Fallback: just show owned comics
     return col.comics.map(c => ({
       whakoomId: null as string | null,
       comicId: c.id,
@@ -398,7 +394,6 @@ export class CollectionDetailComponent implements OnInit {
         this.collection.set(col);
         this.loading.set(false);
 
-        // Sync with Whakoom at most once per day
         if (col.whakoom_id && this.needsSync(col.whakoom_synced_at)) {
           this.http.get<WhakoomEdition>(
             `${this.base}/whakoom/edition/${col.whakoom_id}`
@@ -470,10 +465,8 @@ export class CollectionDetailComponent implements OnInit {
     const col = this.collection()!;
     const wk = this.whakoomEdition();
 
-    // First fetch the comic detail from Whakoom
     this.http.get<any>(`${this.base}/whakoom/comic/${issue.whakoomId}?type=comic`).subscribe({
       next: (detail) => {
-        // Upload cover to R2
         const coverUrl = detail.cover || issue.cover;
         const createComic = (finalCoverUrl: string) => {
           this.api.post<any>('/comics', {
@@ -493,7 +486,6 @@ export class CollectionDetailComponent implements OnInit {
             owned: false,
           }).subscribe({
             next: (comic) => {
-              // Add to local collection
               this.collection.update(c => c ? {
                 ...c,
                 comics: [...c.comics, {
@@ -514,7 +506,7 @@ export class CollectionDetailComponent implements OnInit {
         if (coverUrl) {
           this.http.post<{ key: string }>(`${this.base}/covers/upload`, { url: coverUrl }).subscribe({
             next: (r) => createComic(`${this.base}/covers/${r.key}`),
-            error: () => createComic(coverUrl), // fallback to original URL
+            error: () => createComic(coverUrl),
           });
         } else {
           createComic('');

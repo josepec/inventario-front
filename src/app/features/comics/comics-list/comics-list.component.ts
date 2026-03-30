@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, ViewChild, ElementRef } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -43,85 +43,92 @@ interface WkComic {
   standalone: true,
   imports: [RouterLink, FormsModule],
   template: `
-    <div class="p-8 max-w-7xl mx-auto">
+    <div class="p-4 md:p-8 max-w-7xl mx-auto">
 
       <!-- Header -->
-      <div class="flex items-center justify-between mb-8">
+      <div class="flex items-start justify-between mb-5 md:mb-8 gap-3">
         <div>
-          <h1 class="text-3xl font-bold text-white tracking-tight">Cómics</h1>
-          <p class="text-[#606060] mt-1">{{ total() }} {{ tab() === 'comics' ? 'títulos' : 'colecciones' }}</p>
+          <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">Cómics</h1>
+          <p class="text-[#606060] mt-0.5 text-sm">{{ total() }} {{ tab() === 'comics' ? 'títulos' : 'colecciones' }}</p>
         </div>
         <button (click)="openModal()"
           class="flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white
-                 font-semibold text-sm rounded-xl px-5 py-2.5 transition-colors duration-200">
+                 font-semibold text-sm rounded-xl px-4 py-2.5 md:px-5 transition-colors duration-200 shrink-0">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
-          Añadir cómic
+          <span class="hidden sm:inline">Añadir cómic</span>
+          <span class="sm:hidden">Añadir</span>
         </button>
       </div>
 
       <!-- Filters -->
-      <div class="flex flex-wrap items-center gap-3 mb-8">
+      <div class="flex flex-col gap-3 mb-5 md:mb-8">
 
-        <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5">
-          <button (click)="switchTab('comics')"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            [class]="tab() === 'comics' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
-            Cómics
-          </button>
-          <button (click)="switchTab('collections')"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            [class]="tab() === 'collections' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
-            Colecciones
-          </button>
-        </div>
-
-        <div class="relative flex-1 min-w-64">
-          <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#404040]"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
-          <input [(ngModel)]="search" (ngModelChange)="onSearch()"
-            type="text" [placeholder]="tab() === 'comics' ? 'Buscar por título, serie, autor...' : 'Buscar colección...'"
-            class="w-full bg-[#161616] border border-[#2a2a2a] rounded-xl pl-10 pr-4 py-2.5 text-sm
-                   text-white placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
-        </div>
-
-        @if (tab() === 'comics') {
+        <!-- Row 1: tabs + view toggle -->
+        <div class="flex items-center gap-3">
           <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5">
-            <button (click)="filterStatus = ''; load()"
-              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-              [class]="filterStatus === '' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
-              Todos
+            <button (click)="switchTab('comics')"
+              class="px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors"
+              [class]="tab() === 'comics' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+              Cómics
             </button>
-            <button (click)="filterStatus = 'unread'; load()"
-              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-              [class]="filterStatus === 'unread' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
-              Sin leer
-            </button>
-            <button (click)="filterStatus = 'read'; load()"
-              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-              [class]="filterStatus === 'read' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
-              Leído
+            <button (click)="switchTab('collections')"
+              class="px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors"
+              [class]="tab() === 'collections' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+              Colecciones
             </button>
           </div>
-        }
 
-        <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-1">
-          <button (click)="viewMode.set('grid')" [class.bg-[#2a2a2a]]="viewMode() === 'grid'"
-            class="p-2 rounded-lg transition-colors hover:bg-[#222]">
-            <svg class="w-4 h-4 text-[#a0a0a0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round"
-                d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+          <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-1 ml-auto">
+            <button (click)="viewMode.set('grid')" [class.bg-[#2a2a2a]]="viewMode() === 'grid'"
+              class="p-2 rounded-lg transition-colors hover:bg-[#222]">
+              <svg class="w-4 h-4 text-[#a0a0a0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+            </button>
+            <button (click)="viewMode.set('list')" [class.bg-[#2a2a2a]]="viewMode() === 'list'"
+              class="p-2 rounded-lg transition-colors hover:bg-[#222]">
+              <svg class="w-4 h-4 text-[#a0a0a0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Row 2: search + status filter -->
+        <div class="flex flex-wrap items-center gap-2">
+          <div class="relative flex-1 min-w-0">
+            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#404040]"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
-          </button>
-          <button (click)="viewMode.set('list')" [class.bg-[#2a2a2a]]="viewMode() === 'list'"
-            class="p-2 rounded-lg transition-colors hover:bg-[#222]">
-            <svg class="w-4 h-4 text-[#a0a0a0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-            </svg>
-          </button>
+            <input [(ngModel)]="search" (ngModelChange)="onSearch()"
+              type="text" [placeholder]="tab() === 'comics' ? 'Buscar por título, serie...' : 'Buscar colección...'"
+              class="w-full bg-[#161616] border border-[#2a2a2a] rounded-xl pl-10 pr-4 py-2.5 text-sm
+                     text-white placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+          </div>
+
+          @if (tab() === 'comics') {
+            <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5 shrink-0">
+              <button (click)="filterStatus = ''; load()"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                [class]="filterStatus === '' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+                Todos
+              </button>
+              <button (click)="filterStatus = 'unread'; load()"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                [class]="filterStatus === 'unread' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+                Sin leer
+              </button>
+              <button (click)="filterStatus = 'read'; load()"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                [class]="filterStatus === 'read' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+                Leído
+              </button>
+            </div>
+          }
         </div>
       </div>
 
@@ -146,10 +153,10 @@ interface WkComic {
               <button (click)="openModal()" class="inline-block mt-4 text-sm text-[#8b5cf6] hover:underline">Añade el primero</button>
             </div>
           } @else {
-            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4">
+            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
               @for (comic of comics(); track comic.id) {
                 <a [routerLink]="['/app/comics', comic.id]" class="group cursor-pointer">
-                  <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-2">
+                  <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                     @if (comic.cover_url) {
                       <img [src]="comic.cover_url" [alt]="comic.title"
                         class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
@@ -190,18 +197,18 @@ interface WkComic {
           <div class="space-y-2">
             @for (comic of comics(); track comic.id) {
               <a [routerLink]="['/app/comics', comic.id]"
-                class="flex items-center gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
-                       rounded-xl px-4 py-3 transition-colors duration-150">
-                <div class="w-10 h-14 rounded-lg overflow-hidden bg-[#222] shrink-0">
+                class="flex items-center gap-3 md:gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
+                       rounded-xl px-3 md:px-4 py-3 transition-colors duration-150">
+                <div class="w-9 h-12 md:w-10 md:h-14 rounded-lg overflow-hidden bg-[#222] shrink-0">
                   @if (comic.cover_url) {
                     <img [src]="comic.cover_url" [alt]="comic.title" class="w-full h-full object-cover" />
                   }
                 </div>
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-semibold text-white truncate">{{ comic.title }}</p>
-                  @if (comic.series) { <p class="text-xs text-[#606060]">{{ comic.series }}</p> }
+                  @if (comic.series) { <p class="text-xs text-[#606060] truncate">{{ comic.series }}</p> }
                 </div>
-                <div class="shrink-0 text-xs text-[#606060]">{{ comic.publisher }}</div>
+                <div class="hidden sm:block shrink-0 text-xs text-[#606060]">{{ comic.publisher }}</div>
                 <div class="shrink-0">
                   <span class="text-xs px-2 py-1 rounded-lg" [class]="statusClass(comic.read_status)">
                     {{ statusLabel(comic.read_status) }}
@@ -222,10 +229,10 @@ interface WkComic {
               <p class="text-[#404040] text-xs mt-2">Se crean automáticamente al añadir cómics desde Whakoom</p>
             </div>
           } @else {
-            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4">
+            <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
               @for (col of collections(); track col.id) {
                 <a [routerLink]="['/app/collections', col.id]" class="group cursor-pointer">
-                  <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-2">
+                  <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                     @if (col.cover_url) {
                       <img [src]="col.cover_url" [alt]="col.title"
                         class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
@@ -256,14 +263,14 @@ interface WkComic {
           <div class="space-y-2">
             @for (col of collections(); track col.id) {
               <a [routerLink]="['/app/collections', col.id]"
-                class="flex items-center gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
-                       rounded-xl px-4 py-3 transition-colors duration-150">
-                <div class="w-10 h-14 rounded-lg overflow-hidden bg-[#222] shrink-0">
+                class="flex items-center gap-3 md:gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
+                       rounded-xl px-3 md:px-4 py-3 transition-colors duration-150">
+                <div class="w-9 h-12 md:w-10 md:h-14 rounded-lg overflow-hidden bg-[#222] shrink-0">
                   @if (col.cover_url) { <img [src]="col.cover_url" [alt]="col.title" class="w-full h-full object-cover" /> }
                 </div>
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-semibold text-white truncate">{{ col.title }}</p>
-                  @if (col.publisher) { <p class="text-xs text-[#606060]">{{ col.publisher }}</p> }
+                  @if (col.publisher) { <p class="text-xs text-[#606060] truncate">{{ col.publisher }}</p> }
                 </div>
                 @if (col.total_issues) {
                   <div class="shrink-0 text-xs text-[#606060]">{{ col.total_issues }} cómics</div>
@@ -275,11 +282,11 @@ interface WkComic {
       }
 
       @if (totalPages() > 1) {
-        <div class="flex justify-center items-center gap-2 mt-10">
+        <div class="flex justify-center items-center gap-2 mt-8 md:mt-10">
           <button (click)="goTo(page() - 1)" [disabled]="page() === 1"
             class="px-3 py-2 rounded-lg bg-[#161616] border border-[#2a2a2a] text-sm text-[#a0a0a0]
                    disabled:opacity-30 hover:bg-[#1f1f1f] transition-colors">← Anterior</button>
-          <span class="text-sm text-[#606060]">Página {{ page() }} de {{ totalPages() }}</span>
+          <span class="text-sm text-[#606060]">{{ page() }} / {{ totalPages() }}</span>
           <button (click)="goTo(page() + 1)" [disabled]="page() === totalPages()"
             class="px-3 py-2 rounded-lg bg-[#161616] border border-[#2a2a2a] text-sm text-[#a0a0a0]
                    disabled:opacity-30 hover:bg-[#1f1f1f] transition-colors">Siguiente →</button>
@@ -289,23 +296,26 @@ interface WkComic {
 
     <!-- ── Modal añadir cómic ─────────────────────────────────────────────── -->
     @if (modalOpen()) {
-      <div class="fixed inset-0 z-50 flex items-center justify-center p-4" (click)="closeModal()">
+      <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4"
+        (click)="closeModal()">
         <div class="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
 
-        <div class="relative bg-[#111111] border border-[#2a2a2a] rounded-2xl w-full max-w-2xl
-                    max-h-[85vh] flex flex-col shadow-2xl" (click)="$event.stopPropagation()">
+        <div class="relative bg-[#111111] border border-[#2a2a2a]
+                    rounded-t-2xl sm:rounded-2xl w-full sm:max-w-2xl
+                    max-h-[92vh] sm:max-h-[85vh] flex flex-col shadow-2xl"
+          (click)="$event.stopPropagation()">
 
           <!-- Cabecera -->
-          <div class="flex items-center gap-3 p-5 border-b border-[#1e1e1e]">
+          <div class="flex items-center gap-3 p-4 md:p-5 border-b border-[#1e1e1e] shrink-0">
             <svg class="w-5 h-5 text-[#7c3aed] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
-            <h2 class="text-white font-semibold">Buscar en Whakoom</h2>
+            <h2 class="text-white font-semibold text-sm md:text-base">Buscar en Whakoom</h2>
             <a routerLink="/app/comics/new" (click)="closeModal()"
-              class="ml-auto text-xs text-[#606060] hover:text-[#a0a0a0] transition-colors">
+              class="ml-auto text-xs text-[#606060] hover:text-[#a0a0a0] transition-colors whitespace-nowrap">
               Entrada manual
             </a>
-            <button type="button" (click)="closeModal()" class="p-1 text-[#606060] hover:text-white transition-colors">
+            <button type="button" (click)="closeModal()" class="p-1 text-[#606060] hover:text-white transition-colors shrink-0">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
@@ -313,19 +323,38 @@ interface WkComic {
           </div>
 
           <!-- Buscador -->
-          <div class="p-4 border-b border-[#1e1e1e]">
+          <div class="p-3 md:p-4 border-b border-[#1e1e1e] shrink-0">
             <div class="flex gap-2">
               <input #wkInput
                 type="text"
                 [(ngModel)]="wkQuery"
                 placeholder="Título o ISBN..."
                 (keydown.enter)="searchWk()"
-                class="flex-1 bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white
+                class="flex-1 min-w-0 bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white
                        placeholder:text-[#303030] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+
+              <!-- Barcode scan button -->
+              <button type="button" (click)="triggerBarcodeInput()"
+                title="Escanear código de barras"
+                class="px-3 py-2.5 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a]
+                       text-[#606060] hover:text-[#8b5cf6] hover:border-[#7c3aed44] transition-colors shrink-0">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+                </svg>
+              </button>
+
+              <!-- Hidden file input for camera/barcode -->
+              <input #barcodeInput type="file" accept="image/*" capture="environment"
+                class="sr-only" (change)="onBarcodeCapture($event)" />
+
               <button type="button" (click)="searchWk()" [disabled]="wkLoading()"
-                class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
-                       hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                @if (wkLoading()) { Buscando... } @else { Buscar }
+                class="px-4 md:px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
+                       hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0">
+                @if (wkLoading()) { <span class="hidden sm:inline">Buscando...</span><span class="sm:hidden">...</span> }
+                @else { Buscar }
               </button>
             </div>
             @if (wkError()) {
@@ -334,7 +363,7 @@ interface WkComic {
           </div>
 
           <!-- Contenido -->
-          <div class="flex-1 overflow-y-auto p-4">
+          <div class="flex-1 overflow-y-auto p-3 md:p-4">
 
             @if (wkDetail()) {
               <!-- Vista detalle -->
@@ -347,13 +376,13 @@ interface WkComic {
                   Volver a resultados
                 </button>
 
-                <div class="flex gap-5">
+                <div class="flex gap-4 md:gap-5">
                   @if (wkDetail()!.cover) {
                     <img [src]="wkDetail()!.cover" alt="Portada"
-                      class="w-28 shrink-0 rounded-lg border border-[#2a2a2a] object-cover aspect-[2/3]" />
+                      class="w-24 md:w-28 shrink-0 rounded-lg border border-[#2a2a2a] object-cover aspect-[2/3]" />
                   }
                   <div class="flex-1 min-w-0">
-                    <h3 class="text-white font-semibold text-base leading-tight">{{ wkDetail()!.title }}</h3>
+                    <h3 class="text-white font-semibold text-sm md:text-base leading-tight">{{ wkDetail()!.title }}</h3>
                     @if (wkDetail()!.series) {
                       <p class="text-[#7c3aed] text-xs mt-1 uppercase tracking-wider">{{ wkDetail()!.series }}</p>
                     }
@@ -382,12 +411,12 @@ interface WkComic {
 
                 <div class="flex gap-3 mt-5">
                   <button type="button" (click)="addDirectly()" [disabled]="wkSaving()"
-                    class="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
+                    class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
                            hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
                     @if (wkSaving()) { Añadiendo... } @else { Añadir }
                   </button>
                   <a routerLink="/app/comics/new" (click)="closeModal()"
-                    class="px-5 py-2.5 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
+                    class="px-5 py-3 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
                            border border-[#2a2a2a] hover:bg-[#222] transition-colors">
                     Editar antes
                   </a>
@@ -400,7 +429,7 @@ interface WkComic {
                 @if (wkTotal() > 0) {
                   <p class="text-xs text-[#505050] mb-3">{{ wkTotal() }} resultados</p>
                 }
-                <div class="grid grid-cols-4 gap-3 sm:grid-cols-5 md:grid-cols-6">
+                <div class="grid grid-cols-4 gap-2 sm:grid-cols-5 md:grid-cols-6 sm:gap-3">
                   @for (result of wkResults(); track result.id) {
                     <button type="button" (click)="loadWkDetail(result.id, result.type)"
                       [disabled]="wkLoading()" class="group text-left disabled:opacity-50">
@@ -417,6 +446,7 @@ interface WkComic {
                         }
                       </div>
                       <p class="mt-1.5 text-xs text-[#a0a0a0] group-hover:text-white line-clamp-2 leading-tight transition-colors">{{ result.title }}</p>
+                      <p class="text-[10px] text-[#404040] truncate">{{ result.type }}</p>
                     </button>
                   }
                 </div>
@@ -433,7 +463,11 @@ interface WkComic {
                 </div>
               } @else if (!wkLoading()) {
                 <div class="text-center py-12 text-[#404040]">
+                  <svg class="w-10 h-10 mx-auto mb-3 text-[#252525]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
                   <p class="text-sm">Escribe el título o ISBN y pulsa Buscar</p>
+                  <p class="text-xs mt-1 text-[#303030]">También puedes escanear el código de barras</p>
                 </div>
               }
 
@@ -450,6 +484,8 @@ interface WkComic {
   `
 })
 export class ComicsListComponent implements OnInit {
+  @ViewChild('barcodeInput') private barcodeInputRef!: ElementRef<HTMLInputElement>;
+
   private api = inject(ApiService);
   private http = inject(HttpClient);
   private router = inject(Router);
@@ -570,6 +606,42 @@ export class ComicsListComponent implements OnInit {
       error: () => { this.wkError.set('Error al cargar el cómic'); this.wkLoading.set(false); }
     });
   }
+
+  // ── Barcode scanner ──────────────────────────────────────────────────────
+
+  triggerBarcodeInput() {
+    this.barcodeInputRef.nativeElement.value = '';
+    this.barcodeInputRef.nativeElement.click();
+  }
+
+  async onBarcodeCapture(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+
+    if (!('BarcodeDetector' in window)) {
+      this.wkError.set('Tu navegador no soporta el escáner de código de barras');
+      return;
+    }
+
+    try {
+      const detector = new (window as any).BarcodeDetector({
+        formats: ['ean_13', 'ean_8', 'qr_code', 'isbn']
+      });
+      const bitmap = await createImageBitmap(file);
+      const codes: Array<{ rawValue: string }> = await detector.detect(bitmap);
+      if (codes.length > 0) {
+        this.wkQuery = codes[0].rawValue;
+        this.wkError.set('');
+        this.searchWk();
+      } else {
+        this.wkError.set('No se detectó ningún código en la imagen');
+      }
+    } catch {
+      this.wkError.set('Error al procesar la imagen');
+    }
+  }
+
+  // ── Add directly ─────────────────────────────────────────────────────────
 
   addDirectly() {
     const d = this.wkDetail();

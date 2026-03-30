@@ -13,7 +13,7 @@ interface NavItem {
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
   template: `
-    <aside class="flex flex-col h-full w-60 bg-[#111111] border-r border-[#1e1e1e]">
+    <aside class="hidden md:flex flex-col h-full w-60 bg-[#111111] border-r border-[#1e1e1e]">
 
       <!-- Logo -->
       <div class="flex items-center gap-3 px-5 h-16 border-b border-[#1e1e1e] shrink-0">

@@ -9,55 +9,69 @@ import { Book } from '../../../shared/models/book.model';
   standalone: true,
   imports: [RouterLink, FormsModule],
   template: `
-    <div class="p-8 max-w-7xl mx-auto">
+    <div class="p-4 md:p-8 max-w-7xl mx-auto">
 
-      <div class="flex items-center justify-between mb-8">
+      <div class="flex items-start justify-between mb-5 md:mb-8 gap-3">
         <div>
-          <h1 class="text-3xl font-bold text-white tracking-tight">Libros</h1>
-          <p class="text-[#606060] mt-1">{{ total() }} libros en tu colección</p>
+          <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">Libros</h1>
+          <p class="text-[#606060] mt-0.5 text-sm">{{ total() }} libros en tu colección</p>
         </div>
         <a routerLink="/app/books/new"
           class="flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white
-                 font-semibold text-sm rounded-xl px-5 py-2.5 transition-colors duration-200">
+                 font-semibold text-sm rounded-xl px-4 py-2.5 md:px-5 transition-colors duration-200 shrink-0">
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
-          Añadir libro
+          <span class="hidden sm:inline">Añadir libro</span>
+          <span class="sm:hidden">Añadir</span>
         </a>
       </div>
 
-      <div class="flex flex-wrap items-center gap-3 mb-8">
-        <div class="relative flex-1 min-w-64">
-          <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#404040]"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-          </svg>
-          <input [(ngModel)]="search" (ngModelChange)="onSearch()"
-            type="text" placeholder="Buscar por título, autor, editorial..."
-            class="w-full bg-[#161616] border border-[#2a2a2a] rounded-xl pl-10 pr-4 py-2.5 text-sm
-                   text-white placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+      <!-- Filters -->
+      <div class="flex flex-col gap-2 mb-5 md:mb-8">
+        <div class="flex items-center gap-2">
+          <div class="relative flex-1 min-w-0">
+            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#404040]"
+              fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+            <input [(ngModel)]="search" (ngModelChange)="onSearch()"
+              type="text" placeholder="Buscar por título, autor, editorial..."
+              class="w-full bg-[#161616] border border-[#2a2a2a] rounded-xl pl-10 pr-4 py-2.5 text-sm
+                     text-white placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+          </div>
+
+          <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-1 shrink-0">
+            <button (click)="viewMode.set('grid')" [class.bg-[#2a2a2a]]="viewMode() === 'grid'"
+              class="p-2 rounded-lg transition-colors hover:bg-[#222]">
+              <svg class="w-4 h-4 text-[#a0a0a0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
+              </svg>
+            </button>
+            <button (click)="viewMode.set('list')" [class.bg-[#2a2a2a]]="viewMode() === 'list'"
+              class="p-2 rounded-lg transition-colors hover:bg-[#222]">
+              <svg class="w-4 h-4 text-[#a0a0a0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+              </svg>
+            </button>
+          </div>
         </div>
 
-        <select [(ngModel)]="filterStatus" (ngModelChange)="load()"
-          class="bg-[#161616] border border-[#2a2a2a] rounded-xl px-4 py-2.5 text-sm text-white
-                 focus:outline-none focus:border-[#7c3aed] transition-colors">
-          <option value="">Todos</option>
-          <option value="unread">Sin leer</option>
-          <option value="read">Leído</option>
-        </select>
-
-        <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-1">
-          <button (click)="viewMode.set('grid')" [class.bg-[#2a2a2a]]="viewMode() === 'grid'"
-            class="p-2 rounded-lg transition-colors hover:bg-[#222]">
-            <svg class="w-4 h-4 text-[#a0a0a0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />
-            </svg>
+        <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5 self-start">
+          <button (click)="filterStatus = ''; load()"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            [class]="filterStatus === '' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+            Todos
           </button>
-          <button (click)="viewMode.set('list')" [class.bg-[#2a2a2a]]="viewMode() === 'list'"
-            class="p-2 rounded-lg transition-colors hover:bg-[#222]">
-            <svg class="w-4 h-4 text-[#a0a0a0]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 6.75h12M8.25 12h12m-12 5.25h12M3.75 6.75h.007v.008H3.75V6.75zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zM3.75 12h.007v.008H3.75V12zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm-.375 5.25h.007v.008H3.75v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-            </svg>
+          <button (click)="filterStatus = 'unread'; load()"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            [class]="filterStatus === 'unread' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+            Sin leer
+          </button>
+          <button (click)="filterStatus = 'read'; load()"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+            [class]="filterStatus === 'read' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+            Leído
           </button>
         </div>
       </div>
@@ -80,10 +94,10 @@ import { Book } from '../../../shared/models/book.model';
             <a routerLink="/app/books/new" class="inline-block mt-4 text-sm text-[#8b5cf6] hover:underline">Añade el primero</a>
           </div>
         } @else {
-          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4">
+          <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
             @for (book of books(); track book.id) {
               <a [routerLink]="['/app/books', book.id]" class="group cursor-pointer">
-                <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-2">
+                <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                   @if (book.cover_url) {
                     <img [src]="book.cover_url" [alt]="book.title"
                       class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
@@ -120,18 +134,18 @@ import { Book } from '../../../shared/models/book.model';
         <div class="space-y-2">
           @for (book of books(); track book.id) {
             <a [routerLink]="['/app/books', book.id]"
-              class="flex items-center gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
-                     rounded-xl px-4 py-3 transition-colors duration-150">
-              <div class="w-10 h-14 rounded-lg overflow-hidden bg-[#222] shrink-0">
+              class="flex items-center gap-3 md:gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
+                     rounded-xl px-3 md:px-4 py-3 transition-colors duration-150">
+              <div class="w-9 h-12 md:w-10 md:h-14 rounded-lg overflow-hidden bg-[#222] shrink-0">
                 @if (book.cover_url) {
                   <img [src]="book.cover_url" [alt]="book.title" class="w-full h-full object-cover" />
                 }
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-white truncate">{{ book.title }}</p>
-                <p class="text-xs text-[#606060]">{{ book.author }}</p>
+                <p class="text-xs text-[#606060] truncate">{{ book.author }}</p>
               </div>
-              <div class="shrink-0 text-xs text-[#606060]">{{ book.publisher }}</div>
+              <div class="hidden sm:block shrink-0 text-xs text-[#606060]">{{ book.publisher }}</div>
               <div class="shrink-0">
                 <span class="text-xs px-2 py-1 rounded-lg" [class]="statusClass(book.read_status)">
                   {{ statusLabel(book.read_status) }}
@@ -143,11 +157,11 @@ import { Book } from '../../../shared/models/book.model';
       }
 
       @if (totalPages() > 1) {
-        <div class="flex justify-center items-center gap-2 mt-10">
+        <div class="flex justify-center items-center gap-2 mt-8 md:mt-10">
           <button (click)="goTo(page() - 1)" [disabled]="page() === 1"
             class="px-3 py-2 rounded-lg bg-[#161616] border border-[#2a2a2a] text-sm text-[#a0a0a0]
                    disabled:opacity-30 hover:bg-[#1f1f1f] transition-colors">← Anterior</button>
-          <span class="text-sm text-[#606060]">Página {{ page() }} de {{ totalPages() }}</span>
+          <span class="text-sm text-[#606060]">{{ page() }} / {{ totalPages() }}</span>
           <button (click)="goTo(page() + 1)" [disabled]="page() === totalPages()"
             class="px-3 py-2 rounded-lg bg-[#161616] border border-[#2a2a2a] text-sm text-[#a0a0a0]
                    disabled:opacity-30 hover:bg-[#1f1f1f] transition-colors">Siguiente →</button>
