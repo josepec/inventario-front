@@ -10,6 +10,7 @@ interface WhakoomResult {
   id: string;
   title: string;
   cover: string | null;
+  publisher: string;
   type: string;
 }
 
@@ -24,7 +25,14 @@ interface WhakoomComic {
   series: string;
   number: string;
   isbn: string;
+  language: string;
   url: string;
+}
+
+interface CollectionResponse {
+  id: number;
+  whakoom_id?: string;
+  existed?: boolean;
 }
 
 @Component({
@@ -478,6 +486,7 @@ export class ComicFormComponent implements OnInit {
   whakoomPage = signal(1);
   whakoomHasMore = signal(false);
   whakoomTotal = signal(0);
+  private whakoomSelectedResult: WhakoomResult | null = null;
 
   form = this.fb.nonNullable.group({
     title: ['', Validators.required],
@@ -505,6 +514,7 @@ export class ComicFormComponent implements OnInit {
     owned: [false],
     rating: [null as number | null],
     notes: [''],
+    collection_id: [null as number | null],
   });
 
   ngOnInit() {
@@ -603,6 +613,7 @@ export class ComicFormComponent implements OnInit {
   }
 
   loadWhakoomDetail(id: string, type: string = 'comic') {
+    this.whakoomSelectedResult = this.whakoomResults().find(r => r.id === id) ?? null;
     this.whakoomLoading.set(true);
     this.whakoomError.set('');
 
@@ -629,22 +640,65 @@ export class ComicFormComponent implements OnInit {
 
     const patch: Partial<typeof this.form.value> = {};
 
-    if (d.title)      patch.title     = d.title;
-    if (d.series)     patch.series    = d.series;
-    if (d.publisher)  patch.publisher = d.publisher;
-    if (d.cover)      patch.cover_url = d.cover;
-    if (d.isbn)       patch.isbn      = d.isbn;
-    if (d.number)     patch.number    = Number(d.number) || null;
-    if (d.description) patch.synopsis = d.description;
-    if (d.date)       patch.publish_date = d.date;
+    if (d.title)       patch.title        = d.title;
+    if (d.series)      patch.series       = d.series;
+    if (d.publisher)   patch.publisher    = d.publisher;
+    if (d.isbn)        patch.isbn         = d.isbn;
+    if (d.number)      patch.number       = Number(d.number) || null;
+    if (d.description) patch.synopsis     = d.description;
+    if (d.date)        patch.publish_date = d.date;
+    if (d.language)    patch.language     = d.language;
 
     // Autores: primer autor → guionista, segundo → dibujante
     if (d.authors?.length >= 1) patch.writer = d.authors[0];
     if (d.authors?.length >= 2) patch.artist = d.authors[1];
 
-    this.form.patchValue(patch as any);
-    if (d.cover) this.coverPreview.set(d.cover);
+    // Temporalmente poner la cover de Whakoom, luego subir a R2
+    if (d.cover) {
+      patch.cover_url = d.cover;
+      this.coverPreview.set(d.cover);
+    }
 
+    this.form.patchValue(patch as any);
     this.closeWhakoom();
+
+    // Subir portada a R2 en background
+    if (d.cover) {
+      this.uploadCoverToR2(d.cover);
+    }
+
+    // Si viene de una edición (colección), crear/vincular la colección
+    const src = this.whakoomSelectedResult;
+    if (src && src.type === 'edition') {
+      this.createCollection(src);
+    }
+  }
+
+  private uploadCoverToR2(imageUrl: string) {
+    this.http.post<{ key: string; url: string }>(
+      `${this.base}/covers/upload`, { url: imageUrl }
+    ).subscribe({
+      next: (res) => {
+        const r2Url = `${this.base}/covers/${res.key}`;
+        this.form.patchValue({ cover_url: r2Url });
+        this.coverPreview.set(r2Url);
+      }
+    });
+  }
+
+  private createCollection(src: WhakoomResult) {
+    const d = this.whakoomDetail();
+    this.http.post<CollectionResponse>(`${this.base}/collections`, {
+      whakoom_id: src.id,
+      whakoom_type: src.type,
+      title: d?.series || src.title,
+      publisher: d?.publisher || src.publisher,
+      cover_url: src.cover,
+      url: `https://www.whakoom.com/ediciones/${src.id}`,
+    }).subscribe({
+      next: (col) => {
+        this.form.patchValue({ collection_id: col.id } as any);
+      }
+    });
   }
 }
