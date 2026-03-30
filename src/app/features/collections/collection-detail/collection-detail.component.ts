@@ -138,13 +138,23 @@ interface WhakoomEdition {
                     {{ collection()!.status }}
                   </span>
                 }
+                @if (isCompleted()) {
+                  <span class="text-xs px-2.5 py-1 rounded-full font-medium bg-[#f59e0b1a] text-[#f59e0b]">
+                    Completada
+                  </span>
+                }
+                @if (isRead()) {
+                  <span class="text-xs px-2.5 py-1 rounded-full font-medium bg-[#22c55e1a] text-[#22c55e]">
+                    Leída
+                  </span>
+                }
                 <button (click)="toggleTracking()" type="button"
                   class="text-xs px-2.5 py-1 rounded-full font-medium cursor-pointer
                          hover:opacity-80 active:scale-95 transition-all"
                   [class]="collection()!.tracking
                     ? 'bg-[#7c3aed1a] text-[#7c3aed]'
                     : 'bg-[#ffffff0d] text-[#606060]'">
-                  {{ collection()!.tracking ? 'Coleccionando' : 'Completar' }}
+                  {{ collection()!.tracking ? 'Coleccionando' : 'No completar' }}
                 </button>
               </div>
 
@@ -371,6 +381,14 @@ export class CollectionDetailComponent implements OnInit {
   progressPercent = computed(() => {
     const total = this.totalCount();
     return total > 0 ? Math.round((this.ownedCount() / total) * 100) : 0;
+  });
+  isCompleted = computed(() => {
+    const total = this.totalCount();
+    return total > 0 && this.ownedCount() >= total;
+  });
+  isRead = computed(() => {
+    const owned = this.mergedIssues().filter(i => i.owned);
+    return owned.length > 0 && owned.every(i => i.readStatus === 'read');
   });
 
   ngOnInit() {

@@ -229,7 +229,7 @@ export class ComicDetailComponent implements OnInit {
     if (!c) return;
     const newStatus = c.read_status === 'read' ? 'unread' : 'read';
     this.api.put<Comic>(`/comics/${c.id}`, { ...c, read_status: newStatus }).subscribe({
-      next: (updated) => this.comic.set(updated),
+      next: (updated) => this.comic.set({ ...updated, collection_name: c.collection_name, collection_id: c.collection_id }),
     });
   }
 
