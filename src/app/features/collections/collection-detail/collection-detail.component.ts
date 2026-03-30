@@ -62,6 +62,7 @@ interface WhakoomEdition {
   synopsis: string;
   authors: WhakoomAuthor[];
   issues: WhakoomIssue[];
+  url: string;
 }
 
 @Component({
@@ -88,17 +89,6 @@ interface WhakoomEdition {
             Volver a Cómics
           </a>
           <div class="flex gap-2">
-            @if (collection()!.whakoom_id) {
-              <button (click)="refreshCollection()" [disabled]="refreshing()"
-                class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
-                       text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors
-                       disabled:opacity-40 disabled:cursor-not-allowed">
-                <svg class="w-4 h-4" [class.animate-spin]="refreshing()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
-                </svg>
-                {{ refreshing() ? 'Actualizando...' : 'Actualizar' }}
-              </button>
-            }
             <button (click)="confirmDelete()"
               class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm bg-[#ef444411] border border-[#ef444433]
                      text-[#ef4444] hover:bg-[#ef444422] transition-colors">
@@ -178,7 +168,7 @@ interface WhakoomEdition {
         </div>
 
         <!-- Edition info -->
-        @if (collection()!.edition_details || collection()!.synopsis || collection()!.authors?.length) {
+        @if (collection()!.edition_details || collection()!.synopsis || collection()!.authors.length) {
           <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-6 mb-6">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <!-- Left: Edition + Synopsis -->
@@ -197,7 +187,7 @@ interface WhakoomEdition {
                 }
               </div>
               <!-- Right: Authors -->
-              @if (collection()!.authors?.length) {
+              @if (collection()!.authors.length) {
                 <div>
                   <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-2">Autores</h3>
                   <div class="flex flex-wrap gap-2">
@@ -328,7 +318,6 @@ export class CollectionDetailComponent implements OnInit {
   whakoomEdition = signal<WhakoomEdition | null>(null);
   loading = signal(true);
   addingIssue = signal<string | null>(null);
-  refreshing = signal(false);
 
   mergedIssues = computed(() => {
     const col = this.collection();
@@ -391,8 +380,8 @@ export class CollectionDetailComponent implements OnInit {
         this.collection.set(col);
         this.loading.set(false);
 
-        // If has Whakoom ID, fetch edition and persist all data
-        if (col.whakoom_id) {
+        // Sync with Whakoom at most once per day
+        if (col.whakoom_id && this.needsSync(col.whakoom_synced_at)) {
           this.http.get<WhakoomEdition>(
             `${this.base}/whakoom/edition/${col.whakoom_id}`
           ).subscribe({
@@ -426,20 +415,10 @@ export class CollectionDetailComponent implements OnInit {
     });
   }
 
-  refreshCollection() {
-    const col = this.collection();
-    if (!col?.whakoom_id || this.refreshing()) return;
-    this.refreshing.set(true);
-
-    this.http.get<WhakoomEdition>(
-      `${this.base}/whakoom/edition/${col.whakoom_id}`
-    ).subscribe({
-      next: ed => {
-        this.whakoomEdition.set(ed);
-        this.syncEdition(col, ed, () => this.refreshing.set(false));
-      },
-      error: () => this.refreshing.set(false),
-    });
+  private needsSync(syncedAt: string | null): boolean {
+    if (!syncedAt) return true;
+    const last = new Date(syncedAt).getTime();
+    return Date.now() - last > 24 * 60 * 60 * 1000;
   }
 
   private syncEdition(col: Collection, ed: WhakoomEdition, done?: () => void) {
