@@ -134,8 +134,8 @@ import { Comic } from '../../../shared/models/comic.model';
                   </div>
                   <!-- Number badge -->
                   @if (comic.number) {
-                    <span class="absolute bottom-1.5 right-1.5 bg-black/70 text-white text-[10px] font-bold
-                                 px-1.5 py-0.5 rounded-md leading-none backdrop-blur-sm">#{{ comic.number }}</span>
+                    <span class="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-bold
+                                 px-2 py-1 rounded-lg leading-none backdrop-blur-sm">#{{ comic.number }}</span>
                   }
                   <!-- Hover overlay -->
                   <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
@@ -143,7 +143,7 @@ import { Comic } from '../../../shared/models/comic.model';
                 <!-- Info -->
                 <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ comic.title }}</p>
                 @if (comic.series) {
-                  <p class="text-[10px] text-[#606060] truncate">{{ comic.series }}</p>
+                  <p class="text-[10px] text-[#8b5cf6] truncate">{{ comic.series }}</p>
                 }
               </a>
             }
@@ -165,7 +165,9 @@ import { Comic } from '../../../shared/models/comic.model';
               </div>
               <div class="flex-1 min-w-0">
                 <p class="text-sm font-semibold text-white truncate">{{ comic.title }}</p>
-                <p class="text-xs text-[#606060]">{{ comic.series }}{{ comic.number ? ' #' + comic.number : '' }}</p>
+                @if (comic.series) {
+                  <p class="text-xs text-[#8b5cf6]">{{ comic.series }}</p>
+                }
               </div>
               <div class="shrink-0 text-xs text-[#606060]">{{ comic.publisher }}</div>
               <div class="shrink-0">

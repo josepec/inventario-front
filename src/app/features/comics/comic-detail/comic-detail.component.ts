@@ -74,14 +74,6 @@ import { Comic } from '../../../shared/models/comic.model';
                   {{ statusLabel(comic()!.read_status) }}
                 </span>
               </div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-[#606060] uppercase tracking-wider">En colección</span>
-                @if (comic()!.owned) {
-                  <span class="text-[#22c55e] text-sm font-medium">Sí</span>
-                } @else {
-                  <span class="text-[#606060] text-sm">No</span>
-                }
-              </div>
               @if (comic()!.collection_name) {
                 <div class="flex items-center justify-between">
                   <span class="text-xs text-[#606060] uppercase tracking-wider">Colección</span>
