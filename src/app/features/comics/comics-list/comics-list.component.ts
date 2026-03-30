@@ -132,6 +132,11 @@ import { Comic } from '../../../shared/models/comic.model';
                       </span>
                     }
                   </div>
+                  <!-- Number badge -->
+                  @if (comic.number) {
+                    <span class="absolute bottom-1.5 right-1.5 bg-black/70 text-white text-[10px] font-bold
+                                 px-1.5 py-0.5 rounded-md leading-none backdrop-blur-sm">#{{ comic.number }}</span>
+                  }
                   <!-- Hover overlay -->
                   <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
                 </div>
