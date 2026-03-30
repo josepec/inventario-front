@@ -43,7 +43,6 @@ import { Book } from '../../../shared/models/book.model';
                  focus:outline-none focus:border-[#7c3aed] transition-colors">
           <option value="">Todos</option>
           <option value="unread">Sin leer</option>
-          <option value="reading">Leyendo</option>
           <option value="read">Leído</option>
         </select>
 
@@ -194,10 +193,9 @@ export class BooksListComponent implements OnInit {
 
   goTo(p: number) { this.page.set(p); this.load(); }
 
-  statusLabel(s: string) { return s === 'read' ? 'Leído' : s === 'reading' ? 'Leyendo' : 'Sin leer'; }
+  statusLabel(s: string) { return s === 'read' ? 'Leído' : 'Sin leer'; }
   statusClass(s: string) {
     if (s === 'read') return 'bg-[#22c55e1a] text-[#22c55e]';
-    if (s === 'reading') return 'bg-[#f59e0b1a] text-[#f59e0b]';
     return 'bg-[#ffffff0d] text-[#606060]';
   }
 }

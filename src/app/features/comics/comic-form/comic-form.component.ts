@@ -108,7 +108,6 @@ interface CollectionResponse {
                   <label class="field-label">Estado de lectura</label>
                   <select formControlName="read_status" class="field-input">
                     <option value="unread">Sin leer</option>
-                    <option value="reading">Leyendo</option>
                     <option value="read">Leído</option>
                   </select>
                 </div>

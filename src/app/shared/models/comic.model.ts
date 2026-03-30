@@ -1,5 +1,5 @@
 export type ComicFormat = 'grapa' | 'tomo' | 'integral' | 'omnibus' | 'manga' | 'novela_grafica' | 'otro';
-export type ReadStatus = 'unread' | 'reading' | 'read';
+export type ReadStatus = 'unread' | 'read';
 
 export interface Comic {
   id: number;
