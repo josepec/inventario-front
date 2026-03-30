@@ -1,10 +1,11 @@
-import { Component, inject, OnInit, signal, computed, ViewChild, ElementRef } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, NgZone } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ApiService, PaginatedResponse } from '../../../shared/services/api.service';
 import { Comic } from '../../../shared/models/comic.model';
 import { environment } from '../../../../environments/environment';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 
 interface CollectionItem {
   id: number;
@@ -334,10 +335,12 @@ interface WkComic {
                        placeholder:text-[#303030] focus:outline-none focus:border-[#7c3aed] transition-colors" />
 
               <!-- Barcode scan button -->
-              <button type="button" (click)="triggerBarcodeInput()"
+              <button type="button" (click)="toggleScanner()"
                 title="Escanear código de barras"
-                class="px-3 py-2.5 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a]
-                       text-[#606060] hover:text-[#8b5cf6] hover:border-[#7c3aed44] transition-colors shrink-0">
+                class="px-3 py-2.5 rounded-xl border transition-colors shrink-0"
+                [class]="scannerActive()
+                  ? 'bg-[#7c3aed22] border-[#7c3aed] text-[#8b5cf6]'
+                  : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#606060] hover:text-[#8b5cf6] hover:border-[#7c3aed44]'">
                 <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
                   <path stroke-linecap="round" stroke-linejoin="round"
                     d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
@@ -345,10 +348,6 @@ interface WkComic {
                     d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
                 </svg>
               </button>
-
-              <!-- Hidden file input for camera/barcode -->
-              <input #barcodeInput type="file" accept="image/*" capture="environment"
-                class="sr-only" (change)="onBarcodeCapture($event)" />
 
               <button type="button" (click)="searchWk()" [disabled]="wkLoading()"
                 class="px-4 md:px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
@@ -361,6 +360,23 @@ interface WkComic {
               <p class="text-[#ef4444] text-xs mt-2">{{ wkError() }}</p>
             }
           </div>
+
+          <!-- Visor de escáner -->
+          @if (scannerActive()) {
+            <div class="relative border-b border-[#1e1e1e] bg-black shrink-0" style="height: 220px">
+              <video #scannerVideo class="w-full h-full object-cover" autoplay muted playsinline></video>
+              <!-- Línea de escaneo animada -->
+              <div class="absolute inset-x-6 top-1/2 -translate-y-1/2 h-0.5 bg-[#7c3aed] opacity-70
+                          animate-pulse rounded-full shadow-[0_0_8px_#7c3aed]"></div>
+              <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <!-- Marco de escaneo -->
+                <div class="w-56 h-28 border-2 border-[#7c3aed] rounded-lg opacity-50"></div>
+              </div>
+              <p class="absolute bottom-2 inset-x-0 text-center text-xs text-[#606060]">
+                Apunta el código de barras al centro
+              </p>
+            </div>
+          }
 
           <!-- Contenido -->
           <div class="flex-1 overflow-y-auto p-3 md:p-4">
@@ -483,13 +499,15 @@ interface WkComic {
     }
   `
 })
-export class ComicsListComponent implements OnInit {
-  @ViewChild('barcodeInput') private barcodeInputRef!: ElementRef<HTMLInputElement>;
+export class ComicsListComponent implements OnInit, OnDestroy {
+  @ViewChild('scannerVideo') private scannerVideoRef?: ElementRef<HTMLVideoElement>;
 
   private api = inject(ApiService);
   private http = inject(HttpClient);
   private router = inject(Router);
+  private zone = inject(NgZone);
   private base = environment.apiUrl;
+  private zxingReader = new BrowserMultiFormatReader();
 
   comics = signal<Comic[]>([]);
   collections = signal<CollectionItem[]>([]);
@@ -519,7 +537,14 @@ export class ComicsListComponent implements OnInit {
   wkTotal = signal(0);
   private wkSelectedResult: WkResult | null = null;
 
+  // ── Scanner state ────────────────────────────────────────────────────────
+  scannerActive = signal(false);
+  private reader = new BrowserMultiFormatReader();
+  private scannerControls: { stop(): void } | null = null;
+
   ngOnInit() { this.load(); }
+
+  ngOnDestroy() { this.stopScanner(); }
 
   switchTab(t: 'comics' | 'collections') {
     this.tab.set(t); this.page.set(1); this.search = ''; this.filterStatus = ''; this.load();
@@ -609,36 +634,38 @@ export class ComicsListComponent implements OnInit {
 
   // ── Barcode scanner ──────────────────────────────────────────────────────
 
-  triggerBarcodeInput() {
-    this.barcodeInputRef.nativeElement.value = '';
-    this.barcodeInputRef.nativeElement.click();
+  toggleScanner() {
+    if (this.scannerActive()) {
+      this.stopScanner();
+    } else {
+      this.startScanner();
+    }
   }
 
-  async onBarcodeCapture(event: Event) {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
+  private stopScanner() {
+    this.scannerControls?.stop();
+    this.scannerControls = null;
+    this.scannerActive.set(false);
+  }
 
-    if (!('BarcodeDetector' in window)) {
-      this.wkError.set('Tu navegador no soporta el escáner de código de barras');
-      return;
-    }
+  private startScanner() {
+    this.scannerActive.set(true);
+    // Give Angular time to render the <video> element
+    setTimeout(() => {
+      const video = this.scannerVideoRef?.nativeElement;
+      if (!video) { this.scannerActive.set(false); return; }
 
-    try {
-      const detector = new (window as any).BarcodeDetector({
-        formats: ['ean_13', 'ean_8', 'qr_code', 'isbn']
-      });
-      const bitmap = await createImageBitmap(file);
-      const codes: Array<{ rawValue: string }> = await detector.detect(bitmap);
-      if (codes.length > 0) {
-        this.wkQuery = codes[0].rawValue;
-        this.wkError.set('');
-        this.searchWk();
-      } else {
-        this.wkError.set('No se detectó ningún código en la imagen');
-      }
-    } catch {
-      this.wkError.set('Error al procesar la imagen');
-    }
+      this.reader.decodeFromVideoDevice(undefined, video, (result, _err) => {
+        if (result) {
+          this.zone.run(() => {
+            this.wkQuery = result.getText();
+            this.wkError.set('');
+            this.stopScanner();
+            this.searchWk();
+          });
+        }
+      }).then(controls => { this.scannerControls = controls; });
+    }, 100);
   }
 
   // ── Add directly ─────────────────────────────────────────────────────────
