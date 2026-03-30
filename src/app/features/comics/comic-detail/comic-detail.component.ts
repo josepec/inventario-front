@@ -114,7 +114,7 @@ import { Comic } from '../../../shared/models/comic.model';
             @if (comic()!.synopsis) {
               <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-5 mb-4">
                 <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-3">Sinopsis</h3>
-                <p class="text-sm text-[#c0c0c0] leading-relaxed">{{ comic()!.synopsis }}</p>
+                <p class="text-sm text-[#c0c0c0] leading-relaxed whitespace-pre-line">{{ comic()!.synopsis }}</p>
               </div>
             }
 
