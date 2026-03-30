@@ -31,6 +31,10 @@ export interface Comic {
   pages: number | null;
   language: string | null;
 
+  // Colección
+  collection_id: number | null;
+  collection_name?: string | null;
+
   // Portada
   cover_url: string | null;
 

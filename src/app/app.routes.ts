@@ -34,6 +34,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/comics/comic-detail/comic-detail.component').then(m => m.ComicDetailComponent),
       },
       {
+        path: 'collections/:id',
+        loadComponent: () => import('./features/collections/collection-detail/collection-detail.component').then(m => m.CollectionDetailComponent),
+      },
+      {
         path: 'books',
         loadComponent: () => import('./features/books/books-list/books-list.component').then(m => m.BooksListComponent),
       },

@@ -82,6 +82,15 @@ import { Comic } from '../../../shared/models/comic.model';
                   <span class="text-[#606060] text-sm">No</span>
                 }
               </div>
+              @if (comic()!.collection_name) {
+                <div class="flex items-center justify-between">
+                  <span class="text-xs text-[#606060] uppercase tracking-wider">Colección</span>
+                  <a [routerLink]="['/app/collections', comic()!.collection_id]"
+                    class="text-sm text-[#8b5cf6] hover:text-[#a78bfa] transition-colors truncate max-w-[180px]">
+                    {{ comic()!.collection_name }}
+                  </a>
+                </div>
+              }
               @if (comic()!.rating) {
                 <div class="flex items-center justify-between">
                   <span class="text-xs text-[#606060] uppercase tracking-wider">Valoración</span>
