@@ -63,6 +63,9 @@ interface WhakoomEdition {
   authors: WhakoomAuthor[];
   issues: WhakoomIssue[];
   url: string;
+  pages?: number | null;
+  binding?: string | null;
+  price?: number | null;
 }
 
 @Component({
@@ -89,6 +92,17 @@ interface WhakoomEdition {
             Volver
           </a>
           <div class="flex gap-2">
+            @if (collection()!.whakoom_id) {
+              <button (click)="refreshFromWhakoom()" [disabled]="syncing()"
+                class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
+                       text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors
+                       disabled:opacity-40 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" [class.animate-spin]="syncing()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.183" />
+                </svg>
+              </button>
+            }
             <button (click)="confirmDelete()"
               class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#ef444411] border border-[#ef444433]
                      text-[#ef4444] hover:bg-[#ef444422] transition-colors">
@@ -325,6 +339,7 @@ export class CollectionDetailComponent implements OnInit {
   collection = signal<Collection | null>(null);
   whakoomEdition = signal<WhakoomEdition | null>(null);
   loading = signal(true);
+  syncing = signal(false);
   addingIssue = signal<string | null>(null);
 
   mergedIssues = computed(() => {
@@ -458,6 +473,19 @@ export class CollectionDetailComponent implements OnInit {
     });
   }
 
+  refreshFromWhakoom() {
+    const col = this.collection();
+    if (!col?.whakoom_id || this.syncing()) return;
+    this.syncing.set(true);
+    this.http.get<WhakoomEdition>(`${this.base}/whakoom/edition/${col.whakoom_id}`).subscribe({
+      next: (ed) => {
+        this.whakoomEdition.set(ed);
+        this.syncEdition(col, ed, () => this.syncing.set(false));
+      },
+      error: () => this.syncing.set(false),
+    });
+  }
+
   addIssue(issue: { whakoomId: string | null; number: number | null; title: string; cover: string | null }) {
     if (!issue.whakoomId || this.addingIssue()) return;
 
@@ -481,6 +509,9 @@ export class CollectionDetailComponent implements OnInit {
             writer: detail.authors?.[0] || '',
             artist: detail.authors?.[1] || '',
             language: detail.language || '',
+            pages: detail.pages ?? wk?.pages ?? null,
+            binding: detail.binding ?? wk?.binding ?? col.format ?? null,
+            price: detail.price ?? wk?.price ?? null,
             collection_id: col.id,
             read_status: 'unread',
             owned: false,

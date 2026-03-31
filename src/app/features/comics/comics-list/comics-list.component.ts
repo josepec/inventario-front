@@ -679,6 +679,9 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     if (!d || this.wkSaving()) return;
     this.wkSaving.set(true);
 
+    // editionMeta puede aportar binding/price/pages que la página individual del cómic no tiene
+    let editionMeta: { binding?: string | null; price?: number | null; pages?: number | null } = {};
+
     const doSave = (coverUrl: string, collectionId: number | null) => {
       this.api.post<Comic>('/comics', {
         title: d.title,
@@ -692,9 +695,9 @@ export class ComicsListComponent implements OnInit, OnDestroy {
         writer: d.authors?.[0] || '',
         artist: d.authors?.[1] || '',
         language: d.language || '',
-        pages: d.pages ?? null,
-        binding: d.binding ?? null,
-        price: d.price ?? null,
+        pages: d.pages ?? editionMeta.pages ?? null,
+        binding: d.binding ?? editionMeta.binding ?? null,
+        price: d.price ?? editionMeta.price ?? null,
         collection_id: collectionId,
         read_status: 'unread',
         owned: false,
@@ -715,6 +718,8 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     const createFromEdition = (editionId: string, comicCoverUrl: string, wkId?: string) => {
       this.http.get<any>(`${this.base}/whakoom/edition/${editionId}`).subscribe({
         next: (edition) => {
+          // Guardar meta de la edición para heredar al cómic
+          editionMeta = { binding: edition.binding, price: edition.price, pages: edition.pages };
           const finishCreate = (edCoverUrl: string) => {
             createCollection(comicCoverUrl, {
               whakoom_id: wkId || null, whakoom_type: wkId ? 'edition' : null,
