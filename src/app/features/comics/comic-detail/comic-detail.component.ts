@@ -72,24 +72,21 @@ import { Comic } from '../../../shared/models/comic.model';
 
               <!-- Personal status card — shown next to cover on mobile -->
               <div class="flex-1 md:hidden bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 space-y-3">
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-[#606060] uppercase tracking-wider">Estado</span>
-                  <button (click)="toggleReadStatus()" type="button"
-                    class="text-sm px-3 py-1 rounded-full font-medium cursor-pointer
-                           hover:opacity-80 active:scale-95 transition-all"
-                    [class]="statusClass(comic()!.read_status)">
-                    {{ statusLabel(comic()!.read_status) }}
-                  </button>
-                </div>
-                @if (comic()!.collection_name) {
-                  <div class="flex items-center justify-between gap-2">
-                    <span class="text-xs text-[#606060] uppercase tracking-wider shrink-0">Colección</span>
-                    <a [routerLink]="['/app/collections', comic()!.collection_id]"
-                      class="text-xs text-[#8b5cf6] hover:text-[#a78bfa] transition-colors truncate">
-                      {{ comic()!.collection_name }}
-                    </a>
+                <div>
+                  <span class="text-xs text-[#606060] uppercase tracking-wider block mb-2">Estado</span>
+                  <div class="flex rounded-lg border border-[#2a2a2a] overflow-hidden text-xs font-medium">
+                    <button (click)="setReadStatus('unread')" type="button"
+                      class="flex-1 py-1.5 transition-colors"
+                      [class]="comic()!.read_status !== 'read' ? 'bg-[#2a2a2a] text-white' : 'text-[#505050] hover:text-[#808080]'">
+                      Sin leer
+                    </button>
+                    <button (click)="setReadStatus('read')" type="button"
+                      class="flex-1 py-1.5 transition-colors border-l border-[#2a2a2a]"
+                      [class]="comic()!.read_status === 'read' ? 'bg-[#22c55e1a] text-[#22c55e]' : 'text-[#505050] hover:text-[#808080]'">
+                      Leído
+                    </button>
                   </div>
-                }
+                </div>
                 @if (comic()!.rating) {
                   <div class="flex items-center justify-between">
                     <span class="text-xs text-[#606060] uppercase tracking-wider">Valoración</span>
@@ -105,24 +102,21 @@ import { Comic } from '../../../shared/models/comic.model';
 
             <!-- Personal status card — desktop only -->
             <div class="hidden md:block bg-[#161616] border border-[#1e1e1e] rounded-2xl p-5 space-y-4">
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-[#606060] uppercase tracking-wider">Estado</span>
-                <button (click)="toggleReadStatus()" type="button"
-                  class="text-sm px-3 py-1 rounded-full font-medium cursor-pointer
-                         hover:opacity-80 active:scale-95 transition-all"
-                  [class]="statusClass(comic()!.read_status)">
-                  {{ statusLabel(comic()!.read_status) }}
-                </button>
-              </div>
-              @if (comic()!.collection_name) {
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-[#606060] uppercase tracking-wider">Colección</span>
-                  <a [routerLink]="['/app/collections', comic()!.collection_id]"
-                    class="text-sm text-[#8b5cf6] hover:text-[#a78bfa] transition-colors truncate max-w-[180px]">
-                    {{ comic()!.collection_name }}
-                  </a>
+              <div>
+                <span class="text-xs text-[#606060] uppercase tracking-wider block mb-2">Estado</span>
+                <div class="flex rounded-lg border border-[#2a2a2a] overflow-hidden text-xs font-medium">
+                  <button (click)="setReadStatus('unread')" type="button"
+                    class="flex-1 py-2 transition-colors"
+                    [class]="comic()!.read_status !== 'read' ? 'bg-[#2a2a2a] text-white' : 'text-[#505050] hover:text-[#808080]'">
+                    Sin leer
+                  </button>
+                  <button (click)="setReadStatus('read')" type="button"
+                    class="flex-1 py-2 transition-colors border-l border-[#2a2a2a]"
+                    [class]="comic()!.read_status === 'read' ? 'bg-[#22c55e1a] text-[#22c55e]' : 'text-[#505050] hover:text-[#808080]'">
+                    Leído
+                  </button>
                 </div>
-              }
+              </div>
               @if (comic()!.rating) {
                 <div class="flex items-center justify-between">
                   <span class="text-xs text-[#606060] uppercase tracking-wider">Valoración</span>
@@ -140,10 +134,11 @@ import { Comic } from '../../../shared/models/comic.model';
           <div class="md:col-span-2 space-y-3 md:space-y-4">
 
             <div class="mb-4 md:mb-6">
-              @if (comic()!.series) {
-                <p class="text-[#8b5cf6] text-sm font-medium mb-1">
-                  {{ comic()!.series }}{{ comic()!.number ? ' #' + comic()!.number : '' }}
-                </p>
+              @if (comic()!.collection_id && comic()!.number != null) {
+                <a [routerLink]="['/app/collections', comic()!.collection_id]"
+                  class="text-[#8b5cf6] hover:text-[#a78bfa] text-sm font-medium mb-1 block transition-colors">
+                  {{ comic()!.collection_name || comic()!.series }} #{{ comic()!.number }}
+                </a>
               }
               <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">{{ comic()!.title }}</h1>
               @if (comic()!.writer) {
@@ -274,21 +269,12 @@ export class ComicDetailComponent implements OnInit {
     });
   }
 
-  toggleReadStatus() {
+  setReadStatus(status: string) {
     const c = this.comic();
-    if (!c) return;
-    const newStatus = c.read_status === 'read' ? 'unread' : 'read';
-    this.api.put<Comic>(`/comics/${c.id}`, { ...c, read_status: newStatus }).subscribe({
+    if (!c || c.read_status === status) return;
+    this.api.put<Comic>(`/comics/${c.id}`, { ...c, read_status: status }).subscribe({
       next: (updated) => this.comic.set({ ...updated, collection_name: c.collection_name, collection_id: c.collection_id }),
     });
   }
 
-  statusLabel(s: string) {
-    return s === 'read' ? 'Leído' : 'Sin leer';
-  }
-
-  statusClass(s: string) {
-    if (s === 'read') return 'bg-[#22c55e1a] text-[#22c55e]';
-    return 'bg-[#ffffff0d] text-[#606060]';
-  }
 }
