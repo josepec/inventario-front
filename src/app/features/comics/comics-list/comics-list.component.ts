@@ -713,13 +713,46 @@ export class ComicsListComponent implements OnInit, OnDestroy {
 
     const withCover = (coverUrl: string) => {
       if (src?.type === 'edition') {
-        // Resultado de tipo edición: colección con ID de Whakoom (upsert por whakoom_id)
-        createCollection(coverUrl, {
-          whakoom_id: src.id, whakoom_type: src.type,
-          title: d.series || src.title,
-          publisher: d.publisher || src.publisher,
-          cover_url: src.cover,
-          url: `https://www.whakoom.com/ediciones/${src.id}`,
+        // Resultado de tipo edición: obtener detalle completo y crear colección con toda la info
+        this.http.get<any>(`${this.base}/whakoom/edition/${src.id}`).subscribe({
+          next: (edition) => {
+            // Subir portada de la edición a R2 si la tiene
+            const uploadEditionCover = (edCoverUrl: string) => {
+              createCollection(coverUrl, {
+                whakoom_id: src.id, whakoom_type: src.type,
+                title: edition.title || d.series || src.title,
+                publisher: edition.publisher || d.publisher || src.publisher,
+                cover_url: edCoverUrl,
+                total_issues: edition.totalIssues || null,
+                description: edition.description || '',
+                synopsis: edition.synopsis || '',
+                format: edition.format || '',
+                status: edition.status || '',
+                edition_details: edition.editionDetails || '',
+                authors: edition.authors || [],
+                issues: edition.issues || [],
+                url: edition.url || `https://www.whakoom.com/ediciones/${src.id}`,
+              });
+            };
+            if (edition.cover) {
+              this.http.post<{ key: string }>(`${this.base}/covers/upload`, { url: edition.cover }).subscribe({
+                next: r => uploadEditionCover(`${this.base}/covers/${r.key}`),
+                error: () => uploadEditionCover(edition.cover),
+              });
+            } else {
+              uploadEditionCover(src.cover || '');
+            }
+          },
+          error: () => {
+            // Fallback: crear colección con datos mínimos
+            createCollection(coverUrl, {
+              whakoom_id: src.id, whakoom_type: src.type,
+              title: d.series || src.title,
+              publisher: d.publisher || src.publisher,
+              cover_url: src.cover,
+              url: `https://www.whakoom.com/ediciones/${src.id}`,
+            });
+          },
         });
       } else if (d.series) {
         // Cómic individual con serie: crear/reutilizar colección por título
