@@ -27,6 +27,9 @@ interface WhakoomComic {
   isbn: string;
   language: string;
   url: string;
+  pages?: number | null;
+  binding?: string | null;
+  price?: number | null;
 }
 
 interface CollectionResponse {
@@ -236,6 +239,16 @@ interface CollectionResponse {
                 <div>
                   <label class="field-label">Páginas</label>
                   <input formControlName="pages" type="number" placeholder="Ej: 120"
+                    class="field-input" />
+                </div>
+                <div>
+                  <label class="field-label">Encuadernación</label>
+                  <input formControlName="binding" type="text" placeholder="Ej: Cartoné, Grapa, Rústica..."
+                    class="field-input" />
+                </div>
+                <div>
+                  <label class="field-label">Precio (€)</label>
+                  <input formControlName="price" type="number" step="0.01" placeholder="Ej: 19.95"
                     class="field-input" />
                 </div>
                 <div>
@@ -507,6 +520,8 @@ export class ComicFormComponent implements OnInit {
     genre: [''],
     format: [''],
     pages: [null as number | null],
+    binding: [''],
+    price: [null as number | null],
     language: [''],
     cover_url: [''],
     read_status: ['unread' as const],
@@ -647,6 +662,9 @@ export class ComicFormComponent implements OnInit {
     if (d.description) patch.synopsis     = d.description;
     if (d.date)        patch.publish_date = d.date;
     if (d.language)    patch.language     = d.language;
+    if (d.pages)       patch.pages        = d.pages;
+    if (d.binding)     patch.binding      = d.binding;
+    if (d.price)       patch.price        = d.price;
 
     // Autores: primer autor → guionista, segundo → dibujante
     if (d.authors?.length >= 1) patch.writer = d.authors[0];

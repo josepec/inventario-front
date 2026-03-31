@@ -37,6 +37,9 @@ interface WkComic {
   isbn: string;
   language: string;
   url: string;
+  pages?: number | null;
+  binding?: string | null;
+  price?: number | null;
 }
 
 @Component({
@@ -689,6 +692,9 @@ export class ComicsListComponent implements OnInit, OnDestroy {
         writer: d.authors?.[0] || '',
         artist: d.authors?.[1] || '',
         language: d.language || '',
+        pages: d.pages ?? null,
+        binding: d.binding ?? null,
+        price: d.price ?? null,
         collection_id: collectionId,
         read_status: 'unread',
         owned: false,
@@ -698,17 +704,28 @@ export class ComicsListComponent implements OnInit, OnDestroy {
       });
     };
 
+    const createCollection = (coverUrl: string, payload: object) => {
+      this.http.post<any>(`${this.base}/collections`, payload).subscribe({
+        next: col => doSave(coverUrl, col.id),
+        error: () => doSave(coverUrl, null),
+      });
+    };
+
     const withCover = (coverUrl: string) => {
       if (src?.type === 'edition') {
-        this.http.post<any>(`${this.base}/collections`, {
+        // Resultado de tipo edición: colección con ID de Whakoom (upsert por whakoom_id)
+        createCollection(coverUrl, {
           whakoom_id: src.id, whakoom_type: src.type,
           title: d.series || src.title,
           publisher: d.publisher || src.publisher,
           cover_url: src.cover,
           url: `https://www.whakoom.com/ediciones/${src.id}`,
-        }).subscribe({
-          next: col => doSave(coverUrl, col.id),
-          error: () => doSave(coverUrl, null),
+        });
+      } else if (d.series) {
+        // Cómic individual con serie: crear/reutilizar colección por título
+        createCollection(coverUrl, {
+          title: d.series,
+          publisher: d.publisher || '',
         });
       } else {
         doSave(coverUrl, null);

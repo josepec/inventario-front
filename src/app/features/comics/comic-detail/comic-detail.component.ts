@@ -204,6 +204,18 @@ import { Comic } from '../../../shared/models/comic.model';
                     <dd class="text-sm text-white">{{ comic()!.pages }}</dd>
                   </div>
                 }
+                @if (comic()!.binding) {
+                  <div>
+                    <dt class="text-xs text-[#606060] mb-0.5">Encuadernación</dt>
+                    <dd class="text-sm text-white">{{ comic()!.binding }}</dd>
+                  </div>
+                }
+                @if (comic()!.price) {
+                  <div>
+                    <dt class="text-xs text-[#606060] mb-0.5">Precio</dt>
+                    <dd class="text-sm text-white">{{ comic()!.price }} €</dd>
+                  </div>
+                }
                 @if (comic()!.genre) {
                   <div>
                     <dt class="text-xs text-[#606060] mb-0.5">Género</dt>

@@ -30,6 +30,8 @@ export interface Comic {
   format: ComicFormat | null;
   pages: number | null;
   language: string | null;
+  binding: string | null;
+  price: number | null;
 
   // Colección
   collection_id: number | null;
