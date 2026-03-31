@@ -27,6 +27,22 @@ import { Comic } from '../../../shared/models/comic.model';
             Volver
           </a>
           <div class="flex gap-2">
+            <button (click)="toggleReadStatus()" type="button"
+              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm transition-all"
+              [class]="comic()!.read_status === 'read'
+                ? 'bg-[#22c55e1a] border border-[#22c55e33] text-[#22c55e] hover:bg-[#22c55e22]'
+                : 'bg-[#161616] border border-[#2a2a2a] text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f]'">
+              @if (comic()!.read_status === 'read') {
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              } @else {
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                </svg>
+              }
+              <span class="hidden sm:inline">{{ comic()!.read_status === 'read' ? 'Leído' : 'Sin leer' }}</span>
+            </button>
             <a [routerLink]="['/app/comics', comic()!.id, 'edit']"
               class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
                      text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors">
@@ -51,82 +67,20 @@ import { Comic } from '../../../shared/models/comic.model';
         <!-- Content -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
 
-          <!-- Cover column — on mobile: horizontal card -->
+          <!-- Cover column -->
           <div class="md:col-span-1">
-
-            <!-- Mobile: horizontal layout -->
-            <div class="flex gap-4 md:block">
-              <div class="w-28 shrink-0 md:w-full md:mb-5">
-                <div class="aspect-[2/3] rounded-2xl overflow-hidden bg-[#161616] border border-[#1e1e1e]">
-                  @if (comic()!.cover_url) {
-                    <img [src]="comic()!.cover_url!" [alt]="comic()!.title" class="w-full h-full object-cover" />
-                  } @else {
-                    <div class="w-full h-full flex items-center justify-center">
-                      <svg class="w-10 h-10 md:w-16 md:h-16 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                      </svg>
-                    </div>
-                  }
-                </div>
-              </div>
-
-              <!-- Personal status card — shown next to cover on mobile -->
-              <div class="flex-1 md:hidden bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 space-y-3">
-                <div>
-                  <span class="text-xs text-[#606060] uppercase tracking-wider block mb-2">Estado</span>
-                  <div class="flex rounded-lg border border-[#2a2a2a] overflow-hidden text-xs font-medium">
-                    <button (click)="setReadStatus('unread')" type="button"
-                      class="flex-1 py-1.5 transition-colors"
-                      [class]="comic()!.read_status !== 'read' ? 'bg-[#2a2a2a] text-white' : 'text-[#505050] hover:text-[#808080]'">
-                      Sin leer
-                    </button>
-                    <button (click)="setReadStatus('read')" type="button"
-                      class="flex-1 py-1.5 transition-colors border-l border-[#2a2a2a]"
-                      [class]="comic()!.read_status === 'read' ? 'bg-[#22c55e1a] text-[#22c55e]' : 'text-[#505050] hover:text-[#808080]'">
-                      Leído
-                    </button>
-                  </div>
-                </div>
-                @if (comic()!.rating) {
-                  <div class="flex items-center justify-between">
-                    <span class="text-xs text-[#606060] uppercase tracking-wider">Valoración</span>
-                    <div class="flex">
-                      @for (s of [1,2,3,4,5]; track s) {
-                        <span [class]="s <= comic()!.rating! ? 'text-[#f59e0b]' : 'text-[#2a2a2a]'">★</span>
-                      }
-                    </div>
+            <div class="w-36 md:w-full">
+              <div class="aspect-[2/3] rounded-2xl overflow-hidden bg-[#161616] border border-[#1e1e1e]">
+                @if (comic()!.cover_url) {
+                  <img [src]="comic()!.cover_url!" [alt]="comic()!.title" class="w-full h-full object-cover" />
+                } @else {
+                  <div class="w-full h-full flex items-center justify-center">
+                    <svg class="w-10 h-10 md:w-16 md:h-16 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                    </svg>
                   </div>
                 }
               </div>
-            </div>
-
-            <!-- Personal status card — desktop only -->
-            <div class="hidden md:block bg-[#161616] border border-[#1e1e1e] rounded-2xl p-5 space-y-4">
-              <div>
-                <span class="text-xs text-[#606060] uppercase tracking-wider block mb-2">Estado</span>
-                <div class="flex rounded-lg border border-[#2a2a2a] overflow-hidden text-xs font-medium">
-                  <button (click)="setReadStatus('unread')" type="button"
-                    class="flex-1 py-2 transition-colors"
-                    [class]="comic()!.read_status !== 'read' ? 'bg-[#2a2a2a] text-white' : 'text-[#505050] hover:text-[#808080]'">
-                    Sin leer
-                  </button>
-                  <button (click)="setReadStatus('read')" type="button"
-                    class="flex-1 py-2 transition-colors border-l border-[#2a2a2a]"
-                    [class]="comic()!.read_status === 'read' ? 'bg-[#22c55e1a] text-[#22c55e]' : 'text-[#505050] hover:text-[#808080]'">
-                    Leído
-                  </button>
-                </div>
-              </div>
-              @if (comic()!.rating) {
-                <div class="flex items-center justify-between">
-                  <span class="text-xs text-[#606060] uppercase tracking-wider">Valoración</span>
-                  <div class="flex">
-                    @for (s of [1,2,3,4,5]; track s) {
-                      <span [class]="s <= comic()!.rating! ? 'text-[#f59e0b]' : 'text-[#2a2a2a]'">★</span>
-                    }
-                  </div>
-                </div>
-              }
             </div>
           </div>
 
@@ -136,8 +90,8 @@ import { Comic } from '../../../shared/models/comic.model';
             <div class="mb-4 md:mb-6">
               @if (comic()!.collection_id && comic()!.number != null) {
                 <a [routerLink]="['/app/collections', comic()!.collection_id]"
-                  class="text-[#8b5cf6] hover:text-[#a78bfa] text-sm font-medium mb-1 block transition-colors">
-                  {{ comic()!.collection_name || comic()!.series }} #{{ comic()!.number }}
+                  class="text-[#8b5cf6] hover:text-[#a78bfa] text-sm font-medium mb-1 inline-block transition-colors">
+                  {{ comic()!.collection_name || comic()!.series }}
                 </a>
               }
               <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">{{ comic()!.title }}</h1>
@@ -229,6 +183,16 @@ import { Comic } from '../../../shared/models/comic.model';
                     <dd class="text-sm text-white">{{ comic()!.language }}</dd>
                   </div>
                 }
+                @if (comic()!.rating) {
+                  <div>
+                    <dt class="text-xs text-[#606060] mb-0.5">Valoración</dt>
+                    <dd class="flex">
+                      @for (s of [1,2,3,4,5]; track s) {
+                        <span class="text-sm" [class]="s <= comic()!.rating! ? 'text-[#f59e0b]' : 'text-[#2a2a2a]'">★</span>
+                      }
+                    </dd>
+                  </div>
+                }
               </dl>
             </div>
 
@@ -267,6 +231,12 @@ export class ComicDetailComponent implements OnInit {
     this.api.delete(`/comics/${this.comic()!.id}`).subscribe({
       next: () => this.router.navigate(['/app/comics'])
     });
+  }
+
+  toggleReadStatus() {
+    const c = this.comic();
+    if (!c) return;
+    this.setReadStatus(c.read_status === 'read' ? 'unread' : 'read');
   }
 
   setReadStatus(status: string) {
