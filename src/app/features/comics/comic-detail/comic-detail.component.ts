@@ -1,7 +1,9 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { ApiService } from '../../../shared/services/api.service';
 import { Comic } from '../../../shared/models/comic.model';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-comic-detail',
@@ -27,6 +29,15 @@ import { Comic } from '../../../shared/models/comic.model';
             Volver
           </a>
           <div class="flex gap-2">
+            <button (click)="refreshFromWhakoom()" [disabled]="syncing()" type="button"
+              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
+                     text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors
+                     disabled:opacity-40 disabled:cursor-not-allowed">
+              <svg class="w-4 h-4" [class.animate-spin]="syncing()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.183" />
+              </svg>
+            </button>
             <button (click)="toggleReadStatus()" type="button"
               class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm transition-all"
               [class]="comic()!.read_status === 'read'
@@ -212,11 +223,14 @@ import { Comic } from '../../../shared/models/comic.model';
 })
 export class ComicDetailComponent implements OnInit {
   private api = inject(ApiService);
+  private http = inject(HttpClient);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private base = environment.apiUrl;
 
   comic = signal<Comic | null>(null);
   loading = signal(true);
+  syncing = signal(false);
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id')!;
@@ -237,6 +251,65 @@ export class ComicDetailComponent implements OnInit {
     const c = this.comic();
     if (!c) return;
     this.setReadStatus(c.read_status === 'read' ? 'unread' : 'read');
+  }
+
+  refreshFromWhakoom() {
+    const c = this.comic();
+    if (!c || this.syncing()) return;
+    this.syncing.set(true);
+
+    const query = c.isbn || c.ean || c.title;
+    this.http.get<any>(`${this.base}/whakoom/search`, {
+      params: new HttpParams().set('q', query),
+    }).subscribe({
+      next: (res) => {
+        const match = res.data?.[0];
+        if (!match) { this.syncing.set(false); return; }
+
+        this.http.get<any>(`${this.base}/whakoom/comic/${match.id}`, {
+          params: new HttpParams().set('type', match.type),
+        }).subscribe({
+          next: (detail) => {
+            const patch: any = {};
+            if (detail.title) patch.title = detail.title;
+            if (detail.series) patch.series = detail.series;
+            if (detail.number) patch.number = Number(detail.number) || c.number;
+            if (detail.publisher) patch.publisher = detail.publisher;
+            if (detail.isbn) patch.isbn = detail.isbn;
+            if (detail.description) patch.synopsis = detail.description;
+            if (detail.date) patch.publish_date = detail.date;
+            if (detail.language) patch.language = detail.language;
+            if (detail.authors?.[0]) patch.writer = detail.authors[0];
+            if (detail.authors?.[1]) patch.artist = detail.authors[1];
+            if (detail.pages) patch.pages = detail.pages;
+            if (detail.binding) patch.binding = detail.binding;
+            if (detail.price) patch.price = detail.price;
+
+            const uploadAndSave = (coverUrl?: string) => {
+              if (coverUrl) patch.cover_url = coverUrl;
+              this.api.put<Comic>(`/comics/${c.id}`, { ...c, ...patch }).subscribe({
+                next: (updated) => {
+                  this.comic.set({ ...updated, collection_name: c.collection_name, collection_id: c.collection_id });
+                  this.syncing.set(false);
+                },
+                error: () => this.syncing.set(false),
+              });
+            };
+
+            if (detail.cover && detail.cover !== c.cover_url) {
+              this.http.post<{ key: string }>(`${this.base}/covers/upload`, { url: detail.cover }).subscribe({
+                next: (r) => uploadAndSave(`${this.base}/covers/${r.key}`),
+                error: () => uploadAndSave(detail.cover),
+              });
+            } else {
+              uploadAndSave();
+            }
+          },
+          error: () => this.syncing.set(false),
+        });
+      },
+      error: () => this.syncing.set(false),
+    });
   }
 
   setReadStatus(status: string) {

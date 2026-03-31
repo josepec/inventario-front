@@ -391,6 +391,8 @@ export class CollectionDetailComponent implements OnInit {
     return total > 0 ? Math.round((this.ownedCount() / total) * 100) : 0;
   });
   isCompleted = computed(() => {
+    const col = this.collection();
+    if (col?.status === 'En curso') return false;
     const total = this.totalCount();
     return total > 0 && this.ownedCount() >= total;
   });
