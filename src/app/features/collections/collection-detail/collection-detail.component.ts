@@ -185,9 +185,6 @@ interface WhakoomEdition {
                 </div>
               </div>
 
-              @if (collection()!.description) {
-                <p class="mt-3 text-xs text-[#606060] leading-relaxed line-clamp-3">{{ collection()!.description }}</p>
-              }
             </div>
           </div>
         </div>
