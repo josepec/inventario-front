@@ -102,33 +102,34 @@ interface WkComic {
           </div>
         </div>
 
-        <!-- Row 2: search + status filter -->
-        <div class="flex flex-wrap items-center gap-2">
-          <div class="relative flex-1 min-w-0">
-            <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#404040]"
-              fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-            </svg>
-            <input [(ngModel)]="search" (ngModelChange)="onSearch()"
-              type="text" [placeholder]="tab() === 'comics' ? 'Buscar por título, serie...' : 'Buscar colección...'"
-              class="w-full bg-[#161616] border border-[#2a2a2a] rounded-xl pl-10 pr-4 py-2.5 text-sm
-                     text-white placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
-          </div>
+        <!-- Row 2: search -->
+        <div class="relative">
+          <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#404040]"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+          </svg>
+          <input [(ngModel)]="search" (ngModelChange)="onSearch()"
+            type="text" [placeholder]="tab() === 'comics' ? 'Buscar por título, serie...' : 'Buscar colección...'"
+            class="w-full bg-[#161616] border border-[#2a2a2a] rounded-xl pl-10 pr-4 py-2.5 text-sm
+                   text-white placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+        </div>
 
+        <!-- Row 3: status + sort + filters — scrollable on mobile -->
+        <div class="flex items-center gap-2 overflow-x-auto no-scrollbar -mx-4 px-4 md:mx-0 md:px-0">
           @if (tab() === 'comics') {
             <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5 shrink-0">
               <button (click)="filterStatus = ''; load()"
-                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                class="px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
                 [class]="filterStatus === '' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
                 Todos
               </button>
               <button (click)="filterStatus = 'unread'; load()"
-                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                class="px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
                 [class]="filterStatus === 'unread' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
                 Sin leer
               </button>
               <button (click)="filterStatus = 'read'; load()"
-                class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+                class="px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
                 [class]="filterStatus === 'read' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
                 Leído
               </button>
@@ -139,12 +140,11 @@ interface WkComic {
           <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5 shrink-0">
             @for (opt of sortOptions; track opt.value) {
               <button (click)="onSortClick(opt.value)" type="button"
-                class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                class="px-2 md:px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1 whitespace-nowrap"
                 [class]="sortField() === opt.value
                   ? 'bg-[#2a2a2a] text-white'
                   : 'text-[#606060] hover:text-[#a0a0a0]'">
-                <span class="hidden sm:inline">{{ opt.label }}</span>
-                <span class="sm:hidden">{{ opt.short }}</span>
+                {{ opt.short }}
                 @if (sortField() === opt.value) {
                   <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                     @if (sortOrder() === 'desc') {
@@ -158,6 +158,7 @@ interface WkComic {
             }
           </div>
 
+          <!-- Filter toggle -->
           <button (click)="filtersExpanded.set(!filtersExpanded())" type="button"
             class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs border transition-colors shrink-0"
             [class]="filtersExpanded() || activeFilterCount() > 0
@@ -166,7 +167,7 @@ interface WkComic {
             <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
             </svg>
-            Filtros
+            <span class="whitespace-nowrap">Filtros</span>
             @if (activeFilterCount() > 0) {
               <span class="bg-[#7c3aed] text-white text-[10px] min-w-[16px] h-4 rounded-full flex items-center justify-center leading-none font-semibold">
                 {{ activeFilterCount() }}
@@ -754,10 +755,10 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   }
 
   sortOptions = [
-    { value: 'created_at', label: 'Fecha alta', short: 'Alta' },
-    { value: 'publish_date', label: 'Publicación', short: 'Pub.' },
-    { value: 'title', label: 'Título', short: 'A-Z' },
-    { value: 'price', label: 'Precio', short: '€' },
+    { value: 'created_at', short: 'Recientes' },
+    { value: 'publish_date', short: 'Publicación' },
+    { value: 'title', short: 'Título' },
+    { value: 'price', short: 'Precio' },
   ];
 
   loadFacets() {

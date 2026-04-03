@@ -17,3 +17,6 @@ html, body {
 ::-webkit-scrollbar-track { background: #0d0d0d; }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }
