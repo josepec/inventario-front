@@ -131,7 +131,10 @@ interface WhakoomEdition {
             <!-- Info -->
             <div class="flex-1 min-w-0">
               @if (collection()!.publisher) {
-                <p class="text-[#8b5cf6] text-xs font-semibold uppercase tracking-wider mb-1">{{ collection()!.publisher }}</p>
+                <a [routerLink]="['/app/comics']" [queryParams]="{publisher: collection()!.publisher}"
+                  class="text-[#8b5cf6] hover:text-[#a78bfa] text-xs font-semibold uppercase tracking-wider mb-1 inline-block transition-colors">
+                  {{ collection()!.publisher }}
+                </a>
               }
               <h1 class="text-lg md:text-2xl font-bold text-white tracking-tight leading-tight">{{ collection()!.title }}</h1>
 
@@ -214,9 +217,12 @@ interface WhakoomEdition {
                   <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-2">Autores</h3>
                   <div class="flex flex-wrap gap-2">
                     @for (author of collection()!.authors; track author.name) {
-                      <span class="text-sm text-white">{{ author.name }}@if (author.role) {
-                        <span class="text-[#606060]"> ({{ author.role }})</span>
-                      }</span>@if (!$last) {
+                      <a [routerLink]="['/app/comics']" [queryParams]="{author: author.name}"
+                        class="text-sm text-[#8b5cf6] hover:text-[#a78bfa] transition-colors cursor-pointer">
+                        {{ author.name }}@if (author.role) {
+                          <span class="text-[#606060]"> ({{ author.role }})</span>
+                        }
+                      </a>@if (!$last) {
                         <span class="text-[#2a2a2a]">·</span>
                       }
                     }

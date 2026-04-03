@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, NgZone } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ApiService, PaginatedResponse } from '../../../shared/services/api.service';
@@ -134,7 +134,134 @@ interface WkComic {
               </button>
             </div>
           }
+
+          <!-- Sort + Filters toggle -->
+          <div class="flex items-center gap-1.5 bg-[#161616] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs shrink-0">
+            <svg class="w-3.5 h-3.5 text-[#606060]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5L7.5 3m0 0L12 7.5M7.5 3v13.5m13.5 0L16.5 21m0 0L12 16.5m4.5 4.5V7.5" />
+            </svg>
+            <select (change)="onSortChange($event)" [value]="sortField()"
+              class="bg-transparent text-white text-xs outline-none cursor-pointer appearance-none">
+              <option value="created_at" class="bg-[#161616]">Fecha alta</option>
+              <option value="publish_date" class="bg-[#161616]">Publicación</option>
+              <option value="title" class="bg-[#161616]">Título</option>
+              <option value="price" class="bg-[#161616]">Precio</option>
+            </select>
+            <button (click)="toggleSortOrder()" type="button"
+              class="text-[#606060] hover:text-white transition-colors p-0.5">
+              @if (sortOrder() === 'desc') {
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
+                </svg>
+              } @else {
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+                </svg>
+              }
+            </button>
+          </div>
+
+          <button (click)="filtersExpanded.set(!filtersExpanded())" type="button"
+            class="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs border transition-colors shrink-0"
+            [class]="filtersExpanded() || activeFilterCount() > 0
+              ? 'bg-[#7c3aed1a] border-[#7c3aed44] text-[#8b5cf6]'
+              : 'bg-[#161616] border-[#2a2a2a] text-[#606060] hover:text-[#a0a0a0]'">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+            </svg>
+            Filtros
+            @if (activeFilterCount() > 0) {
+              <span class="bg-[#7c3aed] text-white text-[10px] min-w-[16px] h-4 rounded-full flex items-center justify-center leading-none font-semibold">
+                {{ activeFilterCount() }}
+              </span>
+            }
+          </button>
         </div>
+
+        <!-- Active filter chips -->
+        @if (activeFilterCount() > 0 && !filtersExpanded()) {
+          <div class="flex flex-wrap items-center gap-2">
+            @if (filterAuthor()) {
+              <span class="inline-flex items-center gap-1.5 bg-[#7c3aed1a] border border-[#7c3aed33] text-[#8b5cf6] text-xs px-2.5 py-1 rounded-full">
+                {{ filterAuthor() }}
+                <button (click)="filterAuthor.set(''); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
+              </span>
+            }
+            @if (filterPublisher()) {
+              <span class="inline-flex items-center gap-1.5 bg-[#7c3aed1a] border border-[#7c3aed33] text-[#8b5cf6] text-xs px-2.5 py-1 rounded-full">
+                {{ filterPublisher() }}
+                <button (click)="filterPublisher.set(''); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
+              </span>
+            }
+            @if (filterPriceMin() !== null || filterPriceMax() !== null) {
+              <span class="inline-flex items-center gap-1.5 bg-[#7c3aed1a] border border-[#7c3aed33] text-[#8b5cf6] text-xs px-2.5 py-1 rounded-full">
+                {{ filterPriceMin() ?? 0 }}€ - {{ filterPriceMax() ?? '...' }}€
+                <button (click)="filterPriceMin.set(null); filterPriceMax.set(null); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
+              </span>
+            }
+            <button (click)="clearAllFilters()" class="text-xs text-[#606060] hover:text-white transition-colors ml-1">
+              Limpiar todo
+            </button>
+          </div>
+        }
+
+        <!-- Collapsible filter panel -->
+        @if (filtersExpanded()) {
+          <div class="bg-[#161616] border border-[#2a2a2a] rounded-2xl p-4 space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <!-- Author -->
+              <div>
+                <label class="text-[10px] text-[#606060] uppercase tracking-wider mb-1.5 block font-semibold">Autor</label>
+                <input type="text" list="authorsList" [value]="filterAuthor()"
+                  (change)="filterAuthor.set($any($event.target).value); applyFilters()"
+                  placeholder="Todos"
+                  class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
+                         placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+                <datalist id="authorsList">
+                  @for (a of availableAuthors(); track a) {
+                    <option [value]="a"></option>
+                  }
+                </datalist>
+              </div>
+              <!-- Publisher -->
+              <div>
+                <label class="text-[10px] text-[#606060] uppercase tracking-wider mb-1.5 block font-semibold">Editorial</label>
+                <input type="text" list="publishersList" [value]="filterPublisher()"
+                  (change)="filterPublisher.set($any($event.target).value); applyFilters()"
+                  placeholder="Todas"
+                  class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
+                         placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+                <datalist id="publishersList">
+                  @for (p of availablePublishers(); track p) {
+                    <option [value]="p"></option>
+                  }
+                </datalist>
+              </div>
+              <!-- Price range -->
+              <div>
+                <label class="text-[10px] text-[#606060] uppercase tracking-wider mb-1.5 block font-semibold">Precio</label>
+                <div class="flex gap-2 items-center">
+                  <input type="number" [value]="filterPriceMin()" (change)="filterPriceMin.set($any($event.target).value ? +$any($event.target).value : null); applyFilters()"
+                    placeholder="Min" step="0.5" min="0"
+                    class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
+                           placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+                  <span class="text-[#404040] text-xs">-</span>
+                  <input type="number" [value]="filterPriceMax()" (change)="filterPriceMax.set($any($event.target).value ? +$any($event.target).value : null); applyFilters()"
+                    placeholder="Max" step="0.5" min="0"
+                    class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
+                           placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+                </div>
+              </div>
+            </div>
+            @if (activeFilterCount() > 0) {
+              <div class="flex justify-end">
+                <button (click)="clearAllFilters()" class="text-xs text-[#606060] hover:text-white transition-colors">
+                  Limpiar filtros
+                </button>
+              </div>
+            }
+          </div>
+        }
       </div>
 
       @if (loading()) {
@@ -509,6 +636,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private http = inject(HttpClient);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private zone = inject(NgZone);
   private base = environment.apiUrl;
   private zxingReader = new BrowserMultiFormatReader();
@@ -526,6 +654,25 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   readonly limit = 42;
   totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.limit)));
   private searchTimer: any;
+
+  // Filter & sort
+  sortField = signal<string>('created_at');
+  sortOrder = signal<'asc' | 'desc'>('desc');
+  filterAuthor = signal('');
+  filterPublisher = signal('');
+  filterPriceMin = signal<number | null>(null);
+  filterPriceMax = signal<number | null>(null);
+  filtersExpanded = signal(false);
+  availableAuthors = signal<string[]>([]);
+  availablePublishers = signal<string[]>([]);
+  activeFilterCount = computed(() => {
+    let n = 0;
+    if (this.filterAuthor()) n++;
+    if (this.filterPublisher()) n++;
+    if (this.filterPriceMin() !== null) n++;
+    if (this.filterPriceMax() !== null) n++;
+    return n;
+  });
 
   // ── Modal state ──────────────────────────────────────────────────────────
   modalOpen = signal(false);
@@ -546,20 +693,35 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   private reader = new BrowserMultiFormatReader();
   private scannerControls: { stop(): void } | null = null;
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    const qp = this.route.snapshot.queryParamMap;
+    if (qp.get('author')) this.filterAuthor.set(qp.get('author')!);
+    if (qp.get('publisher')) this.filterPublisher.set(qp.get('publisher')!);
+    this.loadFacets();
+    this.load();
+  }
 
   ngOnDestroy() { this.stopScanner(); }
 
   switchTab(t: 'comics' | 'collections') {
-    this.tab.set(t); this.page.set(1); this.search = ''; this.filterStatus = ''; this.load();
+    this.tab.set(t); this.page.set(1); this.search = ''; this.filterStatus = '';
+    this.filterAuthor.set(''); this.filterPublisher.set('');
+    this.filterPriceMin.set(null); this.filterPriceMax.set(null);
+    this.load();
   }
 
   load() {
     this.loading.set(true);
     if (this.tab() === 'collections') {
-      this.http.get<PaginatedResponse<CollectionItem>>(`${this.base}/collections`, {
-        params: { page: this.page().toString(), limit: this.limit.toString(), ...(this.search ? { search: this.search } : {}) }
-      }).subscribe({
+      const p: Record<string, string> = {
+        page: this.page().toString(), limit: this.limit.toString(),
+      };
+      if (this.search) p['search'] = this.search;
+      if (this.filterAuthor()) p['author'] = this.filterAuthor();
+      if (this.filterPublisher()) p['publisher'] = this.filterPublisher();
+      if (this.sortField() !== 'created_at') p['sort'] = this.sortField();
+      if (this.sortOrder() !== 'desc') p['order'] = this.sortOrder();
+      this.http.get<PaginatedResponse<CollectionItem>>(`${this.base}/collections`, { params: p }).subscribe({
         next: res => { this.collections.set(res.data); this.total.set(res.total); this.loading.set(false); },
         error: () => this.loading.set(false),
       });
@@ -568,11 +730,18 @@ export class ComicsListComponent implements OnInit, OnDestroy {
         page: this.page(), limit: this.limit,
         search: this.search || undefined,
         read_status: this.filterStatus || undefined,
+        sort: this.sortField(),
+        order: this.sortOrder(),
+        author: this.filterAuthor() || undefined,
+        publisher: this.filterPublisher() || undefined,
+        price_min: this.filterPriceMin() ?? undefined,
+        price_max: this.filterPriceMax() ?? undefined,
       }).subscribe({
         next: res => { this.comics.set(res.data); this.total.set(res.total); this.loading.set(false); },
         error: () => this.loading.set(false),
       });
     }
+    this.updateUrl();
   }
 
   onSearch() {
@@ -585,6 +754,39 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   statusLabel(s: string) { return s === 'read' ? 'Leído' : 'Sin leer'; }
   statusClass(s: string) {
     return s === 'read' ? 'bg-[#22c55e1a] text-[#22c55e]' : 'bg-[#ffffff0d] text-[#606060]';
+  }
+
+  loadFacets() {
+    this.api.get<{ authors: string[]; publishers: string[]; price: { min: number; max: number } }>('/comics/facets').subscribe({
+      next: f => { this.availableAuthors.set(f.authors); this.availablePublishers.set(f.publishers); },
+    });
+  }
+
+  onSortChange(e: Event) {
+    this.sortField.set((e.target as HTMLSelectElement).value);
+    this.page.set(1); this.load();
+  }
+
+  toggleSortOrder() {
+    this.sortOrder.update(o => o === 'asc' ? 'desc' : 'asc');
+    this.page.set(1); this.load();
+  }
+
+  applyFilters() { this.page.set(1); this.load(); }
+
+  clearAllFilters() {
+    this.filterAuthor.set(''); this.filterPublisher.set('');
+    this.filterPriceMin.set(null); this.filterPriceMax.set(null);
+    this.filterStatus = '';
+    this.page.set(1); this.load();
+  }
+
+  private updateUrl() {
+    const qp: Record<string, string | null> = {
+      author: this.filterAuthor() || null,
+      publisher: this.filterPublisher() || null,
+    };
+    this.router.navigate([], { queryParams: qp, queryParamsHandling: 'merge', replaceUrl: true });
   }
 
   // ── Modal ────────────────────────────────────────────────────────────────

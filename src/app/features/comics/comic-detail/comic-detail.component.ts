@@ -127,9 +127,12 @@ import { environment } from '../../../../environments/environment';
                     <dt class="text-xs text-[#606060] mb-2">Autores</dt>
                     <dd class="flex flex-wrap gap-x-3 gap-y-1">
                       @for (author of parsedAuthors(); track author.name) {
-                        <span class="text-sm text-white">{{ author.name }}@if (author.role) {
-                          <span class="text-[#606060]"> ({{ author.role }})</span>
-                        }</span>
+                        <a [routerLink]="['/app/comics']" [queryParams]="{author: author.name}"
+                          class="text-sm text-[#8b5cf6] hover:text-[#a78bfa] transition-colors cursor-pointer">
+                          {{ author.name }}@if (author.role) {
+                            <span class="text-[#606060]"> ({{ author.role }})</span>
+                          }
+                        </a>
                       }
                     </dd>
                   </div>
@@ -137,7 +140,10 @@ import { environment } from '../../../../environments/environment';
                 @if (comic()!.publisher) {
                   <div>
                     <dt class="text-xs text-[#606060] mb-0.5">Editorial</dt>
-                    <dd class="text-sm text-white">{{ comic()!.publisher }}</dd>
+                    <dd class="text-sm">
+                      <a [routerLink]="['/app/comics']" [queryParams]="{publisher: comic()!.publisher}"
+                        class="text-[#8b5cf6] hover:text-[#a78bfa] transition-colors">{{ comic()!.publisher }}</a>
+                    </dd>
                   </div>
                 }
                 @if (comic()!.original_publisher) {

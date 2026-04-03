@@ -19,6 +19,10 @@ export interface ApiFilters {
   owned?: boolean;
   sort?: string;
   order?: 'asc' | 'desc';
+  author?: string;
+  publisher?: string;
+  price_min?: number;
+  price_max?: number;
 }
 
 @Injectable({ providedIn: 'root' })
