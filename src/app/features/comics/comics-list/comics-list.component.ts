@@ -314,7 +314,7 @@ interface WkComic {
                     <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
                   </div>
                   <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ comic.title }}</p>
-                  @if (comic.series) {
+                  @if (comic.series && comic.series !== comic.title) {
                     <p class="text-[10px] text-[#606060] truncate">{{ comic.series }}</p>
                   }
                 </a>
@@ -336,7 +336,7 @@ interface WkComic {
                 </div>
                 <div class="flex-1 min-w-0">
                   <p class="text-sm font-semibold text-white truncate">{{ comic.title }}</p>
-                  @if (comic.series) { <p class="text-xs text-[#606060] truncate">{{ comic.series }}</p> }
+                  @if (comic.series && comic.series !== comic.title) { <p class="text-xs text-[#606060] truncate">{{ comic.series }}</p> }
                 </div>
                 <div class="hidden sm:block shrink-0 text-xs text-[#606060]">{{ comic.publisher }}</div>
                 <div class="shrink-0">
