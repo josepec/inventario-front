@@ -765,7 +765,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     const withCover = (coverUrl: string) => {
       if (src?.type === 'edition') {
         createFromEdition(src.id, coverUrl, src.id);
-      } else if (d.series) {
+      } else if (d.series && d.number) {
         // Buscar edición correspondiente en los resultados de búsqueda ya cargados
         const edInResults = this.wkResults().find(r => r.type === 'edition');
         if (edInResults) {
