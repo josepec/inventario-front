@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ApiService } from '../../../shared/services/api.service';
@@ -106,8 +106,8 @@ import { environment } from '../../../../environments/environment';
                 </a>
               }
               <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">{{ comic()!.title }}</h1>
-              @if (comic()!.writer) {
-                <p class="text-[#a0a0a0] mt-2 text-sm">Por <span class="text-white">{{ comic()!.writer }}</span></p>
+              @if (mainWriter()) {
+                <p class="text-[#a0a0a0] mt-2 text-sm">Por <span class="text-white">{{ mainWriter() }}</span></p>
               }
             </div>
 
@@ -122,16 +122,16 @@ import { environment } from '../../../../environments/environment';
             <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
               <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-4">Detalles</h3>
               <dl class="grid grid-cols-2 gap-x-6 md:gap-x-8 gap-y-3 md:gap-y-4">
-                @if (comic()!.artist) {
-                  <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">Dibujante</dt>
-                    <dd class="text-sm text-white">{{ comic()!.artist }}</dd>
-                  </div>
-                }
-                @if (comic()!.colorist) {
-                  <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">Colorista</dt>
-                    <dd class="text-sm text-white">{{ comic()!.colorist }}</dd>
+                @if (parsedAuthors().length) {
+                  <div class="col-span-2">
+                    <dt class="text-xs text-[#606060] mb-2">Autores</dt>
+                    <dd class="flex flex-wrap gap-x-3 gap-y-1">
+                      @for (author of parsedAuthors(); track author.name) {
+                        <span class="text-sm text-white">{{ author.name }}@if (author.role) {
+                          <span class="text-[#606060]"> ({{ author.role }})</span>
+                        }</span>
+                      }
+                    </dd>
                   </div>
                 }
                 @if (comic()!.publisher) {
@@ -232,6 +232,24 @@ export class ComicDetailComponent implements OnInit {
   loading = signal(true);
   syncing = signal(false);
 
+  parsedAuthors = computed(() => {
+    const c = this.comic();
+    if (!c) return [];
+    if (c.authors && c.authors.length > 0) return c.authors;
+    // Fallback a campos legacy writer/artist/colorist
+    const result: { name: string; role: string }[] = [];
+    if (c.writer) result.push({ name: c.writer, role: 'Guion' });
+    if (c.artist) result.push({ name: c.artist, role: 'Dibujo' });
+    if (c.colorist) result.push({ name: c.colorist, role: 'Color' });
+    return result;
+  });
+
+  mainWriter = computed(() => {
+    const authors = this.parsedAuthors();
+    const guionista = authors.find(a => a.role.toLowerCase().includes('guion'));
+    return guionista?.name || authors[0]?.name || this.comic()?.writer || '';
+  });
+
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id')!;
     this.api.get<Comic>(`/comics/${id}`).subscribe({
@@ -279,11 +297,19 @@ export class ComicDetailComponent implements OnInit {
             if (detail.description) patch.synopsis = detail.description;
             if (detail.date) patch.publish_date = detail.date;
             if (detail.language) patch.language = detail.language;
-            if (detail.authors?.[0]) patch.writer = detail.authors[0];
-            if (detail.authors?.[1]) patch.artist = detail.authors[1];
             if (detail.pages) patch.pages = detail.pages;
             if (detail.binding) patch.binding = detail.binding;
             if (detail.price) patch.price = detail.price;
+
+            const sa = detail.structuredAuthors ?? [];
+            if (sa.length) {
+              patch.authors = sa;
+              patch.writer = sa.find((a: any) => a.role?.toLowerCase().includes('guion'))?.name || sa[0]?.name || '';
+              patch.artist = sa.find((a: any) => a.role?.toLowerCase().includes('dibujo'))?.name || '';
+            } else {
+              if (detail.authors?.[0]) patch.writer = detail.authors[0];
+              if (detail.authors?.[1]) patch.artist = detail.authors[1];
+            }
 
             const uploadAndSave = (coverUrl?: string) => {
               if (coverUrl) patch.cover_url = coverUrl;

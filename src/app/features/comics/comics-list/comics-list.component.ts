@@ -30,6 +30,7 @@ interface WkComic {
   cover: string;
   description: string;
   authors: string[];
+  structuredAuthors?: { name: string; role: string }[];
   publisher: string;
   date: string;
   series: string;
@@ -683,6 +684,9 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     let editionMeta: { binding?: string | null; price?: number | null; pages?: number | null } = {};
 
     const doSave = (coverUrl: string, collectionId: number | null) => {
+      const sa = d.structuredAuthors ?? [];
+      const writer = sa.find(a => a.role.toLowerCase().includes('guion'))?.name || d.authors?.[0] || '';
+      const artist = sa.find(a => a.role.toLowerCase().includes('dibujo'))?.name || d.authors?.[1] || '';
       this.api.post<Comic>('/comics', {
         title: d.title,
         series: d.series || '',
@@ -692,8 +696,9 @@ export class ComicsListComponent implements OnInit, OnDestroy {
         isbn: d.isbn || '',
         synopsis: d.description || '',
         publish_date: d.date || '',
-        writer: d.authors?.[0] || '',
-        artist: d.authors?.[1] || '',
+        writer,
+        artist,
+        authors: sa.length ? sa : null,
         language: d.language || '',
         pages: d.pages ?? editionMeta.pages ?? null,
         binding: d.binding ?? editionMeta.binding ?? null,

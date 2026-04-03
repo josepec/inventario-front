@@ -16,6 +16,7 @@ export interface Comic {
   artist: string | null;
   colorist: string | null;
   cover_artist: string | null;
+  authors: { name: string; role: string }[] | null;
 
   // Editorial
   publisher: string | null;

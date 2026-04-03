@@ -20,6 +20,7 @@ interface WhakoomComic {
   cover: string;
   description: string;
   authors: string[];
+  structuredAuthors?: { name: string; role: string }[];
   publisher: string;
   date: string;
   series: string;
@@ -486,6 +487,7 @@ export class ComicFormComponent implements OnInit {
   saving = signal(false);
   coverPreview = signal('');
   private editId: number | null = null;
+  _pendingAuthors: { name: string; role: string }[] | null = null;
 
   // Whakoom modal state
   whakoomOpen = signal(false);
@@ -539,6 +541,7 @@ export class ComicFormComponent implements OnInit {
       this.api.get<Comic>(`/comics/${id}`).subscribe(comic => {
         this.form.patchValue(comic as any);
         this.coverPreview.set(comic.cover_url ?? '');
+        this._pendingAuthors = comic.authors ?? null;
       });
     }
   }
@@ -554,7 +557,7 @@ export class ComicFormComponent implements OnInit {
   submit() {
     if (this.form.invalid) return;
     this.saving.set(true);
-    const data = this.form.getRawValue();
+    const data = { ...this.form.getRawValue(), authors: this._pendingAuthors };
 
     const req = this.isEdit()
       ? this.api.put<Comic>(`/comics/${this.editId}`, data)
@@ -666,9 +669,21 @@ export class ComicFormComponent implements OnInit {
     if (d.binding)     patch.binding      = d.binding;
     if (d.price)       patch.price        = d.price;
 
-    // Autores: primer autor → guionista, segundo → dibujante
-    if (d.authors?.length >= 1) patch.writer = d.authors[0];
-    if (d.authors?.length >= 2) patch.artist = d.authors[1];
+    // Autores con roles estructurados
+    const sa = d.structuredAuthors ?? [];
+    if (sa.length) {
+      const guionista = sa.find(a => a.role.toLowerCase().includes('guion'));
+      const dibujante = sa.find(a => a.role.toLowerCase().includes('dibujo'));
+      if (guionista) patch.writer = guionista.name;
+      else if (d.authors?.[0]) patch.writer = d.authors[0];
+      if (dibujante) patch.artist = dibujante.name;
+      else if (d.authors?.[1]) patch.artist = d.authors[1];
+    } else {
+      if (d.authors?.length >= 1) patch.writer = d.authors[0];
+      if (d.authors?.length >= 2) patch.artist = d.authors[1];
+    }
+    // Store structured authors for saving
+    this._pendingAuthors = sa.length ? sa : null;
 
     // Temporalmente poner la cover de Whakoom, luego subir a R2
     if (d.cover) {
