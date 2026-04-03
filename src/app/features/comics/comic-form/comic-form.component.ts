@@ -139,11 +139,13 @@ interface CollectionResponse {
                   </div>
                 </div>
 
-                <div>
-                  <label class="field-label">Notas personales</label>
-                  <textarea formControlName="notes" rows="3" placeholder="Apuntes, opinión..."
-                    class="field-input resize-none"></textarea>
-                </div>
+                @if (isEdit()) {
+                  <div>
+                    <label class="field-label">Notas personales</label>
+                    <textarea formControlName="notes" rows="3" placeholder="Apuntes, opinión..."
+                      class="field-input resize-none"></textarea>
+                  </div>
+                }
               </div>
             </div>
           </div>

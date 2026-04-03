@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ApiService } from '../../../shared/services/api.service';
 import { Comic } from '../../../shared/models/comic.model';
@@ -8,7 +9,7 @@ import { environment } from '../../../../environments/environment';
 @Component({
   selector: 'app-comic-detail',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule],
   template: `
     <div class="p-4 md:p-8 max-w-5xl mx-auto">
 
@@ -28,10 +29,10 @@ import { environment } from '../../../../environments/environment';
             </svg>
             Volver
           </a>
-          <div class="flex gap-2">
+          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
             <button (click)="refreshFromWhakoom()" [disabled]="syncing()" type="button"
               class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
-                     text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors
+                     text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors shrink-0
                      disabled:opacity-40 disabled:cursor-not-allowed">
               <svg class="w-4 h-4" [class.animate-spin]="syncing()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -39,7 +40,7 @@ import { environment } from '../../../../environments/environment';
               </svg>
             </button>
             <button (click)="toggleReadStatus()" type="button"
-              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm transition-all"
+              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm transition-all shrink-0"
               [class]="comic()!.read_status === 'read'
                 ? 'bg-[#22c55e1a] border border-[#22c55e33] text-[#22c55e] hover:bg-[#22c55e22]'
                 : 'bg-[#161616] border border-[#2a2a2a] text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f]'">
@@ -54,9 +55,34 @@ import { environment } from '../../../../environments/environment';
               }
               <span class="hidden sm:inline">{{ comic()!.read_status === 'read' ? 'Leído' : 'Sin leer' }}</span>
             </button>
+
+            <!-- Inline rating stars -->
+            <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl px-2.5 py-1.5 gap-0.5 shrink-0">
+              @for (s of [1,2,3,4,5]; track s) {
+                <button type="button" (click)="setRating(s)"
+                  class="text-lg leading-none transition-colors hover:scale-110"
+                  [class]="s <= (comic()!.rating ?? 0) ? 'text-[#f59e0b]' : 'text-[#2a2a2a] hover:text-[#f59e0b44]'">
+                  ★
+                </button>
+              }
+            </div>
+
+            <!-- Notes toggle -->
+            <button (click)="notesOpen.set(!notesOpen())" type="button"
+              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm shrink-0 transition-colors"
+              [class]="comic()!.notes
+                ? 'bg-[#f59e0b1a] border border-[#f59e0b33] text-[#f59e0b]'
+                : 'bg-[#161616] border border-[#2a2a2a] text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f]'">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
+              </svg>
+              <span class="hidden sm:inline">Notas</span>
+            </button>
+
             <a [routerLink]="['/app/comics', comic()!.id, 'edit']"
               class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
-                     text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors">
+                     text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors shrink-0">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -65,7 +91,7 @@ import { environment } from '../../../../environments/environment';
             </a>
             <button (click)="confirmDelete()"
               class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#ef444411] border border-[#ef444433]
-                     text-[#ef4444] hover:bg-[#ef444422] transition-colors">
+                     text-[#ef4444] hover:bg-[#ef444422] transition-colors shrink-0">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -74,6 +100,23 @@ import { environment } from '../../../../environments/environment';
             </button>
           </div>
         </div>
+
+        <!-- Notes panel (collapsible) -->
+        @if (notesOpen()) {
+          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 mb-5 md:mb-8">
+            <div class="flex items-center justify-between mb-3">
+              <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider">Mis notas</h3>
+              <button (click)="saveNotes()" [disabled]="savingNotes()" type="button"
+                class="text-xs text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors disabled:opacity-40">
+                {{ savingNotes() ? 'Guardando...' : 'Guardar' }}
+              </button>
+            </div>
+            <textarea [(ngModel)]="notesText" rows="3" placeholder="Apuntes, opinión..."
+              class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm text-white
+                     placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors resize-none">
+            </textarea>
+          </div>
+        }
 
         <!-- Content -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
@@ -200,25 +243,8 @@ import { environment } from '../../../../environments/environment';
                     <dd class="text-sm text-white">{{ comic()!.language }}</dd>
                   </div>
                 }
-                @if (comic()!.rating) {
-                  <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">Valoración</dt>
-                    <dd class="flex">
-                      @for (s of [1,2,3,4,5]; track s) {
-                        <span class="text-sm" [class]="s <= comic()!.rating! ? 'text-[#f59e0b]' : 'text-[#2a2a2a]'">★</span>
-                      }
-                    </dd>
-                  </div>
-                }
               </dl>
             </div>
-
-            @if (comic()!.notes) {
-              <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
-                <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-3">Mis notas</h3>
-                <p class="text-sm text-[#c0c0c0] leading-relaxed">{{ comic()!.notes }}</p>
-              </div>
-            }
 
           </div>
         </div>
@@ -237,6 +263,9 @@ export class ComicDetailComponent implements OnInit {
   comic = signal<Comic | null>(null);
   loading = signal(true);
   syncing = signal(false);
+  notesOpen = signal(false);
+  notesText = '';
+  savingNotes = signal(false);
 
   parsedAuthors = computed(() => {
     const c = this.comic();
@@ -259,7 +288,7 @@ export class ComicDetailComponent implements OnInit {
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id')!;
     this.api.get<Comic>(`/comics/${id}`).subscribe({
-      next: c => { this.comic.set(c); this.loading.set(false); },
+      next: c => { this.comic.set(c); this.notesText = c.notes ?? ''; this.loading.set(false); },
       error: () => { this.loading.set(false); this.router.navigate(['/app/comics']); }
     });
   }
@@ -349,6 +378,28 @@ export class ComicDetailComponent implements OnInit {
     if (!c || c.read_status === status) return;
     this.api.put<Comic>(`/comics/${c.id}`, { ...c, read_status: status }).subscribe({
       next: (updated) => this.comic.set({ ...updated, collection_name: c.collection_name, collection_id: c.collection_id }),
+    });
+  }
+
+  setRating(n: number) {
+    const c = this.comic();
+    if (!c) return;
+    const rating = c.rating === n ? null : n;
+    this.api.put<Comic>(`/comics/${c.id}`, { ...c, rating }).subscribe({
+      next: (updated) => this.comic.set({ ...updated, collection_name: c.collection_name, collection_id: c.collection_id }),
+    });
+  }
+
+  saveNotes() {
+    const c = this.comic();
+    if (!c) return;
+    this.savingNotes.set(true);
+    this.api.put<Comic>(`/comics/${c.id}`, { ...c, notes: this.notesText || null }).subscribe({
+      next: (updated) => {
+        this.comic.set({ ...updated, collection_name: c.collection_name, collection_id: c.collection_id });
+        this.savingNotes.set(false);
+      },
+      error: () => this.savingNotes.set(false),
     });
   }
 
