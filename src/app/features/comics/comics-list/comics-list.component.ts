@@ -763,7 +763,16 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     };
 
     const withCover = (coverUrl: string) => {
-      if (src?.type === 'edition') {
+      if (src?.type === 'edition' && !d.number) {
+        // Tomo único desde edición — traer meta sin crear colección
+        this.http.get<any>(`${this.base}/whakoom/edition/${src.id}`).subscribe({
+          next: (edition) => {
+            editionMeta = { binding: edition.binding, price: edition.price, pages: edition.pages };
+            doSave(coverUrl, null);
+          },
+          error: () => doSave(coverUrl, null),
+        });
+      } else if (src?.type === 'edition' && d.number) {
         createFromEdition(src.id, coverUrl, src.id);
       } else if (d.series && d.number) {
         // Buscar edición correspondiente en los resultados de búsqueda ya cargados
