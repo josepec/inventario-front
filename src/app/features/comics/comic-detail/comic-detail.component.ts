@@ -29,10 +29,10 @@ import { environment } from '../../../../environments/environment';
             </svg>
             Volver
           </a>
-          <div class="flex items-center gap-2 overflow-x-auto no-scrollbar">
+          <div class="flex items-center gap-2">
             <button (click)="refreshFromWhakoom()" [disabled]="syncing()" type="button"
               class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
-                     text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors shrink-0
+                     text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors
                      disabled:opacity-40 disabled:cursor-not-allowed">
               <svg class="w-4 h-4" [class.animate-spin]="syncing()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
@@ -40,7 +40,7 @@ import { environment } from '../../../../environments/environment';
               </svg>
             </button>
             <button (click)="toggleReadStatus()" type="button"
-              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm transition-all shrink-0"
+              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm transition-all"
               [class]="comic()!.read_status === 'read'
                 ? 'bg-[#22c55e1a] border border-[#22c55e33] text-[#22c55e] hover:bg-[#22c55e22]'
                 : 'bg-[#161616] border border-[#2a2a2a] text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f]'">
@@ -55,34 +55,9 @@ import { environment } from '../../../../environments/environment';
               }
               <span class="hidden sm:inline">{{ comic()!.read_status === 'read' ? 'Leído' : 'Sin leer' }}</span>
             </button>
-
-            <!-- Inline rating stars -->
-            <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl px-2.5 py-1.5 gap-0.5 shrink-0">
-              @for (s of [1,2,3,4,5]; track s) {
-                <button type="button" (click)="setRating(s)"
-                  class="text-lg leading-none transition-colors hover:scale-110"
-                  [class]="s <= (comic()!.rating ?? 0) ? 'text-[#f59e0b]' : 'text-[#2a2a2a] hover:text-[#f59e0b44]'">
-                  ★
-                </button>
-              }
-            </div>
-
-            <!-- Notes toggle -->
-            <button (click)="notesOpen.set(!notesOpen())" type="button"
-              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm shrink-0 transition-colors"
-              [class]="comic()!.notes
-                ? 'bg-[#f59e0b1a] border border-[#f59e0b33] text-[#f59e0b]'
-                : 'bg-[#161616] border border-[#2a2a2a] text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f]'">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487z" />
-              </svg>
-              <span class="hidden sm:inline">Notas</span>
-            </button>
-
             <a [routerLink]="['/app/comics', comic()!.id, 'edit']"
               class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
-                     text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors shrink-0">
+                     text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
@@ -91,7 +66,7 @@ import { environment } from '../../../../environments/environment';
             </a>
             <button (click)="confirmDelete()"
               class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#ef444411] border border-[#ef444433]
-                     text-[#ef4444] hover:bg-[#ef444422] transition-colors shrink-0">
+                     text-[#ef4444] hover:bg-[#ef444422] transition-colors">
               <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round"
                   d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
@@ -101,28 +76,11 @@ import { environment } from '../../../../environments/environment';
           </div>
         </div>
 
-        <!-- Notes panel (collapsible) -->
-        @if (notesOpen()) {
-          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 mb-5 md:mb-8">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider">Mis notas</h3>
-              <button (click)="saveNotes()" [disabled]="savingNotes()" type="button"
-                class="text-xs text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors disabled:opacity-40">
-                {{ savingNotes() ? 'Guardando...' : 'Guardar' }}
-              </button>
-            </div>
-            <textarea [(ngModel)]="notesText" rows="3" placeholder="Apuntes, opinión..."
-              class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm text-white
-                     placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors resize-none">
-            </textarea>
-          </div>
-        }
-
         <!-- Content -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
 
-          <!-- Cover column -->
-          <div class="md:col-span-1">
+          <!-- Cover + personal section column -->
+          <div class="md:col-span-1 space-y-4">
             <div class="w-36 md:w-full">
               <div class="aspect-[2/3] rounded-2xl overflow-hidden bg-[#161616] border border-[#1e1e1e]">
                 @if (comic()!.cover_url) {
@@ -133,6 +91,47 @@ import { environment } from '../../../../environments/environment';
                       <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                     </svg>
                   </div>
+                }
+              </div>
+            </div>
+
+            <!-- Mi valoración -->
+            <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4">
+              <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-3">Mi valoración</h3>
+              <div class="flex gap-1">
+                @for (s of [1,2,3,4,5]; track s) {
+                  <button type="button" (click)="setRating(s)"
+                    class="text-xl transition-colors hover:scale-110"
+                    [class]="s <= (comic()!.rating ?? 0) ? 'text-[#f59e0b]' : 'text-[#2a2a2a] hover:text-[#f59e0b44]'">
+                    ★
+                  </button>
+                }
+              </div>
+
+              <!-- Notes -->
+              <div class="mt-4 pt-3 border-t border-[#1e1e1e]">
+                @if (!notesOpen() && comic()!.notes) {
+                  <button (click)="notesOpen.set(true)" type="button" class="w-full text-left">
+                    <p class="text-xs text-[#a0a0a0] line-clamp-3 leading-relaxed">{{ comic()!.notes }}</p>
+                  </button>
+                } @else if (notesOpen()) {
+                  <textarea [(ngModel)]="notesText" rows="3" placeholder="Escribe tus notas..."
+                    class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-xs text-white
+                           placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors resize-none mb-2">
+                  </textarea>
+                  <div class="flex justify-end gap-2">
+                    <button (click)="notesOpen.set(false)" type="button"
+                      class="text-xs text-[#606060] hover:text-white transition-colors">Cancelar</button>
+                    <button (click)="saveNotes()" [disabled]="savingNotes()" type="button"
+                      class="text-xs text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors disabled:opacity-40">
+                      {{ savingNotes() ? 'Guardando...' : 'Guardar' }}
+                    </button>
+                  </div>
+                } @else {
+                  <button (click)="notesOpen.set(true)" type="button"
+                    class="text-xs text-[#606060] hover:text-[#a0a0a0] transition-colors">
+                    + Añadir notas
+                  </button>
                 }
               </div>
             </div>
