@@ -555,12 +555,23 @@ interface WkComic {
                 </div>
 
                 <div class="flex gap-3 mt-5">
-                  <button type="button" (click)="addDirectly()" [disabled]="wkSaving()"
-                    class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
-                           hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                    @if (wkSaving()) { Añadiendo... } @else if (wkIsCollection()) { Añadir como colección } @else { Añadir }
-                  </button>
-                  @if (!wkIsCollection()) {
+                  @if (!wkDetail()!.number) {
+                    <button type="button" (click)="addAsCollection()" [disabled]="wkSaving()"
+                      class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
+                             hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                      @if (wkSaving()) { Añadiendo... } @else { Añadir como colección }
+                    </button>
+                    <button type="button" (click)="addDirectly()" [disabled]="wkSaving()"
+                      class="px-5 py-3 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
+                             border border-[#2a2a2a] hover:bg-[#222] transition-colors">
+                      Añadir como cómic
+                    </button>
+                  } @else {
+                    <button type="button" (click)="addDirectly()" [disabled]="wkSaving()"
+                      class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
+                             hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                      @if (wkSaving()) { Añadiendo... } @else { Añadir }
+                    </button>
                     <a routerLink="/app/comics/new" (click)="closeModal()"
                       class="px-5 py-3 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
                              border border-[#2a2a2a] hover:bg-[#222] transition-colors">
@@ -687,11 +698,6 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   wkHasMore = signal(false);
   wkTotal = signal(0);
   private wkSelectedResult: WkResult | null = null;
-  /** True when the selected Whakoom result is a series/edition (not an individual comic) */
-  wkIsCollection = computed(() => {
-    const d = this.wkDetail();
-    return !!this.wkSelectedResult && this.wkSelectedResult.type === 'edition' && !!d && !d.number;
-  });
 
   // ── Scanner state ────────────────────────────────────────────────────────
   scannerActive = signal(false);
@@ -886,6 +892,93 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     }, 100);
   }
 
+  // ── Add as collection ────────────────────────────────────────────────────
+
+  addAsCollection() {
+    const d = this.wkDetail();
+    const src = this.wkSelectedResult;
+    if (!d || this.wkSaving()) return;
+    this.wkSaving.set(true);
+
+    const editionId = src?.type === 'edition' ? src.id : null;
+
+    const createCol = (coverUrl: string, extra: any = {}) => {
+      this.http.post<any>(`${this.base}/collections`, {
+        whakoom_id: editionId, whakoom_type: editionId ? 'edition' : null,
+        title: extra.title || d.series || d.title,
+        publisher: extra.publisher || d.publisher || '',
+        cover_url: coverUrl,
+        total_issues: extra.totalIssues || null,
+        description: extra.description || d.description || '',
+        synopsis: extra.synopsis || '',
+        format: extra.format || '',
+        status: extra.status || '',
+        edition_details: extra.editionDetails || '',
+        authors: extra.authors || d.structuredAuthors || [],
+        issues: extra.issues || [],
+        url: extra.url || '',
+      }).subscribe({
+        next: col => { this.closeModal(); this.router.navigate(['/app/collections', col.id]); },
+        error: () => this.wkSaving.set(false),
+      });
+    };
+
+    const withCover = (comicCoverUrl: string) => {
+      if (editionId) {
+        // Tenemos edición de Whakoom → obtener datos ricos
+        this.http.get<any>(`${this.base}/whakoom/edition/${editionId}`).subscribe({
+          next: (edition) => {
+            if (edition.cover) {
+              this.http.post<{ key: string }>(`${this.base}/covers/upload`, { url: edition.cover }).subscribe({
+                next: r => createCol(`${this.base}/covers/${r.key}`, edition),
+                error: () => createCol(edition.cover, edition),
+              });
+            } else {
+              createCol(comicCoverUrl, edition);
+            }
+          },
+          error: () => createCol(comicCoverUrl),
+        });
+      } else {
+        // No hay edición — buscar en Whakoom si hay una edición asociada
+        this.http.get<any>(`${this.base}/whakoom/search`, {
+          params: new HttpParams().set('q', d.series || d.title),
+        }).subscribe({
+          next: (res) => {
+            const ed = res.data?.find((r: any) => r.type === 'edition');
+            if (ed) {
+              this.http.get<any>(`${this.base}/whakoom/edition/${ed.id}`).subscribe({
+                next: (edition) => {
+                  if (edition.cover) {
+                    this.http.post<{ key: string }>(`${this.base}/covers/upload`, { url: edition.cover }).subscribe({
+                      next: r => createCol(`${this.base}/covers/${r.key}`, edition),
+                      error: () => createCol(edition.cover, edition),
+                    });
+                  } else {
+                    createCol(comicCoverUrl, edition);
+                  }
+                },
+                error: () => createCol(comicCoverUrl),
+              });
+            } else {
+              createCol(comicCoverUrl);
+            }
+          },
+          error: () => createCol(comicCoverUrl),
+        });
+      }
+    };
+
+    if (d.cover) {
+      this.http.post<{ key: string }>(`${this.base}/covers/upload`, { url: d.cover }).subscribe({
+        next: r => withCover(`${this.base}/covers/${r.key}`),
+        error: () => withCover(d.cover),
+      });
+    } else {
+      withCover('');
+    }
+  }
+
   // ── Add directly ─────────────────────────────────────────────────────────
 
   addDirectly() {
@@ -978,50 +1071,13 @@ export class ComicsListComponent implements OnInit, OnDestroy {
 
     const withCover = (coverUrl: string) => {
       if (src?.type === 'edition' && !d.number) {
-        // Es una edición/serie, no un cómic individual → crear colección
+        // Edición sin número → tomo único, traer meta y guardar como cómic
         this.http.get<any>(`${this.base}/whakoom/edition/${src.id}`).subscribe({
           next: (edition) => {
-            const finishCol = (edCoverUrl: string) => {
-              this.http.post<any>(`${this.base}/collections`, {
-                whakoom_id: src.id, whakoom_type: 'edition',
-                title: edition.title || d.series || d.title,
-                publisher: edition.publisher || d.publisher || '',
-                cover_url: edCoverUrl,
-                total_issues: edition.totalIssues || null,
-                description: edition.description || '',
-                synopsis: edition.synopsis || '',
-                format: edition.format || '',
-                status: edition.status || '',
-                edition_details: edition.editionDetails || '',
-                authors: edition.authors || [],
-                issues: edition.issues || [],
-                url: edition.url || '',
-              }).subscribe({
-                next: col => { this.closeModal(); this.router.navigate(['/app/collections', col.id]); },
-                error: () => this.wkSaving.set(false),
-              });
-            };
-            if (edition.cover) {
-              this.http.post<{ key: string }>(`${this.base}/covers/upload`, { url: edition.cover }).subscribe({
-                next: r => finishCol(`${this.base}/covers/${r.key}`),
-                error: () => finishCol(edition.cover),
-              });
-            } else {
-              finishCol(coverUrl);
-            }
+            editionMeta = { binding: edition.binding, price: edition.price, pages: edition.pages };
+            doSave(coverUrl, null);
           },
-          error: () => {
-            // Fallback: crear colección con datos básicos
-            this.http.post<any>(`${this.base}/collections`, {
-              whakoom_id: src.id, whakoom_type: 'edition',
-              title: d.series || d.title,
-              publisher: d.publisher || '',
-              cover_url: coverUrl,
-            }).subscribe({
-              next: col => { this.closeModal(); this.router.navigate(['/app/collections', col.id]); },
-              error: () => this.wkSaving.set(false),
-            });
-          },
+          error: () => doSave(coverUrl, null),
         });
       } else if (src?.type === 'edition' && d.number) {
         createFromEdition(src.id, coverUrl, src.id);

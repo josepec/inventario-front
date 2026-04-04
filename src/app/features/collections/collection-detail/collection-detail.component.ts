@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ApiService } from '../../../shared/services/api.service';
 import { environment } from '../../../../environments/environment';
@@ -31,6 +32,8 @@ interface Collection {
   issues: WhakoomIssue[];
   whakoom_synced_at: string | null;
   tracking: boolean;
+  rating: number | null;
+  notes: string | null;
   comics: CollectionComic[];
 }
 
@@ -71,7 +74,7 @@ interface WhakoomEdition {
 @Component({
   selector: 'app-collection-detail',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, FormsModule],
   template: `
     <div class="p-4 md:p-8 max-w-5xl mx-auto">
 
@@ -166,14 +169,16 @@ interface WhakoomEdition {
                     Leída
                   </span>
                 }
-                <button (click)="toggleTracking()" type="button"
-                  class="text-xs px-2.5 py-1 rounded-full font-medium cursor-pointer
-                         hover:opacity-80 active:scale-95 transition-all"
-                  [class]="collection()!.tracking
-                    ? 'bg-[#7c3aed1a] text-[#7c3aed]'
-                    : 'bg-[#ffffff0d] text-[#606060]'">
-                  {{ collection()!.tracking ? 'Coleccionando' : 'No completar' }}
-                </button>
+                @if (!isCompleted()) {
+                  <button (click)="toggleTracking()" type="button"
+                    class="text-xs px-2.5 py-1 rounded-full font-medium cursor-pointer
+                           hover:opacity-80 active:scale-95 transition-all"
+                    [class]="collection()!.tracking
+                      ? 'bg-[#7c3aed1a] text-[#7c3aed]'
+                      : 'bg-[#ffffff0d] text-[#606060]'">
+                    {{ collection()!.tracking ? 'Coleccionando' : 'No completar' }}
+                  </button>
+                }
               </div>
 
               <!-- Progress -->
@@ -185,6 +190,47 @@ interface WhakoomEdition {
                 <div class="h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
                   <div class="h-full bg-[#7c3aed] rounded-full transition-all duration-500"
                     [style.width.%]="progressPercent()"></div>
+                </div>
+              </div>
+
+              <!-- Rating & Notes -->
+              <div class="mt-4 pt-4 border-t border-[#1e1e1e]">
+                <div class="flex items-center gap-4">
+                  <span class="text-xs text-[#606060] uppercase tracking-wider font-semibold shrink-0">Valoración</span>
+                  <div class="flex gap-0.5">
+                    @for (s of [1,2,3,4,5]; track s) {
+                      <button type="button" (click)="setRating(s)"
+                        class="text-lg transition-colors hover:scale-110"
+                        [class]="s <= (collection()!.rating ?? 0) ? 'text-[#f59e0b]' : 'text-[#2a2a2a] hover:text-[#f59e0b44]'">
+                        ★
+                      </button>
+                    }
+                  </div>
+                </div>
+                <div class="mt-3">
+                  @if (!notesOpen() && collection()!.notes) {
+                    <button (click)="notesOpen.set(true)" type="button" class="w-full text-left">
+                      <p class="text-xs text-[#a0a0a0] line-clamp-3 leading-relaxed">{{ collection()!.notes }}</p>
+                    </button>
+                  } @else if (notesOpen()) {
+                    <textarea [(ngModel)]="notesText" rows="3" placeholder="Escribe tus notas..."
+                      class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-xs text-white
+                             placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors resize-none mb-2">
+                    </textarea>
+                    <div class="flex justify-end gap-2">
+                      <button (click)="notesOpen.set(false)" type="button"
+                        class="text-xs text-[#606060] hover:text-white transition-colors">Cancelar</button>
+                      <button (click)="saveNotes()" [disabled]="savingNotes()" type="button"
+                        class="text-xs text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors disabled:opacity-40">
+                        {{ savingNotes() ? 'Guardando...' : 'Guardar' }}
+                      </button>
+                    </div>
+                  } @else {
+                    <button (click)="notesOpen.set(true)" type="button"
+                      class="text-xs text-[#606060] hover:text-[#a0a0a0] transition-colors">
+                      + Añadir notas
+                    </button>
+                  }
                 </div>
               </div>
 
@@ -344,6 +390,9 @@ export class CollectionDetailComponent implements OnInit {
   loading = signal(true);
   syncing = signal(false);
   addingIssue = signal<string | null>(null);
+  notesOpen = signal(false);
+  notesText = '';
+  savingNotes = signal(false);
 
   mergedIssues = computed(() => {
     const col = this.collection();
@@ -412,6 +461,7 @@ export class CollectionDetailComponent implements OnInit {
     this.api.get<Collection>(`/collections/${id}`).subscribe({
       next: col => {
         this.collection.set(col);
+        this.notesText = col.notes ?? '';
         this.loading.set(false);
 
         if (col.whakoom_id && this.needsSync(col.whakoom_synced_at)) {
@@ -426,6 +476,37 @@ export class CollectionDetailComponent implements OnInit {
         }
       },
       error: () => { this.loading.set(false); this.router.navigate(['/app/comics']); }
+    });
+  }
+
+  setRating(n: number) {
+    const col = this.collection();
+    if (!col) return;
+    const rating = col.rating === n ? null : n;
+    this.collection.update(c => c ? { ...c, rating } : c);
+    this.api.put<Collection>(`/collections/${col.id}`, {
+      title: col.title, publisher: col.publisher, cover_url: col.cover_url,
+      total_issues: col.total_issues, description: col.description, url: col.url,
+      rating,
+    }).subscribe();
+  }
+
+  saveNotes() {
+    const col = this.collection();
+    if (!col) return;
+    this.savingNotes.set(true);
+    const notes = this.notesText.trim() || null;
+    this.api.put<Collection>(`/collections/${col.id}`, {
+      title: col.title, publisher: col.publisher, cover_url: col.cover_url,
+      total_issues: col.total_issues, description: col.description, url: col.url,
+      notes,
+    }).subscribe({
+      next: () => {
+        this.collection.update(c => c ? { ...c, notes } : c);
+        this.notesOpen.set(false);
+        this.savingNotes.set(false);
+      },
+      error: () => this.savingNotes.set(false),
     });
   }
 
