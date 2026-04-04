@@ -558,13 +558,15 @@ interface WkComic {
                   <button type="button" (click)="addDirectly()" [disabled]="wkSaving()"
                     class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
                            hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                    @if (wkSaving()) { Añadiendo... } @else { Añadir }
+                    @if (wkSaving()) { Añadiendo... } @else if (wkIsCollection()) { Añadir como colección } @else { Añadir }
                   </button>
-                  <a routerLink="/app/comics/new" (click)="closeModal()"
-                    class="px-5 py-3 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
-                           border border-[#2a2a2a] hover:bg-[#222] transition-colors">
-                    Editar antes
-                  </a>
+                  @if (!wkIsCollection()) {
+                    <a routerLink="/app/comics/new" (click)="closeModal()"
+                      class="px-5 py-3 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
+                             border border-[#2a2a2a] hover:bg-[#222] transition-colors">
+                      Editar antes
+                    </a>
+                  }
                 </div>
               </div>
 
@@ -685,6 +687,11 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   wkHasMore = signal(false);
   wkTotal = signal(0);
   private wkSelectedResult: WkResult | null = null;
+  /** True when the selected Whakoom result is a series/edition (not an individual comic) */
+  wkIsCollection = computed(() => {
+    const d = this.wkDetail();
+    return !!this.wkSelectedResult && this.wkSelectedResult.type === 'edition' && !!d && !d.number;
+  });
 
   // ── Scanner state ────────────────────────────────────────────────────────
   scannerActive = signal(false);
@@ -971,13 +978,50 @@ export class ComicsListComponent implements OnInit, OnDestroy {
 
     const withCover = (coverUrl: string) => {
       if (src?.type === 'edition' && !d.number) {
-        // Tomo único desde edición — traer meta sin crear colección
+        // Es una edición/serie, no un cómic individual → crear colección
         this.http.get<any>(`${this.base}/whakoom/edition/${src.id}`).subscribe({
           next: (edition) => {
-            editionMeta = { binding: edition.binding, price: edition.price, pages: edition.pages };
-            doSave(coverUrl, null);
+            const finishCol = (edCoverUrl: string) => {
+              this.http.post<any>(`${this.base}/collections`, {
+                whakoom_id: src.id, whakoom_type: 'edition',
+                title: edition.title || d.series || d.title,
+                publisher: edition.publisher || d.publisher || '',
+                cover_url: edCoverUrl,
+                total_issues: edition.totalIssues || null,
+                description: edition.description || '',
+                synopsis: edition.synopsis || '',
+                format: edition.format || '',
+                status: edition.status || '',
+                edition_details: edition.editionDetails || '',
+                authors: edition.authors || [],
+                issues: edition.issues || [],
+                url: edition.url || '',
+              }).subscribe({
+                next: col => { this.closeModal(); this.router.navigate(['/app/collections', col.id]); },
+                error: () => this.wkSaving.set(false),
+              });
+            };
+            if (edition.cover) {
+              this.http.post<{ key: string }>(`${this.base}/covers/upload`, { url: edition.cover }).subscribe({
+                next: r => finishCol(`${this.base}/covers/${r.key}`),
+                error: () => finishCol(edition.cover),
+              });
+            } else {
+              finishCol(coverUrl);
+            }
           },
-          error: () => doSave(coverUrl, null),
+          error: () => {
+            // Fallback: crear colección con datos básicos
+            this.http.post<any>(`${this.base}/collections`, {
+              whakoom_id: src.id, whakoom_type: 'edition',
+              title: d.series || d.title,
+              publisher: d.publisher || '',
+              cover_url: coverUrl,
+            }).subscribe({
+              next: col => { this.closeModal(); this.router.navigate(['/app/collections', col.id]); },
+              error: () => this.wkSaving.set(false),
+            });
+          },
         });
       } else if (src?.type === 'edition' && d.number) {
         createFromEdition(src.id, coverUrl, src.id);
