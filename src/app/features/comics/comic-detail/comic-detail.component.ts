@@ -81,7 +81,7 @@ import { environment } from '../../../../environments/environment';
 
           <!-- Cover + personal section column -->
           <div class="md:col-span-1 space-y-4">
-            <div class="w-36 md:w-full">
+            <div class="w-full max-w-[10rem] md:max-w-full">
               <div class="aspect-[2/3] rounded-2xl overflow-hidden bg-[#161616] border border-[#1e1e1e]">
                 @if (comic()!.cover_url) {
                   <img [src]="comic()!.cover_url!" [alt]="comic()!.title" class="w-full h-full object-cover" />
