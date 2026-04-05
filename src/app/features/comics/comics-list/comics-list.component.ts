@@ -197,6 +197,12 @@ interface WkComic {
                 <button (click)="filterPriceMin.set(null); filterPriceMax.set(null); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
               </span>
             }
+            @if (filterRatingMin() !== null) {
+              <span class="inline-flex items-center gap-1.5 bg-[#f59e0b1a] border border-[#f59e0b33] text-[#f59e0b] text-xs px-2.5 py-1 rounded-full">
+                ≥ {{ filterRatingMin() }}★
+                <button (click)="filterRatingMin.set(null); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
+              </span>
+            }
             <button (click)="clearAllFilters()" class="text-xs text-[#606060] hover:text-white transition-colors ml-1">
               Limpiar todo
             </button>
@@ -206,7 +212,7 @@ interface WkComic {
         <!-- Collapsible filter panel -->
         @if (filtersExpanded()) {
           <div class="bg-[#161616] border border-[#2a2a2a] rounded-2xl p-4 space-y-4">
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <!-- Author -->
               <div>
                 <label class="text-[10px] text-[#606060] uppercase tracking-wider mb-1.5 block font-semibold">Autor</label>
@@ -248,6 +254,20 @@ interface WkComic {
                     placeholder="Max" step="0.5" min="0"
                     class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
                            placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+                </div>
+              </div>
+              <!-- Rating -->
+              <div>
+                <label class="text-[10px] text-[#606060] uppercase tracking-wider mb-1.5 block font-semibold">Valoración</label>
+                <div class="flex gap-2 items-center">
+                  <div class="flex gap-0.5 items-center">
+                    @for (s of [1,2,3,4,5]; track s) {
+                      <button type="button" (click)="setFilterRatingMin(s)"
+                        class="text-base transition-colors"
+                        [class]="s <= (filterRatingMin() ?? 0) ? 'text-[#f59e0b]' : 'text-[#2a2a2a] hover:text-[#f59e0b44]'">★</button>
+                    }
+                  </div>
+                  <span class="text-[10px] text-[#404040]">mín.</span>
                 </div>
               </div>
             </div>
@@ -673,6 +693,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   filterPublisher = signal('');
   filterPriceMin = signal<number | null>(null);
   filterPriceMax = signal<number | null>(null);
+  filterRatingMin = signal<number | null>(null);
   filtersExpanded = signal(false);
   availableAuthors = signal<string[]>([]);
   availablePublishers = signal<string[]>([]);
@@ -682,8 +703,14 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     if (this.filterPublisher()) n++;
     if (this.filterPriceMin() !== null) n++;
     if (this.filterPriceMax() !== null) n++;
+    if (this.filterRatingMin() !== null) n++;
     return n;
   });
+
+  setFilterRatingMin(n: number) {
+    this.filterRatingMin.set(this.filterRatingMin() === n ? null : n);
+    this.applyFilters();
+  }
 
   // ── Modal state ──────────────────────────────────────────────────────────
   modalOpen = signal(false);
@@ -747,6 +774,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
         publisher: this.filterPublisher() || undefined,
         price_min: this.filterPriceMin() ?? undefined,
         price_max: this.filterPriceMax() ?? undefined,
+        rating_min: this.filterRatingMin() ?? undefined,
       }).subscribe({
         next: res => { this.comics.set(res.data); this.total.set(res.total); this.loading.set(false); },
         error: () => this.loading.set(false),
@@ -795,7 +823,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   clearAllFilters() {
     this.filterAuthor.set(''); this.filterPublisher.set('');
     this.filterPriceMin.set(null); this.filterPriceMax.set(null);
-    this.filterStatus = '';
+    this.filterRatingMin.set(null); this.filterStatus = '';
     this.page.set(1); this.load();
   }
 

@@ -79,60 +79,63 @@ import { environment } from '../../../../environments/environment';
         <!-- Content -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-8">
 
-          <!-- Cover + personal section column -->
+          <!-- Cover + rating column -->
           <div class="md:col-span-1 space-y-4">
-            <div class="w-full max-w-[10rem] md:max-w-full">
-              <div class="aspect-[2/3] rounded-2xl overflow-hidden bg-[#161616] border border-[#1e1e1e]">
-                @if (comic()!.cover_url) {
-                  <img [src]="comic()!.cover_url!" [alt]="comic()!.title" class="w-full h-full object-cover" />
-                } @else {
-                  <div class="w-full h-full flex items-center justify-center">
-                    <svg class="w-10 h-10 md:w-16 md:h-16 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                    </svg>
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Mi valoración -->
-            <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4">
-              <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-3">Mi valoración</h3>
-              <div class="flex gap-1">
-                @for (s of [1,2,3,4,5]; track s) {
-                  <button type="button" (click)="setRating(s)"
-                    class="text-xl transition-colors hover:scale-110"
-                    [class]="s <= (comic()!.rating ?? 0) ? 'text-[#f59e0b]' : 'text-[#2a2a2a] hover:text-[#f59e0b44]'">
-                    ★
-                  </button>
-                }
+            <!-- Mobile: cover + rating side by side / Desktop: stacked -->
+            <div class="flex gap-4 md:block md:space-y-4">
+              <div class="w-28 shrink-0 md:w-full">
+                <div class="aspect-[2/3] rounded-2xl overflow-hidden bg-[#161616] border border-[#1e1e1e]">
+                  @if (comic()!.cover_url) {
+                    <img [src]="comic()!.cover_url!" [alt]="comic()!.title" class="w-full h-full object-cover" />
+                  } @else {
+                    <div class="w-full h-full flex items-center justify-center">
+                      <svg class="w-10 h-10 md:w-16 md:h-16 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                      </svg>
+                    </div>
+                  }
+                </div>
               </div>
 
-              <!-- Notes -->
-              <div class="mt-4 pt-3 border-t border-[#1e1e1e]">
-                @if (!notesOpen() && comic()!.notes) {
-                  <button (click)="notesOpen.set(true)" type="button" class="w-full text-left">
-                    <p class="text-xs text-[#a0a0a0] line-clamp-3 leading-relaxed">{{ comic()!.notes }}</p>
-                  </button>
-                } @else if (notesOpen()) {
-                  <textarea [(ngModel)]="notesText" rows="3" placeholder="Escribe tus notas..."
-                    class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-xs text-white
-                           placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors resize-none mb-2">
-                  </textarea>
-                  <div class="flex justify-end gap-2">
-                    <button (click)="notesOpen.set(false)" type="button"
-                      class="text-xs text-[#606060] hover:text-white transition-colors">Cancelar</button>
-                    <button (click)="saveNotes()" [disabled]="savingNotes()" type="button"
-                      class="text-xs text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors disabled:opacity-40">
-                      {{ savingNotes() ? 'Guardando...' : 'Guardar' }}
+              <!-- Mi valoración — beside cover on mobile, below on desktop -->
+              <div class="flex-1 md:flex-none bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4">
+                <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-3">Mi valoración</h3>
+                <div class="flex gap-1">
+                  @for (s of [1,2,3,4,5]; track s) {
+                    <button type="button" (click)="setRating(s)"
+                      class="text-xl transition-colors hover:scale-110"
+                      [class]="s <= (comic()!.rating ?? 0) ? 'text-[#f59e0b]' : 'text-[#2a2a2a] hover:text-[#f59e0b44]'">
+                      ★
                     </button>
-                  </div>
-                } @else {
-                  <button (click)="notesOpen.set(true)" type="button"
-                    class="text-xs text-[#606060] hover:text-[#a0a0a0] transition-colors">
-                    + Añadir notas
-                  </button>
-                }
+                  }
+                </div>
+
+                <!-- Notes -->
+                <div class="mt-4 pt-3 border-t border-[#1e1e1e]">
+                  @if (!notesOpen() && comic()!.notes) {
+                    <button (click)="notesOpen.set(true)" type="button" class="w-full text-left">
+                      <p class="text-xs text-[#a0a0a0] line-clamp-3 leading-relaxed">{{ comic()!.notes }}</p>
+                    </button>
+                  } @else if (notesOpen()) {
+                    <textarea [(ngModel)]="notesText" rows="3" placeholder="Escribe tus notas..."
+                      class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-xs text-white
+                             placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors resize-none mb-2">
+                    </textarea>
+                    <div class="flex justify-end gap-2">
+                      <button (click)="notesOpen.set(false)" type="button"
+                        class="text-xs text-[#606060] hover:text-white transition-colors">Cancelar</button>
+                      <button (click)="saveNotes()" [disabled]="savingNotes()" type="button"
+                        class="text-xs text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors disabled:opacity-40">
+                        {{ savingNotes() ? 'Guardando...' : 'Guardar' }}
+                      </button>
+                    </div>
+                  } @else {
+                    <button (click)="notesOpen.set(true)" type="button"
+                      class="text-xs text-[#606060] hover:text-[#a0a0a0] transition-colors">
+                      + Añadir notas
+                    </button>
+                  }
+                </div>
               </div>
             </div>
           </div>
