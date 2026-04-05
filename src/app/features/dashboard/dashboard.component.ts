@@ -1,109 +1,278 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, ElementRef, viewChildren } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DecimalPipe } from '@angular/common';
 import { ApiService } from '../../shared/services/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 
-interface Stats {
-  comics_total: number;
-  comics_read: number;
-  comics_owned: number;
-  books_total: number;
-  books_read: number;
-  books_owned: number;
+interface DashboardData {
+  totals: { comics: number; read: number; unread: number; reading: number; collections: number };
+  monthly: { added: { month: string; count: number }[]; read: { month: string; count: number }[] };
+  byPublisher: { publisher: string; count: number }[];
+  byRating: { rating: number; count: number }[];
+  collections: { id: number; title: string; total_issues: number; cover_url: string | null; rating: number | null; owned: number }[];
+  recentComics: { id: number; title: string; cover_url: string | null; rating: number | null; created_at: string }[];
+  spending: { total: number; avg: number };
+  thisYear: { added: number; read: number; spent: number };
+  prevYear: { added: number; read: number; spent: number };
 }
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, DecimalPipe],
   template: `
     <div class="p-4 md:p-8 max-w-6xl mx-auto">
 
-      <!-- Header -->
-      <div class="mb-6 md:mb-10">
-        <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">
-          Bienvenido, {{ auth.currentUser()?.username }}
-        </h1>
-        <p class="text-[#606060] mt-1">Tu colección de un vistazo</p>
-      </div>
+      @if (loading()) {
+        <div class="flex justify-center py-20">
+          <div class="w-8 h-8 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }
 
-      <!-- Stats grid -->
-      <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4 mb-6 md:mb-10">
-
-        <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-6">
-          <div class="flex items-start justify-between mb-3 md:mb-4">
-            <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-[#7c3aed1a] flex items-center justify-center">
-              <svg class="w-4 h-4 md:w-5 md:h-5 text-[#8b5cf6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
-              </svg>
-            </div>
-          </div>
-          <p class="text-3xl md:text-4xl font-bold text-white">{{ stats()?.comics_total ?? '—' }}</p>
-          <p class="text-xs md:text-sm text-[#606060] mt-1">Cómics en total</p>
+      @if (!loading() && data()) {
+        <!-- Header -->
+        <div class="mb-6 md:mb-8">
+          <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">
+            Bienvenido, {{ auth.currentUser()?.username }}
+          </h1>
+          <p class="text-[#606060] mt-1">Tu colección de un vistazo</p>
         </div>
 
-        <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-6">
-          <div class="flex items-start justify-between mb-3 md:mb-4">
-            <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-[#22c55e1a] flex items-center justify-center">
-              <svg class="w-4 h-4 md:w-5 md:h-5 text-[#22c55e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
+        <!-- KPI Cards -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4">
+            <p class="text-2xl md:text-3xl font-bold text-white">{{ data()!.totals.comics }}</p>
+            <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">Cómics</p>
           </div>
-          <p class="text-3xl md:text-4xl font-bold text-white">{{ stats()?.comics_read ?? '—' }}</p>
-          <p class="text-xs md:text-sm text-[#606060] mt-1">Cómics leídos</p>
+          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4">
+            <p class="text-2xl md:text-3xl font-bold text-[#22c55e]">{{ data()!.totals.read }}</p>
+            <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">Leídos</p>
+          </div>
+          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4">
+            <p class="text-2xl md:text-3xl font-bold text-[#f59e0b]">{{ data()!.totals.unread }}</p>
+            <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">Pendientes</p>
+          </div>
+          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4">
+            <p class="text-2xl md:text-3xl font-bold text-[#8b5cf6]">{{ data()!.totals.collections }}</p>
+            <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">Colecciones</p>
+          </div>
         </div>
 
-        <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-6">
-          <div class="flex items-start justify-between mb-3 md:mb-4">
-            <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-[#f59e0b1a] flex items-center justify-center">
-              <svg class="w-4 h-4 md:w-5 md:h-5 text-[#f59e0b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-              </svg>
-            </div>
+        <!-- Reading progress bar -->
+        <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 mb-6">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-[#606060] uppercase tracking-wider font-semibold">Progreso de lectura</span>
+            <span class="text-sm text-white font-bold">{{ readPercent() }}%</span>
           </div>
-          <p class="text-3xl md:text-4xl font-bold text-white">{{ stats()?.books_total ?? '—' }}</p>
-          <p class="text-xs md:text-sm text-[#606060] mt-1">Libros en total</p>
+          <div class="h-2.5 bg-[#2a2a2a] rounded-full overflow-hidden flex">
+            <div class="h-full bg-[#22c55e] transition-all duration-700" [style.width.%]="readPercent()"></div>
+            <div class="h-full bg-[#3b82f6] transition-all duration-700" [style.width.%]="readingPercent()"></div>
+          </div>
+          <div class="flex gap-4 mt-2 text-[10px] text-[#606060]">
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#22c55e] inline-block"></span> Leídos ({{ data()!.totals.read }})</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#3b82f6] inline-block"></span> Leyendo ({{ data()!.totals.reading }})</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#2a2a2a] inline-block"></span> Pendientes ({{ data()!.totals.unread }})</span>
+          </div>
         </div>
 
-        <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-6">
-          <div class="flex items-start justify-between mb-3 md:mb-4">
-            <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-[#22c55e1a] flex items-center justify-center">
-              <svg class="w-4 h-4 md:w-5 md:h-5 text-[#22c55e]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
+        <!-- Charts row -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+
+          <!-- Monthly evolution (2/3 width) -->
+          <div class="lg:col-span-2 bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
+            <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-4">Evolución mensual</h3>
+            <div class="h-48 flex items-end gap-1.5">
+              @for (bar of monthlyBars(); track bar.month) {
+                <div class="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
+                  <div class="w-full flex flex-col justify-end h-full gap-px">
+                    @if (bar.read > 0) {
+                      <div class="w-full bg-[#22c55e] rounded-t-sm min-h-[2px] transition-all duration-500"
+                        [style.height.%]="bar.readPct"></div>
+                    }
+                    @if (bar.added > 0) {
+                      <div class="w-full bg-[#7c3aed] rounded-t-sm min-h-[2px] transition-all duration-500"
+                        [style.height.%]="bar.addedPct"
+                        [class.rounded-t-sm]="bar.read === 0"></div>
+                    }
+                  </div>
+                  <span class="text-[8px] md:text-[9px] text-[#404040] mt-1 leading-none">{{ bar.label }}</span>
+                </div>
+              }
+            </div>
+            <div class="flex gap-4 mt-3 text-[10px] text-[#606060]">
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#7c3aed] inline-block"></span> Añadidos</span>
+              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#22c55e] inline-block"></span> Leídos</span>
             </div>
           </div>
-          <p class="text-3xl md:text-4xl font-bold text-white">{{ stats()?.books_read ?? '—' }}</p>
-          <p class="text-xs md:text-sm text-[#606060] mt-1">Libros leídos</p>
-        </div>
 
-        <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-6 col-span-2 lg:col-span-1">
-          <div class="flex items-start justify-between mb-3 md:mb-4">
-            <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-[#7c3aed1a] flex items-center justify-center">
-              <svg class="w-4 h-4 md:w-5 md:h-5 text-[#8b5cf6]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
+          <!-- By publisher donut (1/3 width) -->
+          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
+            <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-4">Por editorial</h3>
+            <div class="flex items-center justify-center mb-4">
+              <svg viewBox="0 0 36 36" class="w-32 h-32 md:w-36 md:h-36">
+                @for (seg of publisherSegments(); track seg.publisher) {
+                  <circle cx="18" cy="18" r="14" fill="none" stroke-width="5"
+                    [attr.stroke]="seg.color"
+                    [attr.stroke-dasharray]="seg.dash"
+                    [attr.stroke-dashoffset]="seg.offset"
+                    class="transition-all duration-500"
+                    transform="rotate(-90 18 18)" />
+                }
+                <text x="18" y="18.5" text-anchor="middle" dominant-baseline="middle"
+                  class="fill-white text-[6px] font-bold">{{ data()!.totals.comics }}</text>
               </svg>
             </div>
+            <div class="space-y-1.5">
+              @for (seg of publisherSegments(); track seg.publisher) {
+                <div class="flex items-center justify-between text-[10px]">
+                  <span class="flex items-center gap-1.5 truncate">
+                    <span class="w-2 h-2 rounded-full shrink-0" [style.background]="seg.color"></span>
+                    <span class="text-[#a0a0a0] truncate">{{ seg.publisher }}</span>
+                  </span>
+                  <span class="text-[#606060] ml-2 shrink-0">{{ seg.count }}</span>
+                </div>
+              }
+            </div>
           </div>
-          <p class="text-3xl md:text-4xl font-bold text-white">
-            {{ ((stats()?.comics_owned ?? 0) + (stats()?.books_owned ?? 0)) || '—' }}
-          </p>
-          <p class="text-xs md:text-sm text-[#606060] mt-1">Items en colección</p>
         </div>
 
-      </div>
+        <!-- Second row: Spending + Ratings + Year -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
 
-      <!-- Quick actions -->
-      <div class="mb-8">
-        <h2 class="text-base md:text-lg font-semibold text-white mb-3 md:mb-4">Acceso rápido</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
+          <!-- Spending card -->
+          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
+            <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Inversión</h3>
+            <p class="text-2xl font-bold text-white">{{ data()!.spending.total | number:'1.0-0' }} €</p>
+            <p class="text-[10px] text-[#606060] mt-1">Media: {{ data()!.spending.avg | number:'1.2-2' }} € / cómic</p>
+            @if (data()!.thisYear.spent > 0) {
+              <div class="mt-3 pt-3 border-t border-[#1e1e1e]">
+                <p class="text-sm font-semibold text-[#8b5cf6]">{{ data()!.thisYear.spent | number:'1.0-0' }} €</p>
+                <p class="text-[10px] text-[#606060]">Este año</p>
+              </div>
+            }
+          </div>
+
+          <!-- Rating distribution -->
+          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
+            <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Valoraciones</h3>
+            <div class="space-y-2">
+              @for (r of ratingBars(); track r.rating) {
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-[#f59e0b] w-8 text-right shrink-0">{{ r.stars }}</span>
+                  <div class="flex-1 h-2 bg-[#2a2a2a] rounded-full overflow-hidden">
+                    <div class="h-full bg-[#f59e0b] rounded-full transition-all duration-500"
+                      [style.width.%]="r.pct"></div>
+                  </div>
+                  <span class="text-[10px] text-[#606060] w-5 text-right shrink-0">{{ r.count }}</span>
+                </div>
+              }
+            </div>
+            @if (avgRating() > 0) {
+              <div class="mt-3 pt-3 border-t border-[#1e1e1e] text-center">
+                <span class="text-lg font-bold text-[#f59e0b]">{{ avgRating() | number:'1.1-1' }}</span>
+                <span class="text-xs text-[#606060] ml-1">media</span>
+              </div>
+            }
+          </div>
+
+          <!-- Year comparison -->
+          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
+            <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">{{ currentYear }}</h3>
+            <div class="space-y-3">
+              <div>
+                <div class="flex justify-between text-xs mb-0.5">
+                  <span class="text-[#a0a0a0]">Añadidos</span>
+                  <span class="text-white font-semibold">{{ data()!.thisYear.added }}</span>
+                </div>
+                @if (data()!.prevYear.added > 0) {
+                  <p class="text-[10px]" [class]="data()!.thisYear.added >= data()!.prevYear.added ? 'text-[#22c55e]' : 'text-[#ef4444]'">
+                    {{ data()!.thisYear.added >= data()!.prevYear.added ? '↑' : '↓' }}
+                    vs {{ data()!.prevYear.added }} en {{ currentYear - 1 }}
+                  </p>
+                }
+              </div>
+              <div>
+                <div class="flex justify-between text-xs mb-0.5">
+                  <span class="text-[#a0a0a0]">Leídos</span>
+                  <span class="text-white font-semibold">{{ data()!.thisYear.read }}</span>
+                </div>
+                @if (data()!.prevYear.read > 0) {
+                  <p class="text-[10px]" [class]="data()!.thisYear.read >= data()!.prevYear.read ? 'text-[#22c55e]' : 'text-[#ef4444]'">
+                    {{ data()!.thisYear.read >= data()!.prevYear.read ? '↑' : '↓' }}
+                    vs {{ data()!.prevYear.read }} en {{ currentYear - 1 }}
+                  </p>
+                }
+              </div>
+              <div class="pt-2 border-t border-[#1e1e1e]">
+                <div class="flex justify-between text-xs">
+                  <span class="text-[#a0a0a0]">Ratio lectura</span>
+                  <span class="font-semibold" [class]="yearRatio() >= 1 ? 'text-[#22c55e]' : 'text-[#f59e0b]'">
+                    {{ yearRatio() | number:'1.0-0' }}%
+                  </span>
+                </div>
+                <p class="text-[10px] text-[#606060] mt-0.5">
+                  {{ yearRatio() >= 100 ? 'Lees más de lo que compras' : 'Compras más de lo que lees' }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Collection progress -->
+        @if (data()!.collections.length > 0) {
+          <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 mb-6">
+            <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-4">Progreso de colecciones</h3>
+            <div class="space-y-3">
+              @for (col of data()!.collections; track col.id) {
+                <a [routerLink]="['/app/collections', col.id]" class="flex items-center gap-3 group">
+                  <div class="w-8 h-11 rounded-md overflow-hidden bg-[#0d0d0d] shrink-0 border border-[#2a2a2a]">
+                    @if (col.cover_url) {
+                      <img [src]="col.cover_url" [alt]="col.title" class="w-full h-full object-cover" loading="lazy" />
+                    }
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-xs text-[#a0a0a0] group-hover:text-white truncate transition-colors">{{ col.title }}</span>
+                      <span class="text-[10px] text-[#606060] shrink-0 ml-2">{{ col.owned }}/{{ col.total_issues }}</span>
+                    </div>
+                    <div class="h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
+                      <div class="h-full rounded-full transition-all duration-500"
+                        [class]="col.owned >= col.total_issues ? 'bg-[#22c55e]' : 'bg-[#7c3aed]'"
+                        [style.width.%]="(col.owned / col.total_issues) * 100"></div>
+                    </div>
+                  </div>
+                </a>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Recent comics -->
+        @if (data()!.recentComics.length > 0) {
+          <div class="mb-6">
+            <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Últimos añadidos</h3>
+            <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 md:gap-3">
+              @for (comic of data()!.recentComics; track comic.id) {
+                <a [routerLink]="['/app/comics', comic.id]" class="group">
+                  <div class="aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] border border-[#1e1e1e]
+                              group-hover:border-[#7c3aed]/50 transition-colors">
+                    @if (comic.cover_url) {
+                      <img [src]="comic.cover_url" [alt]="comic.title"
+                        class="w-full h-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
+                    }
+                  </div>
+                  <p class="mt-1 text-[9px] md:text-[10px] text-[#606060] group-hover:text-[#a0a0a0] truncate transition-colors">{{ comic.title }}</p>
+                </a>
+              }
+            </div>
+          </div>
+        }
+
+        <!-- Quick actions -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <a routerLink="/app/comics"
             class="flex items-center gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
-                   hover:border-[#7c3aed44] rounded-2xl p-4 md:p-5 transition-all duration-200 group">
+                   hover:border-[#7c3aed44] rounded-2xl p-4 transition-all group">
             <div class="w-10 h-10 rounded-xl bg-[#7c3aed] flex items-center justify-center shrink-0">
               <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -114,10 +283,9 @@ interface Stats {
               <p class="text-xs text-[#606060]">Busca en Whakoom o entrada manual</p>
             </div>
           </a>
-
           <a routerLink="/app/books/new"
             class="flex items-center gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
-                   hover:border-[#7c3aed44] rounded-2xl p-4 md:p-5 transition-all duration-200 group">
+                   hover:border-[#7c3aed44] rounded-2xl p-4 transition-all group">
             <div class="w-10 h-10 rounded-xl bg-[#7c3aed] flex items-center justify-center shrink-0">
               <svg class="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -129,8 +297,7 @@ interface Stats {
             </div>
           </a>
         </div>
-      </div>
-
+      }
     </div>
   `
 })
@@ -138,12 +305,115 @@ export class DashboardComponent implements OnInit {
   auth = inject(AuthService);
   private api = inject(ApiService);
 
-  stats = signal<Stats | null>(null);
+  data = signal<DashboardData | null>(null);
+  loading = signal(true);
+  currentYear = new Date().getFullYear();
+
+  readPercent = computed(() => {
+    const d = this.data();
+    return d && d.totals.comics > 0 ? Math.round((d.totals.read / d.totals.comics) * 100) : 0;
+  });
+
+  readingPercent = computed(() => {
+    const d = this.data();
+    return d && d.totals.comics > 0 ? Math.round((d.totals.reading / d.totals.comics) * 100) : 0;
+  });
+
+  yearRatio = computed(() => {
+    const d = this.data();
+    if (!d || d.thisYear.added === 0) return 0;
+    return Math.round((d.thisYear.read / d.thisYear.added) * 100);
+  });
+
+  avgRating = computed(() => {
+    const d = this.data();
+    if (!d || d.byRating.length === 0) return 0;
+    const total = d.byRating.reduce((s, r) => s + r.rating * r.count, 0);
+    const count = d.byRating.reduce((s, r) => s + r.count, 0);
+    return count > 0 ? total / count : 0;
+  });
+
+  monthlyBars = computed(() => {
+    const d = this.data();
+    if (!d) return [];
+
+    // Build last 12 months
+    const months: string[] = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(date.toISOString().slice(0, 7));
+    }
+
+    const addedMap = new Map(d.monthly.added.map(m => [m.month, m.count]));
+    const readMap = new Map(d.monthly.read.map(m => [m.month, m.count]));
+
+    const maxVal = Math.max(
+      ...months.map(m => (addedMap.get(m) ?? 0) + (readMap.get(m) ?? 0)),
+      1
+    );
+
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+    return months.map(m => {
+      const added = addedMap.get(m) ?? 0;
+      const read = readMap.get(m) ?? 0;
+      const total = added + read;
+      return {
+        month: m,
+        label: monthNames[parseInt(m.slice(5, 7)) - 1],
+        added,
+        read,
+        addedPct: maxVal > 0 ? (added / maxVal) * 100 : 0,
+        readPct: maxVal > 0 ? (read / maxVal) * 100 : 0,
+      };
+    });
+  });
+
+  publisherSegments = computed(() => {
+    const d = this.data();
+    if (!d || d.byPublisher.length === 0) return [];
+
+    const colors = ['#7c3aed', '#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#8b5cf6', '#14b8a6', '#f97316'];
+    const total = d.byPublisher.reduce((s, p) => s + p.count, 0);
+    const circumference = 2 * Math.PI * 14; // r=14
+    let offset = 0;
+
+    return d.byPublisher.map((p, i) => {
+      const pct = p.count / total;
+      const dash = `${pct * circumference} ${circumference}`;
+      const seg = {
+        publisher: p.publisher,
+        count: p.count,
+        color: colors[i % colors.length],
+        dash,
+        offset: -offset,
+      };
+      offset += pct * circumference;
+      return seg;
+    });
+  });
+
+  ratingBars = computed(() => {
+    const d = this.data();
+    if (!d) return [];
+
+    const maxCount = Math.max(...d.byRating.map(r => r.count), 1);
+    const allRatings = [5, 4, 3, 2, 1];
+    const ratingMap = new Map(d.byRating.map(r => [r.rating, r.count]));
+
+    return allRatings.map(r => ({
+      rating: r,
+      stars: '★'.repeat(r),
+      count: ratingMap.get(r) ?? 0,
+      pct: ((ratingMap.get(r) ?? 0) / maxCount) * 100,
+    }));
+  });
 
   ngOnInit() {
-    this.api.get<Stats>('/stats').subscribe({
-      next: s => this.stats.set(s),
-      error: () => {}
+    this.api.get<DashboardData>('/stats/dashboard').subscribe({
+      next: d => { this.data.set(d); this.loading.set(false); },
+      error: () => this.loading.set(false),
     });
   }
 }
