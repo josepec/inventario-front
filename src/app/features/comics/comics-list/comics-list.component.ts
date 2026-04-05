@@ -575,23 +575,12 @@ interface WkComic {
                 </div>
 
                 <div class="flex gap-3 mt-5">
-                  @if (!wkDetail()!.number) {
-                    <button type="button" (click)="addAsCollection()" [disabled]="wkSaving()"
-                      class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
-                             hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                      @if (wkSaving()) { Añadiendo... } @else { Añadir como colección }
-                    </button>
-                    <button type="button" (click)="addDirectly()" [disabled]="wkSaving()"
-                      class="px-5 py-3 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
-                             border border-[#2a2a2a] hover:bg-[#222] transition-colors">
-                      Añadir como cómic
-                    </button>
-                  } @else {
-                    <button type="button" (click)="addDirectly()" [disabled]="wkSaving()"
-                      class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
-                             hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                      @if (wkSaving()) { Añadiendo... } @else { Añadir }
-                    </button>
+                  <button type="button" (click)="wkDetail()!.number ? addDirectly() : addAsCollection()" [disabled]="wkSaving()"
+                    class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
+                           hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                    @if (wkSaving()) { Añadiendo... } @else if (!wkDetail()!.number) { Añadir colección } @else { Añadir }
+                  </button>
+                  @if (wkDetail()!.number) {
                     <a routerLink="/app/comics/new" (click)="closeModal()"
                       class="px-5 py-3 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
                              border border-[#2a2a2a] hover:bg-[#222] transition-colors">
@@ -947,7 +936,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
         url: extra.url || '',
       }).subscribe({
         next: col => { this.closeModal(); this.router.navigate(['/app/collections', col.id]); },
-        error: () => this.wkSaving.set(false),
+        error: () => { this.wkSaving.set(false); this.wkError.set('Error al crear la colección'); },
       });
     };
 
@@ -1022,7 +1011,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
       const sa = d.structuredAuthors ?? [];
       const writer = sa.find(a => a.role.toLowerCase().includes('guion'))?.name || d.authors?.[0] || '';
       const artist = sa.find(a => a.role.toLowerCase().includes('dibujo'))?.name || d.authors?.[1] || '';
-      this.api.post<Comic>('/comics', {
+      this.api.post<any>('/comics', {
         title: d.title,
         series: d.series || '',
         number: d.number ? Number(d.number) : null,
@@ -1043,7 +1032,10 @@ export class ComicsListComponent implements OnInit, OnDestroy {
         owned: false,
       }).subscribe({
         next: comic => { this.closeModal(); this.router.navigate(['/app/comics', comic.id]); },
-        error: () => this.wkSaving.set(false),
+        error: (err) => {
+          this.wkSaving.set(false);
+          this.wkError.set('Error al guardar el cómic');
+        },
       });
     };
 
