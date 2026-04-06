@@ -1033,7 +1033,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     // editionMeta puede aportar binding/price/pages que la página individual del cómic no tiene
     let editionMeta: { binding?: string | null; price?: number | null; pages?: number | null } = {};
 
-    const doSave = (coverUrl: string, collectionId: number | null) => {
+    const postComic = (coverUrl: string, collectionId: number | null, extraPrice?: number) => {
       const sa = d.structuredAuthors ?? [];
       const writer = sa.find(a => a.role.toLowerCase().includes('guion'))?.name || d.authors?.[0] || '';
       const artist = sa.find(a => a.role.toLowerCase().includes('dibujo'))?.name || d.authors?.[1] || '';
@@ -1052,17 +1052,30 @@ export class ComicsListComponent implements OnInit, OnDestroy {
         language: d.language || '',
         pages: d.pages ?? editionMeta.pages ?? null,
         binding: d.binding ?? editionMeta.binding ?? null,
-        price: d.price ?? editionMeta.price ?? null,
+        price: d.price ?? editionMeta.price ?? extraPrice ?? null,
         collection_id: collectionId,
         read_status: 'unread',
         owned: false,
       }).subscribe({
         next: comic => { this.closeModal(); this.router.navigate(['/app/comics', comic.id]); },
-        error: (err) => {
+        error: () => {
           this.wkSaving.set(false);
           this.wkError.set('Error al guardar el cómic');
         },
       });
+    };
+
+    const doSave = (coverUrl: string, collectionId: number | null) => {
+      const price = d.price ?? editionMeta.price;
+      const isbn = d.isbn;
+      if (!price && isbn) {
+        this.http.get<any>(`${this.base}/google-books/isbn/${isbn}`).subscribe({
+          next: res => postComic(coverUrl, collectionId, res.data?.price ?? undefined),
+          error: () => postComic(coverUrl, collectionId),
+        });
+      } else {
+        postComic(coverUrl, collectionId);
+      }
     };
 
     const createCollection = (coverUrl: string, payload: object) => {

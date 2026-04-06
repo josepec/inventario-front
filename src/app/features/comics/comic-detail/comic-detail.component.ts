@@ -348,7 +348,7 @@ export class ComicDetailComponent implements OnInit {
               if (detail.authors?.[1]) patch.artist = detail.authors[1];
             }
 
-            const uploadAndSave = (coverUrl?: string) => {
+            const doSave = (coverUrl?: string) => {
               if (coverUrl) patch.cover_url = coverUrl;
               this.api.put<Comic>(`/comics/${c.id}`, { ...c, ...patch }).subscribe({
                 next: (updated) => {
@@ -359,13 +359,25 @@ export class ComicDetailComponent implements OnInit {
               });
             };
 
+            const enrichAndSave = (coverUrl?: string) => {
+              const isbn = patch.isbn || c.isbn;
+              if (!patch.price && !c.price && isbn) {
+                this.http.get<any>(`${this.base}/google-books/isbn/${isbn}`).subscribe({
+                  next: (res) => { if (res.data?.price) patch.price = res.data.price; doSave(coverUrl); },
+                  error: () => doSave(coverUrl),
+                });
+              } else {
+                doSave(coverUrl);
+              }
+            };
+
             if (detail.cover && detail.cover !== c.cover_url) {
               this.http.post<{ key: string }>(`${this.base}/covers/upload`, { url: detail.cover }).subscribe({
-                next: (r) => uploadAndSave(`${this.base}/covers/${r.key}`),
-                error: () => uploadAndSave(detail.cover),
+                next: (r) => enrichAndSave(`${this.base}/covers/${r.key}`),
+                error: () => enrichAndSave(detail.cover),
               });
             } else {
-              uploadAndSave();
+              enrichAndSave();
             }
           },
           error: () => this.syncing.set(false),
