@@ -1,8 +1,10 @@
-import { Component, inject, OnInit, signal, computed, ElementRef, viewChildren } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DecimalPipe } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { ApiService } from '../../shared/services/api.service';
 import { AuthService } from '../../core/auth/auth.service';
+import { environment } from '../../../environments/environment';
 
 interface DashboardData {
   totals: { comics: number; read: number; unread: number; reading: number; collections: number };
@@ -14,6 +16,7 @@ interface DashboardData {
   spending: { total: number; avg: number };
   thisYear: { added: number; read: number; spent: number };
   prevYear: { added: number; read: number; spent: number };
+  statsStartDate: string | null;
 }
 
 @Component({
@@ -81,28 +84,39 @@ interface DashboardData {
           <!-- Monthly evolution (2/3 width) -->
           <div class="lg:col-span-2 bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
             <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-4">Evolución mensual</h3>
-            <div class="h-48 flex items-end gap-1.5">
-              @for (bar of monthlyBars(); track bar.month) {
-                <div class="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
-                  <div class="w-full flex flex-col justify-end h-full gap-px">
-                    @if (bar.read > 0) {
-                      <div class="w-full bg-[#22c55e] rounded-t-sm min-h-[2px] transition-all duration-500"
-                        [style.height.%]="bar.readPct"></div>
-                    }
-                    @if (bar.added > 0) {
-                      <div class="w-full bg-[#7c3aed] rounded-t-sm min-h-[2px] transition-all duration-500"
-                        [style.height.%]="bar.addedPct"
-                        [class.rounded-t-sm]="bar.read === 0"></div>
-                    }
+            @if (!data()!.statsStartDate) {
+              <div class="h-48 flex flex-col items-center justify-center text-center">
+                <p class="text-sm text-[#606060] mb-3">Activa el seguimiento cuando termines de inventariar tu colección</p>
+                <button (click)="activateStats()" [disabled]="activatingStats()"
+                  class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
+                         hover:bg-[#6d28d9] disabled:opacity-40 transition-colors">
+                  @if (activatingStats()) { Activando... } @else { Activar seguimiento mensual }
+                </button>
+              </div>
+            } @else {
+              <div class="h-48 flex items-end gap-1.5">
+                @for (bar of monthlyBars(); track bar.month) {
+                  <div class="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
+                    <div class="w-full flex flex-col justify-end h-full gap-px">
+                      @if (bar.read > 0) {
+                        <div class="w-full bg-[#22c55e] rounded-t-sm min-h-[2px] transition-all duration-500"
+                          [style.height.%]="bar.readPct"></div>
+                      }
+                      @if (bar.added > 0) {
+                        <div class="w-full bg-[#7c3aed] rounded-t-sm min-h-[2px] transition-all duration-500"
+                          [style.height.%]="bar.addedPct"
+                          [class.rounded-t-sm]="bar.read === 0"></div>
+                      }
+                    </div>
+                    <span class="text-[8px] md:text-[9px] text-[#404040] mt-1 leading-none">{{ bar.label }}</span>
                   </div>
-                  <span class="text-[8px] md:text-[9px] text-[#404040] mt-1 leading-none">{{ bar.label }}</span>
-                </div>
-              }
-            </div>
-            <div class="flex gap-4 mt-3 text-[10px] text-[#606060]">
-              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#7c3aed] inline-block"></span> Añadidos</span>
-              <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#22c55e] inline-block"></span> Leídos</span>
-            </div>
+                }
+              </div>
+              <div class="flex gap-4 mt-3 text-[10px] text-[#606060]">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#7c3aed] inline-block"></span> Añadidos</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#22c55e] inline-block"></span> Leídos</span>
+              </div>
+            }
           </div>
 
           <!-- By publisher donut (1/3 width) -->
@@ -304,9 +318,12 @@ interface DashboardData {
 export class DashboardComponent implements OnInit {
   auth = inject(AuthService);
   private api = inject(ApiService);
+  private http = inject(HttpClient);
+  private base = environment.apiUrl;
 
   data = signal<DashboardData | null>(null);
   loading = signal(true);
+  activatingStats = signal(false);
   currentYear = new Date().getFullYear();
 
   readPercent = computed(() => {
@@ -414,6 +431,18 @@ export class DashboardComponent implements OnInit {
     this.api.get<DashboardData>('/stats/dashboard').subscribe({
       next: d => { this.data.set(d); this.loading.set(false); },
       error: () => this.loading.set(false),
+    });
+  }
+
+  activateStats() {
+    this.activatingStats.set(true);
+    this.http.post<{ date: string }>(`${this.base}/stats/settings/stats-start`, {}).subscribe({
+      next: res => {
+        const d = this.data();
+        if (d) this.data.set({ ...d, statsStartDate: res.date });
+        this.activatingStats.set(false);
+      },
+      error: () => this.activatingStats.set(false),
     });
   }
 }
