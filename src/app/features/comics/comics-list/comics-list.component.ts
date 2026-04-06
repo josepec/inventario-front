@@ -191,7 +191,12 @@ interface WkComic {
                 <button (click)="filterPublisher.set(''); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
               </span>
             }
-            @if (filterPriceMin() !== null || filterPriceMax() !== null) {
+            @if (filterNoPrice()) {
+              <span class="inline-flex items-center gap-1.5 bg-[#7c3aed1a] border border-[#7c3aed33] text-[#8b5cf6] text-xs px-2.5 py-1 rounded-full">
+                Sin precio
+                <button (click)="filterNoPrice.set(false); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
+              </span>
+            } @else if (filterPriceMin() !== null || filterPriceMax() !== null) {
               <span class="inline-flex items-center gap-1.5 bg-[#7c3aed1a] border border-[#7c3aed33] text-[#8b5cf6] text-xs px-2.5 py-1 rounded-full">
                 {{ filterPriceMin() ?? 0 }}€ - {{ filterPriceMax() ?? '...' }}€
                 <button (click)="filterPriceMin.set(null); filterPriceMax.set(null); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
@@ -244,17 +249,26 @@ interface WkComic {
               <!-- Price range -->
               <div>
                 <label class="text-[10px] text-[#606060] uppercase tracking-wider mb-1.5 block font-semibold">Precio</label>
-                <div class="flex gap-2 items-center">
-                  <input type="number" [value]="filterPriceMin()" (change)="filterPriceMin.set($any($event.target).value ? +$any($event.target).value : null); applyFilters()"
-                    placeholder="Min" step="0.5" min="0"
-                    class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
-                           placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
-                  <span class="text-[#404040] text-xs">-</span>
-                  <input type="number" [value]="filterPriceMax()" (change)="filterPriceMax.set($any($event.target).value ? +$any($event.target).value : null); applyFilters()"
-                    placeholder="Max" step="0.5" min="0"
-                    class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
-                           placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
-                </div>
+                <button type="button" (click)="filterNoPrice.set(!filterNoPrice()); filterPriceMin.set(null); filterPriceMax.set(null); applyFilters()"
+                  class="w-full mb-2 px-3 py-2 rounded-xl text-xs font-medium border transition-colors text-left"
+                  [class]="filterNoPrice()
+                    ? 'bg-[#7c3aed1a] border-[#7c3aed44] text-[#8b5cf6]'
+                    : 'bg-[#0d0d0d] border-[#2a2a2a] text-[#606060] hover:text-[#a0a0a0]'">
+                  Sin precio
+                </button>
+                @if (!filterNoPrice()) {
+                  <div class="flex gap-2 items-center">
+                    <input type="number" [value]="filterPriceMin()" (change)="filterPriceMin.set($any($event.target).value ? +$any($event.target).value : null); applyFilters()"
+                      placeholder="Min" step="0.5" min="0"
+                      class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
+                             placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+                    <span class="text-[#404040] text-xs">-</span>
+                    <input type="number" [value]="filterPriceMax()" (change)="filterPriceMax.set($any($event.target).value ? +$any($event.target).value : null); applyFilters()"
+                      placeholder="Max" step="0.5" min="0"
+                      class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
+                             placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+                  </div>
+                }
               </div>
               <!-- Rating -->
               <div>
@@ -749,6 +763,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   filterPriceMin = signal<number | null>(null);
   filterPriceMax = signal<number | null>(null);
   filterRatingMin = signal<number | null>(null);
+  filterNoPrice = signal(false);
   filtersExpanded = signal(false);
   availableAuthors = signal<string[]>([]);
   availablePublishers = signal<string[]>([]);
@@ -756,8 +771,8 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     let n = 0;
     if (this.filterAuthor()) n++;
     if (this.filterPublisher()) n++;
-    if (this.filterPriceMin() !== null) n++;
-    if (this.filterPriceMax() !== null) n++;
+    if (this.filterNoPrice()) n++;
+    else { if (this.filterPriceMin() !== null) n++; if (this.filterPriceMax() !== null) n++; }
     if (this.filterRatingMin() !== null) n++;
     return n;
   });
