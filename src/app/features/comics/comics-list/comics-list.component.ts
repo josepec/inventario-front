@@ -282,6 +282,38 @@ interface WkComic {
         }
       </div>
 
+      <!-- Selection bar -->
+      @if (selectionMode()) {
+        <div class="sticky top-0 z-30 bg-[#0d0d0d]/95 backdrop-blur-sm border-b border-[#2a2a2a] -mx-4 px-4 md:-mx-8 md:px-8 py-3 mb-4 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <button (click)="exitSelection()" class="text-[#606060] hover:text-white transition-colors">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <span class="text-sm text-white font-medium">{{ selectedIds().size }} seleccionados</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button (click)="selectAll()" class="text-xs text-[#8b5cf6] hover:text-[#a78bfa] transition-colors">
+              {{ selectedIds().size === comics().length ? 'Deseleccionar todo' : 'Seleccionar todo' }}
+            </button>
+            <button (click)="bulkMarkAs('read')" [disabled]="selectedIds().size === 0 || bulkUpdating()"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#22c55e1a] border border-[#22c55e33] text-[#22c55e]
+                     hover:bg-[#22c55e22] transition-colors disabled:opacity-40">
+              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+              Leído
+            </button>
+            <button (click)="bulkMarkAs('unread')" [disabled]="selectedIds().size === 0 || bulkUpdating()"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#ffffff0d] border border-[#2a2a2a] text-[#a0a0a0]
+                     hover:bg-[#ffffff1a] transition-colors disabled:opacity-40">
+              Sin leer
+            </button>
+          </div>
+        </div>
+      }
+
       @if (loading()) {
         <div class="flex justify-center py-20">
           <div class="w-8 h-8 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin"></div>
@@ -305,11 +337,16 @@ interface WkComic {
           } @else {
             <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
               @for (comic of comics(); track comic.id) {
-                <a [routerLink]="['/app/comics', comic.id]" class="group cursor-pointer">
-                  <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
+                <div class="group cursor-pointer"
+                  (touchstart)="onPressStart(comic.id, $event)" (touchend)="onPressEnd()" (touchmove)="onPressEnd()"
+                  (mousedown)="onPressStart(comic.id, $event)" (mouseup)="onPressEnd()" (mouseleave)="onPressEnd()"
+                  (click)="onItemClick(comic.id, $event)">
+                  <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5"
+                    [class.ring-2]="selectedIds().has(comic.id)" [class.ring-[#7c3aed]]="selectedIds().has(comic.id)">
                     @if (comic.cover_url) {
                       <img [src]="comic.cover_url" [alt]="comic.title"
-                        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        draggable="false" />
                     } @else {
                       <div class="w-full h-full flex flex-col items-center justify-center gap-2 p-3 text-center">
                         <svg class="w-8 h-8 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
@@ -318,8 +355,18 @@ interface WkComic {
                         <p class="text-[10px] text-[#404040] leading-tight">{{ comic.title }}</p>
                       </div>
                     }
+                    <!-- Selection checkbox / read badge -->
                     <div class="absolute top-2 right-2">
-                      @if (comic.read_status === 'read') {
+                      @if (selectionMode()) {
+                        <span class="w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+                          [class]="selectedIds().has(comic.id) ? 'bg-[#7c3aed]' : 'bg-black/50 border border-white/30'">
+                          @if (selectedIds().has(comic.id)) {
+                            <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                            </svg>
+                          }
+                        </span>
+                      } @else if (comic.read_status === 'read') {
                         <span class="w-5 h-5 rounded-full bg-[#22c55e] flex items-center justify-center">
                           <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -331,13 +378,15 @@ interface WkComic {
                       <span class="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-bold
                                    px-2 py-1 rounded-lg leading-none backdrop-blur-sm">#{{ comic.number }}</span>
                     }
-                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
+                    @if (!selectionMode()) {
+                      <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
+                    }
                   </div>
                   <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ comic.title }}</p>
                   @if (comic.series && comic.series !== comic.title) {
                     <p class="text-[10px] text-[#606060] truncate">{{ comic.series }}</p>
                   }
-                </a>
+                </div>
               }
             </div>
           }
@@ -346,12 +395,24 @@ interface WkComic {
         @if (viewMode() === 'list') {
           <div class="space-y-2">
             @for (comic of comics(); track comic.id) {
-              <a [routerLink]="['/app/comics', comic.id]"
-                class="flex items-center gap-3 md:gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
-                       rounded-xl px-3 md:px-4 py-3 transition-colors duration-150">
+              <div class="flex items-center gap-3 md:gap-4 bg-[#161616] hover:bg-[#1a1a1a] border rounded-xl px-3 md:px-4 py-3 transition-colors duration-150 cursor-pointer"
+                [class.border-[#7c3aed]]="selectedIds().has(comic.id)" [class.border-[#1e1e1e]]="!selectedIds().has(comic.id)"
+                (touchstart)="onPressStart(comic.id, $event)" (touchend)="onPressEnd()" (touchmove)="onPressEnd()"
+                (mousedown)="onPressStart(comic.id, $event)" (mouseup)="onPressEnd()" (mouseleave)="onPressEnd()"
+                (click)="onItemClick(comic.id, $event)">
+                @if (selectionMode()) {
+                  <span class="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-colors"
+                    [class]="selectedIds().has(comic.id) ? 'bg-[#7c3aed]' : 'border border-[#404040]'">
+                    @if (selectedIds().has(comic.id)) {
+                      <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                    }
+                  </span>
+                }
                 <div class="w-9 h-12 md:w-10 md:h-14 rounded-lg overflow-hidden bg-[#222] shrink-0">
                   @if (comic.cover_url) {
-                    <img [src]="comic.cover_url" [alt]="comic.title" class="w-full h-full object-cover" />
+                    <img [src]="comic.cover_url" [alt]="comic.title" class="w-full h-full object-cover" draggable="false" />
                   }
                 </div>
                 <div class="flex-1 min-w-0">
@@ -364,7 +425,7 @@ interface WkComic {
                     {{ statusLabel(comic.read_status) }}
                   </span>
                 </div>
-              </a>
+              </div>
             }
           </div>
         }
@@ -721,6 +782,68 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   wkTotal = signal(0);
   private wkSelectedResult: WkResult | null = null;
 
+  // ── Selection state ──────────────────────────────────────────────────────
+  selectionMode = signal(false);
+  selectedIds = signal<Set<number>>(new Set());
+  bulkUpdating = signal(false);
+  private pressTimer: any = null;
+  private pressHandled = false;
+
+  onPressStart(id: number, e: Event) {
+    if (this.selectionMode()) return; // already in selection mode, click handles it
+    this.pressHandled = false;
+    this.pressTimer = setTimeout(() => {
+      this.pressHandled = true;
+      e.preventDefault();
+      this.selectionMode.set(true);
+      this.selectedIds.set(new Set([id]));
+    }, 500);
+  }
+
+  onPressEnd() {
+    clearTimeout(this.pressTimer);
+  }
+
+  onItemClick(id: number, e: Event) {
+    if (this.pressHandled) { e.preventDefault(); return; }
+    if (this.selectionMode()) {
+      e.preventDefault();
+      const s = new Set(this.selectedIds());
+      if (s.has(id)) s.delete(id); else s.add(id);
+      this.selectedIds.set(s);
+      if (s.size === 0) this.selectionMode.set(false);
+    } else {
+      this.router.navigate(['/app/comics', id]);
+    }
+  }
+
+  selectAll() {
+    if (this.selectedIds().size === this.comics().length) {
+      this.selectedIds.set(new Set());
+    } else {
+      this.selectedIds.set(new Set(this.comics().map(c => c.id)));
+    }
+  }
+
+  exitSelection() {
+    this.selectionMode.set(false);
+    this.selectedIds.set(new Set());
+  }
+
+  bulkMarkAs(status: string) {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    this.bulkUpdating.set(true);
+    this.http.patch(`${this.base}/comics/batch`, { ids, read_status: status }).subscribe({
+      next: () => {
+        this.bulkUpdating.set(false);
+        this.exitSelection();
+        this.load();
+      },
+      error: () => this.bulkUpdating.set(false),
+    });
+  }
+
   // ── Scanner state ────────────────────────────────────────────────────────
   scannerActive = signal(false);
   private reader = new BrowserMultiFormatReader();
@@ -1066,16 +1189,42 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     };
 
     const doSave = (coverUrl: string, collectionId: number | null) => {
-      const price = d.price ?? editionMeta.price;
+      // d.price = precio del cómic individual (fiable)
+      // editionMeta.price = precio genérico de la edición (último recurso)
+      if (d.price) { postComic(coverUrl, collectionId); return; }
+
       const isbn = d.isbn;
-      if (!price && isbn) {
-        this.http.get<any>(`${this.base}/google-books/isbn/${isbn}`).subscribe({
-          next: res => postComic(coverUrl, collectionId, res.data?.price ?? undefined),
-          error: () => postComic(coverUrl, collectionId),
-        });
-      } else {
+
+      // 1. Editorial (ECC = PVP oficial)
+      const tryEditorial = (): void => {
+        const title = d.title;
+        const publisher = d.publisher;
+        if (title && publisher) {
+          this.http.get<any>(`${this.base}/google-books/editorial-price`, {
+            params: new HttpParams().set('title', title).set('publisher', publisher),
+          }).subscribe({
+            next: res => { if (res.price) postComic(coverUrl, collectionId, res.price); else tryIsbn(); },
+            error: () => tryIsbn(),
+          });
+        } else { tryIsbn(); }
+      };
+
+      // 2. Google Books / Amazon / Casa del Libro por ISBN
+      const tryIsbn = (): void => {
+        if (isbn) {
+          this.http.get<any>(`${this.base}/google-books/isbn/${isbn}`).subscribe({
+            next: res => { if (res.data?.price) postComic(coverUrl, collectionId, res.data.price); else useEditionFallback(); },
+            error: () => useEditionFallback(),
+          });
+        } else { useEditionFallback(); }
+      };
+
+      // 3. Sin precio fiable → guardar sin precio
+      const useEditionFallback = (): void => {
         postComic(coverUrl, collectionId);
-      }
+      };
+
+      tryEditorial();
     };
 
     const createCollection = (coverUrl: string, payload: object) => {
@@ -1085,38 +1234,40 @@ export class ComicsListComponent implements OnInit, OnDestroy {
       });
     };
 
-    // Obtener detalle de edición de Whakoom y crear colección rica
-    const createFromEdition = (editionId: string, comicCoverUrl: string, wkId?: string) => {
+    // Crear colección a partir de datos de edición ya cargados
+    const createCollectionFromEdition = (edition: any, comicCoverUrl: string, wkId?: string) => {
+      editionMeta = { binding: edition.binding, price: edition.price, pages: edition.pages };
+      const finishCreate = (edCoverUrl: string) => {
+        createCollection(comicCoverUrl, {
+          whakoom_id: wkId || null, whakoom_type: wkId ? 'edition' : null,
+          title: edition.title || d.series || d.title,
+          publisher: edition.publisher || d.publisher || '',
+          cover_url: edCoverUrl,
+          total_issues: edition.totalIssues || null,
+          description: edition.description || '',
+          synopsis: edition.synopsis || '',
+          format: edition.format || '',
+          status: edition.status || '',
+          edition_details: edition.editionDetails || '',
+          authors: edition.authors || [],
+          issues: edition.issues || [],
+          url: edition.url || '',
+        });
+      };
+      if (edition.cover) {
+        this.http.post<{ key: string }>(`${this.base}/covers/upload`, { url: edition.cover }).subscribe({
+          next: r => finishCreate(`${this.base}/covers/${r.key}`),
+          error: () => finishCreate(edition.cover),
+        });
+      } else {
+        finishCreate(comicCoverUrl);
+      }
+    };
+
+    // Fetch edición y crear colección
+    const fetchAndCreateFromEdition = (editionId: string, comicCoverUrl: string, wkId?: string) => {
       this.http.get<any>(`${this.base}/whakoom/edition/${editionId}`).subscribe({
-        next: (edition) => {
-          // Guardar meta de la edición para heredar al cómic
-          editionMeta = { binding: edition.binding, price: edition.price, pages: edition.pages };
-          const finishCreate = (edCoverUrl: string) => {
-            createCollection(comicCoverUrl, {
-              whakoom_id: wkId || null, whakoom_type: wkId ? 'edition' : null,
-              title: edition.title || d.series || d.title,
-              publisher: edition.publisher || d.publisher || '',
-              cover_url: edCoverUrl,
-              total_issues: edition.totalIssues || null,
-              description: edition.description || '',
-              synopsis: edition.synopsis || '',
-              format: edition.format || '',
-              status: edition.status || '',
-              edition_details: edition.editionDetails || '',
-              authors: edition.authors || [],
-              issues: edition.issues || [],
-              url: edition.url || '',
-            });
-          };
-          if (edition.cover) {
-            this.http.post<{ key: string }>(`${this.base}/covers/upload`, { url: edition.cover }).subscribe({
-              next: r => finishCreate(`${this.base}/covers/${r.key}`),
-              error: () => finishCreate(edition.cover),
-            });
-          } else {
-            finishCreate(comicCoverUrl);
-          }
-        },
+        next: (edition) => createCollectionFromEdition(edition, comicCoverUrl, wkId),
         error: () => {
           createCollection(comicCoverUrl, {
             whakoom_id: wkId || null,
@@ -1129,22 +1280,26 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     };
 
     const withCover = (coverUrl: string) => {
-      if (src?.type === 'edition' && !d.number) {
-        // Edición sin número → tomo único, traer meta y guardar como cómic
+      if (src?.type === 'edition') {
+        // Fetch edición para ver si tiene múltiples números
         this.http.get<any>(`${this.base}/whakoom/edition/${src.id}`).subscribe({
           next: (edition) => {
-            editionMeta = { binding: edition.binding, price: edition.price, pages: edition.pages };
-            doSave(coverUrl, null);
+            if (edition.totalIssues > 1 || (edition.issues && edition.issues.length > 1)) {
+              // Edición con múltiples números → crear colección (reutiliza datos ya cargados)
+              createCollectionFromEdition(edition, coverUrl, src.id);
+            } else {
+              // Tomo único → guardar como cómic suelto
+              editionMeta = { binding: edition.binding, price: edition.price, pages: edition.pages };
+              doSave(coverUrl, null);
+            }
           },
           error: () => doSave(coverUrl, null),
         });
-      } else if (src?.type === 'edition' && d.number) {
-        createFromEdition(src.id, coverUrl, src.id);
       } else if (d.series && d.number) {
         // Buscar edición correspondiente en los resultados de búsqueda ya cargados
         const edInResults = this.wkResults().find(r => r.type === 'edition');
         if (edInResults) {
-          createFromEdition(edInResults.id, coverUrl, edInResults.id);
+          fetchAndCreateFromEdition(edInResults.id, coverUrl, edInResults.id);
         } else {
           // Buscar en Whakoom la edición de esta serie
           this.http.get<any>(`${this.base}/whakoom/search`, {
@@ -1153,7 +1308,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
             next: (res) => {
               const ed = res.data?.find((r: any) => r.type === 'edition');
               if (ed) {
-                createFromEdition(ed.id, coverUrl, ed.id);
+                fetchAndCreateFromEdition(ed.id, coverUrl, ed.id);
               } else {
                 createCollection(coverUrl, {
                   title: d.series,

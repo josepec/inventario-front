@@ -360,37 +360,44 @@ export class ComicDetailComponent implements OnInit {
             };
 
             const enrichAndSave = (coverUrl?: string) => {
-              if (patch.price || c.price) { doSave(coverUrl); return; }
-
-              // 1. Try Google Books + Casa del Libro by ISBN
-              const tryGoogleBooks = (): void => {
-                const isbn = patch.isbn || c.isbn;
-                if (isbn) {
-                  this.http.get<any>(`${this.base}/google-books/isbn/${isbn}`).subscribe({
-                    next: (res) => { if (res.data?.price) { patch.price = res.data.price; doSave(coverUrl); } else tryEdition(); },
-                    error: () => tryEdition(),
+              // 1. Always try editorial website first (ECC = PVP oficial)
+              const tryEditorial = (): void => {
+                const title = patch.title || c.title;
+                const publisher = patch.publisher || c.publisher;
+                if (title && publisher) {
+                  this.http.get<any>(`${this.base}/google-books/editorial-price`, {
+                    params: new HttpParams().set('title', title).set('publisher', publisher),
+                  }).subscribe({
+                    next: (res) => { if (res.price) { patch.price = res.price; doSave(coverUrl); } else restOfChain(); },
+                    error: () => restOfChain(),
                   });
-                } else { tryEdition(); }
+                } else { restOfChain(); }
               };
 
-              // 2. Last resort: edition price from Whakoom (generic, may not match)
+              // 2. Rest of chain only if editorial didn't find a price
+              const restOfChain = (): void => {
+                if (patch.price || c.price) { doSave(coverUrl); return; }
+
+                // Try Google Books + Amazon + Casa del Libro by ISBN
+                const tryGoogleBooks = (): void => {
+                  const isbn = patch.isbn || c.isbn;
+                  if (isbn) {
+                    this.http.get<any>(`${this.base}/google-books/isbn/${isbn}`).subscribe({
+                      next: (res) => { if (res.data?.price) { patch.price = res.data.price; doSave(coverUrl); } else tryEdition(); },
+                      error: () => tryEdition(),
+                    });
+                  } else { tryEdition(); }
+                };
+
+                tryGoogleBooks();
+              };
+
+              // 3. Sin precio fiable → guardar sin precio
               const tryEdition = (): void => {
-                if (c.collection_id) {
-                  this.api.get<any>(`/collections/${c.collection_id}`).subscribe({
-                    next: (col) => {
-                      if (col.whakoom_id) {
-                        this.http.get<any>(`${this.base}/whakoom/edition/${col.whakoom_id}`).subscribe({
-                          next: (ed) => { if (ed.price) patch.price = ed.price; doSave(coverUrl); },
-                          error: () => doSave(coverUrl),
-                        });
-                      } else { doSave(coverUrl); }
-                    },
-                    error: () => doSave(coverUrl),
-                  });
-                } else { doSave(coverUrl); }
+                doSave(coverUrl);
               };
 
-              tryGoogleBooks();
+              tryEditorial();
             };
 
             if (detail.cover && detail.cover !== c.cover_url) {
