@@ -250,26 +250,36 @@ interface WkComic {
               <!-- Price range -->
               <div>
                 <label class="text-[10px] text-[#606060] uppercase tracking-wider mb-1.5 block font-semibold">Precio</label>
-                <button type="button" (click)="filterNoPrice.set(!filterNoPrice()); filterPriceMin.set(null); filterPriceMax.set(null); applyFilters()"
-                  class="w-full mb-2 px-3 py-2 rounded-xl text-xs font-medium border transition-colors text-left"
-                  [class]="filterNoPrice()
-                    ? 'bg-[#7c3aed1a] border-[#7c3aed44] text-[#8b5cf6]'
-                    : 'bg-[#0d0d0d] border-[#2a2a2a] text-[#606060] hover:text-[#a0a0a0]'">
-                  Sin precio
-                </button>
-                @if (!filterNoPrice()) {
-                  <div class="flex gap-2 items-center">
-                    <input type="number" [value]="filterPriceMin()" (change)="filterPriceMin.set($any($event.target).value ? +$any($event.target).value : null); applyFilters()"
-                      placeholder="Min" step="0.5" min="0"
-                      class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
-                             placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
-                    <span class="text-[#404040] text-xs">-</span>
-                    <input type="number" [value]="filterPriceMax()" (change)="filterPriceMax.set($any($event.target).value ? +$any($event.target).value : null); applyFilters()"
-                      placeholder="Max" step="0.5" min="0"
-                      class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
-                             placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
-                  </div>
-                }
+                <div class="flex gap-2 items-center">
+                  <input type="number" [value]="filterPriceMin()" [disabled]="filterNoPrice()"
+                    (change)="filterPriceMin.set($any($event.target).value ? +$any($event.target).value : null); applyFilters()"
+                    placeholder="Min" step="0.5" min="0"
+                    class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
+                           placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors
+                           disabled:opacity-30 disabled:cursor-not-allowed" />
+                  <span class="text-[#404040] text-xs">-</span>
+                  <input type="number" [value]="filterPriceMax()" [disabled]="filterNoPrice()"
+                    (change)="filterPriceMax.set($any($event.target).value ? +$any($event.target).value : null); applyFilters()"
+                    placeholder="Max" step="0.5" min="0"
+                    class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-white
+                           placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors
+                           disabled:opacity-30 disabled:cursor-not-allowed" />
+                </div>
+                <label class="flex items-center gap-2 mt-2 cursor-pointer group"
+                  (click)="filterNoPrice.set(!filterNoPrice()); filterPriceMin.set(null); filterPriceMax.set(null); applyFilters()">
+                  <span class="w-4 h-4 rounded flex items-center justify-center shrink-0 transition-colors"
+                    [class]="filterNoPrice()
+                      ? 'bg-[#7c3aed]'
+                      : 'border border-[#2a2a2a] group-hover:border-[#404040]'">
+                    @if (filterNoPrice()) {
+                      <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                      </svg>
+                    }
+                  </span>
+                  <span class="text-xs transition-colors"
+                    [class]="filterNoPrice() ? 'text-[#8b5cf6]' : 'text-[#606060] group-hover:text-[#a0a0a0]'">Sin precio</span>
+                </label>
               </div>
               <!-- Rating -->
               <div>
@@ -370,25 +380,25 @@ interface WkComic {
                         <p class="text-[10px] text-[#404040] leading-tight">{{ comic.title }}</p>
                       </div>
                     }
-                    <!-- Selection checkbox / read badge -->
-                    <div class="absolute top-2 right-2">
-                      @if (selectionMode()) {
-                        <span class="w-6 h-6 rounded-full flex items-center justify-center transition-colors"
-                          [class]="selectedIds().has(comic.id) ? 'bg-[#7c3aed]' : 'bg-black/50 border border-white/30'">
-                          @if (selectedIds().has(comic.id)) {
-                            <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
-                            </svg>
-                          }
-                        </span>
-                      } @else if (comic.read_status === 'read') {
-                        <span class="w-5 h-5 rounded-full bg-[#22c55e] flex items-center justify-center">
-                          <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <!-- Read badge (always visible) -->
+                    @if (comic.read_status === 'read') {
+                      <span class="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#22c55e] flex items-center justify-center">
+                        <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                        </svg>
+                      </span>
+                    }
+                    <!-- Selection checkbox (top-left in selection mode) -->
+                    @if (selectionMode()) {
+                      <span class="absolute top-2 left-2 w-6 h-6 rounded-full flex items-center justify-center transition-colors"
+                        [class]="selectedIds().has(comic.id) ? 'bg-[#7c3aed]' : 'bg-black/50 border border-white/30'">
+                        @if (selectedIds().has(comic.id)) {
+                          <svg class="w-3.5 h-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                           </svg>
-                        </span>
-                      }
-                    </div>
+                        }
+                      </span>
+                    }
                     @if (comic.number) {
                       <span class="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-bold
                                    px-2 py-1 rounded-lg leading-none backdrop-blur-sm">#{{ comic.number }}</span>
@@ -1325,10 +1335,27 @@ export class ComicsListComponent implements OnInit, OnDestroy {
           if (edInResults) {
             fetchAndCreateFromEdition(edInResults.id, coverUrl, edInResults.id);
           } else {
-            createCollection(coverUrl, {
-              title: d.series,
-              publisher: d.publisher || '',
-              cover_url: coverUrl,
+            // Buscar en Whakoom la edición de esta serie
+            this.http.get<any>(`${this.base}/whakoom/search`, {
+              params: new HttpParams().set('q', d.series),
+            }).subscribe({
+              next: (res) => {
+                const ed = res.data?.find((r: any) =>
+                  r.type === 'edition' && (r.publisher || '').toLowerCase() === pub
+                ) ?? res.data?.find((r: any) => r.type === 'edition');
+                if (ed) {
+                  fetchAndCreateFromEdition(ed.id, coverUrl, ed.id);
+                } else {
+                  createCollection(coverUrl, {
+                    title: d.series,
+                    publisher: d.publisher || '',
+                    cover_url: coverUrl,
+                  });
+                }
+              },
+              error: () => createCollection(coverUrl, {
+                title: d.series, publisher: d.publisher || '', cover_url: coverUrl,
+              }),
             });
           }
         }
