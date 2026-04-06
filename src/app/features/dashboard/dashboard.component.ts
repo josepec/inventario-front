@@ -172,7 +172,7 @@ interface DashboardData {
             <div class="space-y-2">
               @for (r of ratingBars(); track r.rating) {
                 <div class="flex items-center gap-2">
-                  <span class="text-[10px] text-[#f59e0b] w-12 text-right shrink-0 tracking-tight">{{ r.stars }}</span>
+                  <span class="text-[10px] text-[#f59e0b] w-6 text-right shrink-0">{{ r.rating }}★</span>
                   <div class="flex-1 h-2 bg-[#2a2a2a] rounded-full overflow-hidden">
                     <div class="h-full bg-[#f59e0b] rounded-full transition-all duration-500"
                       [style.width.%]="r.pct"></div>
