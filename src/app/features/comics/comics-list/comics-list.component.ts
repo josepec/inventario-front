@@ -575,18 +575,16 @@ interface WkComic {
                 </div>
 
                 <div class="flex gap-3 mt-5">
-                  <button type="button" (click)="wkDetail()!.number ? addDirectly() : addAsCollection()" [disabled]="wkSaving()"
+                  <button type="button" (click)="addDirectly()" [disabled]="wkSaving()"
                     class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
                            hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                    @if (wkSaving()) { Añadiendo... } @else if (!wkDetail()!.number) { Añadir colección } @else { Añadir }
+                    @if (wkSaving()) { Añadiendo... } @else { Añadir }
                   </button>
-                  @if (wkDetail()!.number) {
-                    <a routerLink="/app/comics/new" (click)="closeModal()"
-                      class="px-5 py-3 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
-                             border border-[#2a2a2a] hover:bg-[#222] transition-colors">
-                      Editar antes
-                    </a>
-                  }
+                  <a routerLink="/app/comics/new" (click)="closeModal()"
+                    class="px-5 py-3 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
+                           border border-[#2a2a2a] hover:bg-[#222] transition-colors">
+                    Editar antes
+                  </a>
                 </div>
               </div>
 
