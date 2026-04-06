@@ -16,6 +16,7 @@ interface DashboardData {
   spending: { total: number; avg: number };
   thisYear: { added: number; read: number; spent: number };
   prevYear: { added: number; read: number; spent: number };
+  monthlySpending: { thisMonth: number; prevMonth: number };
   statsStartDate: string | null;
 }
 
@@ -67,13 +68,11 @@ interface DashboardData {
             <span class="text-xs text-[#606060] uppercase tracking-wider font-semibold">Progreso de lectura</span>
             <span class="text-sm text-white font-bold">{{ readPercent() }}%</span>
           </div>
-          <div class="h-2.5 bg-[#2a2a2a] rounded-full overflow-hidden flex">
+          <div class="h-2.5 bg-[#2a2a2a] rounded-full overflow-hidden">
             <div class="h-full bg-[#22c55e] transition-all duration-700" [style.width.%]="readPercent()"></div>
-            <div class="h-full bg-[#3b82f6] transition-all duration-700" [style.width.%]="readingPercent()"></div>
           </div>
           <div class="flex gap-4 mt-2 text-[10px] text-[#606060]">
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#22c55e] inline-block"></span> Leídos ({{ data()!.totals.read }})</span>
-            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#3b82f6] inline-block"></span> Leyendo ({{ data()!.totals.reading }})</span>
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#2a2a2a] inline-block"></span> Pendientes ({{ data()!.totals.unread }})</span>
           </div>
         </div>
@@ -158,10 +157,29 @@ interface DashboardData {
             <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Inversión</h3>
             <p class="text-2xl font-bold text-white">{{ data()!.spending.total | number:'1.0-0' }} €</p>
             <p class="text-[10px] text-[#606060] mt-1">Media: {{ data()!.spending.avg | number:'1.2-2' }} € / cómic</p>
-            @if (data()!.thisYear.spent > 0) {
-              <div class="mt-3 pt-3 border-t border-[#1e1e1e]">
-                <p class="text-sm font-semibold text-[#8b5cf6]">{{ data()!.thisYear.spent | number:'1.0-0' }} €</p>
-                <p class="text-[10px] text-[#606060]">Este año</p>
+            @if (data()!.statsStartDate) {
+              <div class="mt-3 pt-3 border-t border-[#1e1e1e] space-y-2">
+                <!-- This month -->
+                <div>
+                  <div class="flex items-baseline gap-2">
+                    <p class="text-sm font-semibold text-[#8b5cf6]">{{ data()!.monthlySpending.thisMonth | number:'1.0-0' }} €</p>
+                    @if (data()!.monthlySpending.prevMonth > 0) {
+                      <span class="text-[10px] font-medium"
+                        [class]="data()!.monthlySpending.thisMonth <= data()!.monthlySpending.prevMonth ? 'text-[#22c55e]' : 'text-[#ef4444]'">
+                        {{ data()!.monthlySpending.thisMonth <= data()!.monthlySpending.prevMonth ? '▼' : '▲' }}
+                        {{ spendingDiffPct() }}%
+                      </span>
+                    }
+                  </div>
+                  <p class="text-[10px] text-[#606060]">Este mes</p>
+                </div>
+                <!-- This year -->
+                @if (data()!.thisYear.spent > 0) {
+                  <div>
+                    <p class="text-sm font-semibold text-white">{{ data()!.thisYear.spent | number:'1.0-0' }} €</p>
+                    <p class="text-[10px] text-[#606060]">Este año</p>
+                  </div>
+                }
               </div>
             }
           </div>
@@ -191,6 +209,12 @@ interface DashboardData {
 
           <!-- Year comparison -->
           <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
+            @if (!data()!.statsStartDate) {
+              <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">{{ currentYear }}</h3>
+              <div class="h-32 flex items-center justify-center">
+                <p class="text-xs text-[#404040] text-center">Activa el seguimiento mensual para ver datos anuales</p>
+              </div>
+            } @else {
             <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">{{ currentYear }}</h3>
             <div class="space-y-3">
               <div>
@@ -229,6 +253,7 @@ interface DashboardData {
                 </p>
               </div>
             </div>
+            }
           </div>
         </div>
 
@@ -340,6 +365,12 @@ export class DashboardComponent implements OnInit {
     const d = this.data();
     if (!d || d.thisYear.added === 0) return 0;
     return Math.round((d.thisYear.read / d.thisYear.added) * 100);
+  });
+
+  spendingDiffPct = computed(() => {
+    const d = this.data();
+    if (!d || d.monthlySpending.prevMonth === 0) return 0;
+    return Math.abs(Math.round(((d.monthlySpending.thisMonth - d.monthlySpending.prevMonth) / d.monthlySpending.prevMonth) * 100));
   });
 
   avgRating = computed(() => {

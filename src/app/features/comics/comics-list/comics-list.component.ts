@@ -41,6 +41,7 @@ interface WkComic {
   pages?: number | null;
   binding?: string | null;
   price?: number | null;
+  editionId?: string | null;
 }
 
 @Component({
@@ -805,8 +806,8 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   private pressHandled = false;
 
   onPressStart(id: number, e: Event) {
-    if (this.selectionMode()) return; // already in selection mode, click handles it
     this.pressHandled = false;
+    if (this.selectionMode()) return; // already in selection mode, click handles it
     this.pressTimer = setTimeout(() => {
       this.pressHandled = true;
       e.preventDefault();
@@ -905,8 +906,9 @@ export class ComicsListComponent implements OnInit, OnDestroy {
         order: this.sortOrder(),
         author: this.filterAuthor() || undefined,
         publisher: this.filterPublisher() || undefined,
-        price_min: this.filterPriceMin() ?? undefined,
-        price_max: this.filterPriceMax() ?? undefined,
+        price_min: this.filterNoPrice() ? undefined : this.filterPriceMin() ?? undefined,
+        price_max: this.filterNoPrice() ? undefined : this.filterPriceMax() ?? undefined,
+        no_price: this.filterNoPrice() ? 'true' : undefined,
         rating_min: this.filterRatingMin() ?? undefined,
       }).subscribe({
         next: res => { this.comics.set(res.data); this.total.set(res.total); this.loading.set(false); },
@@ -1311,31 +1313,24 @@ export class ComicsListComponent implements OnInit, OnDestroy {
           error: () => doSave(coverUrl, null),
         });
       } else if (d.series && d.number) {
-        // Buscar edición correspondiente en los resultados de búsqueda ya cargados
-        const edInResults = this.wkResults().find(r => r.type === 'edition');
-        if (edInResults) {
-          fetchAndCreateFromEdition(edInResults.id, coverUrl, edInResults.id);
+        // Usar editionId del cómic si lo tiene (referencia directa de Whakoom)
+        if (d.editionId) {
+          fetchAndCreateFromEdition(d.editionId, coverUrl, d.editionId);
         } else {
-          // Buscar en Whakoom la edición de esta serie
-          this.http.get<any>(`${this.base}/whakoom/search`, {
-            params: new HttpParams().set('q', d.series),
-          }).subscribe({
-            next: (res) => {
-              const ed = res.data?.find((r: any) => r.type === 'edition');
-              if (ed) {
-                fetchAndCreateFromEdition(ed.id, coverUrl, ed.id);
-              } else {
-                createCollection(coverUrl, {
-                  title: d.series,
-                  publisher: d.publisher || '',
-                  cover_url: coverUrl,
-                });
-              }
-            },
-            error: () => createCollection(coverUrl, {
-              title: d.series, publisher: d.publisher || '', cover_url: coverUrl,
-            }),
-          });
+          // Fallback: buscar edición en resultados — misma editorial
+          const pub = (d.publisher || '').toLowerCase();
+          const edInResults = this.wkResults().find(r =>
+            r.type === 'edition' && r.publisher.toLowerCase() === pub
+          ) ?? this.wkResults().find(r => r.type === 'edition');
+          if (edInResults) {
+            fetchAndCreateFromEdition(edInResults.id, coverUrl, edInResults.id);
+          } else {
+            createCollection(coverUrl, {
+              title: d.series,
+              publisher: d.publisher || '',
+              cover_url: coverUrl,
+            });
+          }
         }
       } else {
         doSave(coverUrl, null);

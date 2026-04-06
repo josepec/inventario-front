@@ -23,6 +23,7 @@ export interface ApiFilters {
   publisher?: string;
   price_min?: number;
   price_max?: number;
+  no_price?: string;
   rating_min?: number;
 }
 
