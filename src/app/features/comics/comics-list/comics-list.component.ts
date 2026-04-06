@@ -575,16 +575,23 @@ interface WkComic {
                 </div>
 
                 <div class="flex gap-3 mt-5">
-                  <button type="button" (click)="addDirectly()" [disabled]="wkSaving()"
-                    class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
-                           hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                    @if (wkSaving()) { Añadiendo... } @else { Añadir }
-                  </button>
-                  <a routerLink="/app/comics/new" (click)="closeModal()"
-                    class="px-5 py-3 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
-                           border border-[#2a2a2a] hover:bg-[#222] transition-colors">
-                    Editar antes
-                  </a>
+                  @if (wkExistingId()) {
+                    <a [routerLink]="['/app/comics', wkExistingId()]" (click)="closeModal()"
+                      class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#22c55e] text-center">
+                      Ya añadido — ver cómic
+                    </a>
+                  } @else {
+                    <button type="button" (click)="addDirectly()" [disabled]="wkSaving()"
+                      class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
+                             hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                      @if (wkSaving()) { Añadiendo... } @else { Añadir }
+                    </button>
+                    <a routerLink="/app/comics/new" (click)="closeModal()"
+                      class="px-5 py-3 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
+                             border border-[#2a2a2a] hover:bg-[#222] transition-colors">
+                      Editar antes
+                    </a>
+                  }
                 </div>
               </div>
 
@@ -705,6 +712,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   wkLoading = signal(false);
   wkSaving = signal(false);
   wkError = signal('');
+  wkExistingId = signal<number | null>(null);
   wkResults = signal<WkResult[]>([]);
   wkDetail = signal<WkComic | null>(null);
   wkSearched = signal(false);
@@ -859,15 +867,35 @@ export class ComicsListComponent implements OnInit, OnDestroy {
 
   loadWkDetail(id: string, type: string) {
     this.wkSelectedResult = this.wkResults().find(r => r.id === id) ?? null;
-    this.wkLoading.set(true); this.wkError.set('');
+    this.wkLoading.set(true); this.wkError.set(''); this.wkExistingId.set(null);
     const params = new HttpParams().set('type', type);
     this.http.get<any>(`${this.base}/whakoom/comic/${id}`, { params }).subscribe({
       next: res => {
         if (res.error) this.wkError.set(res.error);
-        else this.wkDetail.set(res);
+        else {
+          this.wkDetail.set(res);
+          this.checkIfExists(res);
+        }
         this.wkLoading.set(false);
       },
       error: () => { this.wkError.set('Error al cargar el cómic'); this.wkLoading.set(false); }
+    });
+  }
+
+  private checkIfExists(d: any) {
+    const q = d.isbn || d.title;
+    if (!q) return;
+    const params: any = { limit: '1' };
+    if (d.isbn) params.search = d.isbn;
+    else params.search = d.title;
+    this.api.get<{ data: any[] }>('/comics', params).subscribe({
+      next: res => {
+        const match = res.data?.find((c: any) =>
+          (d.isbn && c.isbn === d.isbn) ||
+          (c.title === d.title && c.number === (d.number ? Number(d.number) : null))
+        );
+        if (match) this.wkExistingId.set(match.id);
+      },
     });
   }
 
