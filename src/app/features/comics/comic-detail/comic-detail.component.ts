@@ -3,7 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { ApiService } from '../../../shared/services/api.service';
-import { Comic } from '../../../shared/models/comic.model';
+import { Comic, ComicFormat } from '../../../shared/models/comic.model';
 import { environment } from '../../../../environments/environment';
 
 @Component({
@@ -30,49 +30,71 @@ import { environment } from '../../../../environments/environment';
             Volver
           </a>
           <div class="flex items-center gap-2">
-            <button (click)="refreshFromWhakoom()" [disabled]="syncing()" type="button"
-              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
-                     text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors
-                     disabled:opacity-40 disabled:cursor-not-allowed">
-              <svg class="w-4 h-4" [class.animate-spin]="syncing()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.183" />
-              </svg>
-            </button>
-            <button (click)="toggleReadStatus()" type="button"
-              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm transition-all"
-              [class]="comic()!.read_status === 'read'
-                ? 'bg-[#22c55e1a] border border-[#22c55e33] text-[#22c55e] hover:bg-[#22c55e22]'
-                : 'bg-[#161616] border border-[#2a2a2a] text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f]'">
-              @if (comic()!.read_status === 'read') {
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            @if (!editing()) {
+              <button (click)="refreshFromWhakoom()" [disabled]="syncing()" type="button"
+                class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
+                       text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors
+                       disabled:opacity-40 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" [class.animate-spin]="syncing()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M2.985 19.644l3.181-3.183" />
                 </svg>
-              } @else {
+              </button>
+              <button (click)="toggleReadStatus()" type="button"
+                class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm transition-all"
+                [class]="comic()!.read_status === 'read'
+                  ? 'bg-[#22c55e1a] border border-[#22c55e33] text-[#22c55e] hover:bg-[#22c55e22]'
+                  : 'bg-[#161616] border border-[#2a2a2a] text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f]'">
+                @if (comic()!.read_status === 'read') {
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                } @else {
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                  </svg>
+                }
+                <span class="hidden sm:inline">{{ comic()!.read_status === 'read' ? 'Leido' : 'Sin leer' }}</span>
+              </button>
+              <button (click)="startEditing()" type="button"
+                class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
+                       text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
                 </svg>
-              }
-              <span class="hidden sm:inline">{{ comic()!.read_status === 'read' ? 'Leído' : 'Sin leer' }}</span>
-            </button>
-            <a [routerLink]="['/app/comics', comic()!.id, 'edit']"
-              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
-                     text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
-              </svg>
-              <span class="hidden sm:inline">Editar</span>
-            </a>
-            <button (click)="confirmDelete()"
-              class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#ef444411] border border-[#ef444433]
-                     text-[#ef4444] hover:bg-[#ef444422] transition-colors">
-              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                  d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
-              </svg>
-              <span class="hidden sm:inline">Eliminar</span>
-            </button>
+                <span class="hidden sm:inline">Editar</span>
+              </button>
+              <button (click)="confirmDelete()"
+                class="flex items-center gap-2 px-3 md:px-4 py-2 rounded-xl text-sm bg-[#ef444411] border border-[#ef444433]
+                       text-[#ef4444] hover:bg-[#ef444422] transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                </svg>
+                <span class="hidden sm:inline">Eliminar</span>
+              </button>
+            } @else {
+              <!-- Edit mode actions -->
+              <button (click)="cancelEditing()" type="button"
+                class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm bg-[#161616] border border-[#2a2a2a]
+                       text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f] transition-colors">
+                Cancelar
+              </button>
+              <button (click)="saveEdit()" [disabled]="saving()" type="button"
+                class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
+                       hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+                @if (saving()) {
+                  <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  Guardando...
+                } @else {
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                  </svg>
+                  Guardar
+                }
+              </button>
+            }
           </div>
         </div>
 
@@ -81,12 +103,11 @@ import { environment } from '../../../../environments/environment';
 
           <!-- Cover + rating column -->
           <div class="md:col-span-1 space-y-4">
-            <!-- Mobile: cover + rating side by side / Desktop: stacked -->
             <div class="flex gap-4 md:block md:space-y-4">
               <div class="w-28 shrink-0 md:w-full">
                 <div class="aspect-[2/3] rounded-2xl overflow-hidden bg-[#161616] border border-[#1e1e1e]">
-                  @if (comic()!.cover_url) {
-                    <img [src]="comic()!.cover_url!" [alt]="comic()!.title" class="w-full h-full object-cover" />
+                  @if (editing() ? draft.cover_url : comic()!.cover_url) {
+                    <img [src]="(editing() ? draft.cover_url : comic()!.cover_url)!" [alt]="comic()!.title" class="w-full h-full object-cover" />
                   } @else {
                     <div class="w-full h-full flex items-center justify-center">
                       <svg class="w-10 h-10 md:w-16 md:h-16 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1">
@@ -95,11 +116,15 @@ import { environment } from '../../../../environments/environment';
                     </div>
                   }
                 </div>
+                @if (editing()) {
+                  <input [(ngModel)]="draft.cover_url" type="url" placeholder="URL de portada"
+                    class="edit-input mt-2 text-xs" />
+                }
               </div>
 
-              <!-- Mi valoración — beside cover on mobile, below on desktop -->
+              <!-- Mi valoracion -->
               <div class="flex-1 md:flex-none bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4">
-                <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-3">Mi valoración</h3>
+                <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-3">Mi valoracion</h3>
                 <div class="flex gap-1">
                   @for (s of [1,2,3,4,5]; track s) {
                     <button type="button" (click)="setRating(s)"
@@ -112,7 +137,11 @@ import { environment } from '../../../../environments/environment';
 
                 <!-- Notes -->
                 <div class="mt-4 pt-3 border-t border-[#1e1e1e]">
-                  @if (!notesOpen() && comic()!.notes) {
+                  @if (editing()) {
+                    <label class="text-xs text-[#606060] mb-1 block">Notas</label>
+                    <textarea [(ngModel)]="draft.notes" rows="3" placeholder="Escribe tus notas..."
+                      class="edit-input resize-none text-xs"></textarea>
+                  } @else if (!notesOpen() && comic()!.notes) {
                     <button (click)="notesOpen.set(true)" type="button" class="w-full text-left">
                       <p class="text-xs text-[#a0a0a0] line-clamp-3 leading-relaxed">{{ comic()!.notes }}</p>
                     </button>
@@ -136,6 +165,28 @@ import { environment } from '../../../../environments/environment';
                     </button>
                   }
                 </div>
+
+                <!-- Owned + read status in edit mode -->
+                @if (editing()) {
+                  <div class="mt-4 pt-3 border-t border-[#1e1e1e] space-y-3">
+                    <div class="flex items-center justify-between">
+                      <label class="text-xs text-[#606060]">Estado</label>
+                      <select [(ngModel)]="draft.read_status" class="edit-input !w-auto text-xs">
+                        <option value="unread">Sin leer</option>
+                        <option value="read">Leido</option>
+                      </select>
+                    </div>
+                    <div class="flex items-center justify-between">
+                      <label class="text-xs text-[#606060]">En coleccion</label>
+                      <button type="button" (click)="draft.owned = !draft.owned"
+                        class="relative w-9 h-5 rounded-full transition-colors duration-200"
+                        [class]="draft.owned ? 'bg-[#7c3aed]' : 'bg-[#2a2a2a]'">
+                        <span class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200"
+                          [class.translate-x-4]="draft.owned"></span>
+                      </button>
+                    </div>
+                  </div>
+                }
               </div>
             </div>
           </div>
@@ -143,20 +194,48 @@ import { environment } from '../../../../environments/environment';
           <!-- Info column -->
           <div class="md:col-span-2 space-y-3 md:space-y-4">
 
+            <!-- Title header -->
             <div class="mb-4 md:mb-6">
-              @if (comic()!.collection_id && comic()!.number != null) {
-                <a [routerLink]="['/app/collections', comic()!.collection_id]"
-                  class="text-[#8b5cf6] hover:text-[#a78bfa] text-sm font-medium mb-1 inline-block transition-colors">
-                  {{ comic()!.collection_name || comic()!.series }}
-                </a>
-              }
-              <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">{{ comic()!.title }}</h1>
-              @if (mainWriter()) {
-                <p class="text-[#a0a0a0] mt-2 text-sm">Por <span class="text-white">{{ mainWriter() }}</span></p>
+              @if (!editing()) {
+                @if (comic()!.collection_id && comic()!.number != null) {
+                  <a [routerLink]="['/app/collections', comic()!.collection_id]"
+                    class="text-[#8b5cf6] hover:text-[#a78bfa] text-sm font-medium mb-1 inline-block transition-colors">
+                    {{ comic()!.collection_name || comic()!.series }}
+                  </a>
+                }
+                <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">{{ comic()!.title }}</h1>
+                @if (mainWriter()) {
+                  <p class="text-[#a0a0a0] mt-2 text-sm">Por <span class="text-white">{{ mainWriter() }}</span></p>
+                }
+              } @else {
+                <div class="space-y-3">
+                  <div>
+                    <label class="edit-label">Titulo</label>
+                    <input [(ngModel)]="draft.title" type="text" placeholder="Titulo del comic"
+                      class="edit-input text-lg font-bold" />
+                  </div>
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="edit-label">Serie</label>
+                      <input [(ngModel)]="draft.series" type="text" placeholder="Ej: Batman" class="edit-input" />
+                    </div>
+                    <div>
+                      <label class="edit-label">Numero</label>
+                      <input [(ngModel)]="draft.number" type="number" placeholder="Ej: 42" class="edit-input" />
+                    </div>
+                  </div>
+                </div>
               }
             </div>
 
-            @if (comic()!.synopsis) {
+            <!-- Synopsis -->
+            @if (editing()) {
+              <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
+                <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-3">Sinopsis</h3>
+                <textarea [(ngModel)]="draft.synopsis" rows="4" placeholder="Descripcion del argumento..."
+                  class="edit-input resize-none text-sm"></textarea>
+              </div>
+            } @else if (comic()!.synopsis) {
               <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
                 <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-3">Sinopsis</h3>
                 <p class="text-sm text-[#c0c0c0] leading-relaxed whitespace-pre-line">{{ comic()!.synopsis }}</p>
@@ -166,86 +245,173 @@ import { environment } from '../../../../environments/environment';
             <!-- Details grid -->
             <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
               <h3 class="text-xs font-semibold text-[#606060] uppercase tracking-wider mb-4">Detalles</h3>
-              <dl class="grid grid-cols-2 gap-x-6 md:gap-x-8 gap-y-3 md:gap-y-4">
-                @if (parsedAuthors().length) {
+
+              @if (editing()) {
+                <!-- Edit mode: all fields visible -->
+                <div class="grid grid-cols-2 gap-x-6 md:gap-x-8 gap-y-4">
+                  <!-- Autores -->
                   <div class="col-span-2">
-                    <dt class="text-xs text-[#606060] mb-2">Autores</dt>
-                    <dd class="flex flex-wrap gap-x-3 gap-y-1">
-                      @for (author of parsedAuthors(); track author.name) {
-                        <a [routerLink]="['/app/comics']" [queryParams]="{author: author.name}"
-                          class="text-sm text-[#8b5cf6] hover:text-[#a78bfa] transition-colors cursor-pointer">
-                          {{ author.name }}@if (author.role) {
-                            <span class="text-[#606060]"> ({{ author.role }})</span>
-                          }
-                        </a>
-                      }
-                    </dd>
+                    <label class="edit-label">Autores</label>
+                    <div class="grid grid-cols-2 gap-3">
+                      <div>
+                        <label class="text-[10px] text-[#404040] mb-0.5 block">Guionista</label>
+                        <input [(ngModel)]="draft.writer" type="text" placeholder="Guionista" class="edit-input text-sm" />
+                      </div>
+                      <div>
+                        <label class="text-[10px] text-[#404040] mb-0.5 block">Dibujante</label>
+                        <input [(ngModel)]="draft.artist" type="text" placeholder="Dibujante" class="edit-input text-sm" />
+                      </div>
+                      <div>
+                        <label class="text-[10px] text-[#404040] mb-0.5 block">Colorista</label>
+                        <input [(ngModel)]="draft.colorist" type="text" placeholder="Colorista" class="edit-input text-sm" />
+                      </div>
+                      <div>
+                        <label class="text-[10px] text-[#404040] mb-0.5 block">Portadista</label>
+                        <input [(ngModel)]="draft.cover_artist" type="text" placeholder="Portadista" class="edit-input text-sm" />
+                      </div>
+                    </div>
                   </div>
-                }
-                @if (comic()!.publisher) {
                   <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">Editorial</dt>
-                    <dd class="text-sm">
-                      <a [routerLink]="['/app/comics']" [queryParams]="{publisher: comic()!.publisher}"
-                        class="text-[#8b5cf6] hover:text-[#a78bfa] transition-colors">{{ comic()!.publisher }}</a>
-                    </dd>
+                    <label class="edit-label">Editorial</label>
+                    <input [(ngModel)]="draft.publisher" type="text" placeholder="Ej: ECC, Panini..." class="edit-input" />
                   </div>
-                }
-                @if (comic()!.original_publisher) {
                   <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">Editorial original</dt>
-                    <dd class="text-sm text-white">{{ comic()!.original_publisher }}</dd>
+                    <label class="edit-label">Editorial original</label>
+                    <input [(ngModel)]="draft.original_publisher" type="text" placeholder="Ej: Marvel, DC..." class="edit-input" />
                   </div>
-                }
-                @if (comic()!.publish_date) {
                   <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">Publicación</dt>
-                    <dd class="text-sm text-white">{{ comic()!.publish_date }}</dd>
+                    <label class="edit-label">Fecha publicacion</label>
+                    <input [(ngModel)]="draft.publish_date" type="date" class="edit-input" />
                   </div>
-                }
-                @if (comic()!.format) {
                   <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">Formato</dt>
-                    <dd class="text-sm text-white capitalize">{{ comic()!.format }}</dd>
+                    <label class="edit-label">Formato</label>
+                    <select [(ngModel)]="draft.format" class="edit-input">
+                      <option [ngValue]="null">Sin especificar</option>
+                      <option value="grapa">Grapa</option>
+                      <option value="tomo">Tomo</option>
+                      <option value="integral">Integral</option>
+                      <option value="omnibus">Omnibus</option>
+                      <option value="manga">Manga</option>
+                      <option value="novela_grafica">Novela grafica</option>
+                      <option value="otro">Otro</option>
+                    </select>
                   </div>
-                }
-                @if (comic()!.pages) {
                   <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">Páginas</dt>
-                    <dd class="text-sm text-white">{{ comic()!.pages }}</dd>
+                    <label class="edit-label">Paginas</label>
+                    <input [(ngModel)]="draft.pages" type="number" placeholder="Ej: 120" class="edit-input" />
                   </div>
-                }
-                @if (comic()!.binding) {
                   <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">Encuadernación</dt>
-                    <dd class="text-sm text-white">{{ comic()!.binding }}</dd>
+                    <label class="edit-label">Encuadernacion</label>
+                    <input [(ngModel)]="draft.binding" type="text" placeholder="Ej: Cartone, Grapa..." class="edit-input" />
                   </div>
-                }
-                @if (comic()!.price) {
                   <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">Precio</dt>
-                    <dd class="text-sm text-white">{{ comic()!.price }} €</dd>
+                    <label class="edit-label">Precio (EUR)</label>
+                    <input [(ngModel)]="draft.price" type="number" step="0.01" placeholder="Ej: 19.95" class="edit-input" />
                   </div>
-                }
-                @if (comic()!.genre) {
                   <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">Género</dt>
-                    <dd class="text-sm text-white">{{ comic()!.genre }}</dd>
+                    <label class="edit-label">Genero</label>
+                    <input [(ngModel)]="draft.genre" type="text" placeholder="Ej: Superheroes, Terror..." class="edit-input" />
                   </div>
-                }
-                @if (comic()!.isbn) {
                   <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">ISBN</dt>
-                    <dd class="text-sm text-white font-mono">{{ comic()!.isbn }}</dd>
+                    <label class="edit-label">ISBN</label>
+                    <input [(ngModel)]="draft.isbn" type="text" placeholder="978..." class="edit-input font-mono" />
                   </div>
-                }
-                @if (comic()!.language) {
                   <div>
-                    <dt class="text-xs text-[#606060] mb-0.5">Idioma</dt>
-                    <dd class="text-sm text-white">{{ comic()!.language }}</dd>
+                    <label class="edit-label">Idioma</label>
+                    <input [(ngModel)]="draft.language" type="text" placeholder="Ej: Español" class="edit-input" />
                   </div>
-                }
-              </dl>
+                  <div>
+                    <label class="edit-label">Titulo original</label>
+                    <input [(ngModel)]="draft.original_title" type="text" placeholder="Titulo en ingles" class="edit-input" />
+                  </div>
+                  <div>
+                    <label class="edit-label">Coleccion editorial</label>
+                    <input [(ngModel)]="draft.collection" type="text" placeholder="Ej: Marvel Heroes" class="edit-input" />
+                  </div>
+                </div>
+              } @else {
+                <!-- View mode: only filled fields -->
+                <dl class="grid grid-cols-2 gap-x-6 md:gap-x-8 gap-y-3 md:gap-y-4">
+                  @if (parsedAuthors().length) {
+                    <div class="col-span-2">
+                      <dt class="text-xs text-[#606060] mb-2">Autores</dt>
+                      <dd class="flex flex-wrap gap-x-3 gap-y-1">
+                        @for (author of parsedAuthors(); track author.name) {
+                          <a [routerLink]="['/app/comics']" [queryParams]="{author: author.name}"
+                            class="text-sm text-[#8b5cf6] hover:text-[#a78bfa] transition-colors cursor-pointer">
+                            {{ author.name }}@if (author.role) {
+                              <span class="text-[#606060]"> ({{ author.role }})</span>
+                            }
+                          </a>
+                        }
+                      </dd>
+                    </div>
+                  }
+                  @if (comic()!.publisher) {
+                    <div>
+                      <dt class="text-xs text-[#606060] mb-0.5">Editorial</dt>
+                      <dd class="text-sm">
+                        <a [routerLink]="['/app/comics']" [queryParams]="{publisher: comic()!.publisher}"
+                          class="text-[#8b5cf6] hover:text-[#a78bfa] transition-colors">{{ comic()!.publisher }}</a>
+                      </dd>
+                    </div>
+                  }
+                  @if (comic()!.original_publisher) {
+                    <div>
+                      <dt class="text-xs text-[#606060] mb-0.5">Editorial original</dt>
+                      <dd class="text-sm text-white">{{ comic()!.original_publisher }}</dd>
+                    </div>
+                  }
+                  @if (comic()!.publish_date) {
+                    <div>
+                      <dt class="text-xs text-[#606060] mb-0.5">Publicacion</dt>
+                      <dd class="text-sm text-white">{{ comic()!.publish_date }}</dd>
+                    </div>
+                  }
+                  @if (comic()!.format) {
+                    <div>
+                      <dt class="text-xs text-[#606060] mb-0.5">Formato</dt>
+                      <dd class="text-sm text-white capitalize">{{ comic()!.format }}</dd>
+                    </div>
+                  }
+                  @if (comic()!.pages) {
+                    <div>
+                      <dt class="text-xs text-[#606060] mb-0.5">Paginas</dt>
+                      <dd class="text-sm text-white">{{ comic()!.pages }}</dd>
+                    </div>
+                  }
+                  @if (comic()!.binding) {
+                    <div>
+                      <dt class="text-xs text-[#606060] mb-0.5">Encuadernacion</dt>
+                      <dd class="text-sm text-white">{{ comic()!.binding }}</dd>
+                    </div>
+                  }
+                  @if (comic()!.price) {
+                    <div>
+                      <dt class="text-xs text-[#606060] mb-0.5">Precio</dt>
+                      <dd class="text-sm text-white">{{ comic()!.price }} EUR</dd>
+                    </div>
+                  }
+                  @if (comic()!.genre) {
+                    <div>
+                      <dt class="text-xs text-[#606060] mb-0.5">Genero</dt>
+                      <dd class="text-sm text-white">{{ comic()!.genre }}</dd>
+                    </div>
+                  }
+                  @if (comic()!.isbn) {
+                    <div>
+                      <dt class="text-xs text-[#606060] mb-0.5">ISBN</dt>
+                      <dd class="text-sm text-white font-mono">{{ comic()!.isbn }}</dd>
+                    </div>
+                  }
+                  @if (comic()!.language) {
+                    <div>
+                      <dt class="text-xs text-[#606060] mb-0.5">Idioma</dt>
+                      <dd class="text-sm text-white">{{ comic()!.language }}</dd>
+                    </div>
+                  }
+                </dl>
+              }
             </div>
 
           </div>
@@ -253,7 +419,17 @@ import { environment } from '../../../../environments/environment';
       }
 
     </div>
-  `
+  `,
+  styles: [`
+    .edit-input {
+      @apply w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl px-3 py-2 text-sm text-white
+             placeholder:text-[#303030] focus:outline-none focus:border-[#7c3aed] transition-colors duration-200;
+    }
+    select.edit-input option { background: #161616; }
+    .edit-label {
+      @apply block text-xs text-[#606060] mb-1;
+    }
+  `]
 })
 export class ComicDetailComponent implements OnInit {
   private api = inject(ApiService);
@@ -265,15 +441,26 @@ export class ComicDetailComponent implements OnInit {
   comic = signal<Comic | null>(null);
   loading = signal(true);
   syncing = signal(false);
+  editing = signal(false);
+  saving = signal(false);
   notesOpen = signal(false);
   notesText = '';
   savingNotes = signal(false);
+
+  // Draft for inline editing
+  draft = {
+    title: '', series: '', number: null as number | null, cover_url: '',
+    synopsis: '', writer: '', artist: '', colorist: '', cover_artist: '',
+    publisher: '', original_publisher: '', publish_date: '', format: null as ComicFormat | null,
+    pages: null as number | null, binding: '', price: null as number | null,
+    genre: '', isbn: '', language: '', original_title: '', collection: '',
+    notes: '', read_status: 'unread' as string, owned: false, rating: null as number | null,
+  };
 
   parsedAuthors = computed(() => {
     const c = this.comic();
     if (!c) return [];
     if (c.authors && c.authors.length > 0) return c.authors;
-    // Fallback a campos legacy writer/artist/colorist
     const result: { name: string; role: string }[] = [];
     if (c.writer) result.push({ name: c.writer, role: 'Guion' });
     if (c.artist) result.push({ name: c.artist, role: 'Dibujo' });
@@ -295,8 +482,69 @@ export class ComicDetailComponent implements OnInit {
     });
   }
 
+  startEditing() {
+    const c = this.comic()!;
+    this.draft = {
+      title: c.title ?? '',
+      series: c.series ?? '',
+      number: c.number,
+      cover_url: c.cover_url ?? '',
+      synopsis: c.synopsis ?? '',
+      writer: c.writer ?? '',
+      artist: c.artist ?? '',
+      colorist: c.colorist ?? '',
+      cover_artist: c.cover_artist ?? '',
+      publisher: c.publisher ?? '',
+      original_publisher: c.original_publisher ?? '',
+      publish_date: c.publish_date ?? '',
+      format: c.format,
+      pages: c.pages,
+      binding: c.binding ?? '',
+      price: c.price,
+      genre: c.genre ?? '',
+      isbn: c.isbn ?? '',
+      language: c.language ?? '',
+      original_title: c.original_title ?? '',
+      collection: c.collection ?? '',
+      notes: c.notes ?? '',
+      read_status: c.read_status ?? 'unread',
+      owned: c.owned ?? false,
+      rating: c.rating,
+    };
+    this.editing.set(true);
+  }
+
+  cancelEditing() {
+    this.editing.set(false);
+  }
+
+  saveEdit() {
+    const c = this.comic()!;
+    if (!this.draft.title?.trim()) return;
+    this.saving.set(true);
+
+    const payload: Record<string, any> = { ...c };
+    const d = this.draft as Record<string, any>;
+    for (const key of Object.keys(d)) {
+      const val = d[key];
+      payload[key] = (val === '' || val === undefined) ? null : val;
+    }
+    // title is required, never null
+    payload['title'] = this.draft.title.trim();
+
+    this.api.put<Comic>(`/comics/${c.id}`, payload).subscribe({
+      next: (updated) => {
+        this.comic.set({ ...updated, collection_name: c.collection_name, collection_id: c.collection_id });
+        this.notesText = updated.notes ?? '';
+        this.editing.set(false);
+        this.saving.set(false);
+      },
+      error: () => this.saving.set(false),
+    });
+  }
+
   confirmDelete() {
-    if (!confirm('¿Eliminar este cómic? Esta acción no se puede deshacer.')) return;
+    if (!confirm('Eliminar este comic? Esta accion no se puede deshacer.')) return;
     this.api.delete(`/comics/${this.comic()!.id}`).subscribe({
       next: () => this.router.navigate(['/app/comics'])
     });
@@ -360,7 +608,6 @@ export class ComicDetailComponent implements OnInit {
             };
 
             const enrichAndSave = (coverUrl?: string) => {
-              // 1. Always try editorial website first (ECC = PVP oficial)
               const tryEditorial = (): void => {
                 const title = patch.title || c.title;
                 const publisher = patch.publisher || c.publisher;
@@ -374,27 +621,18 @@ export class ComicDetailComponent implements OnInit {
                 } else { restOfChain(); }
               };
 
-              // 2. Rest of chain only if editorial didn't find a price
               const restOfChain = (): void => {
                 if (patch.price || c.price) { doSave(coverUrl); return; }
-
-                // Try Google Books + Amazon + Casa del Libro by ISBN
                 const tryGoogleBooks = (): void => {
                   const isbn = patch.isbn || c.isbn;
                   if (isbn) {
                     this.http.get<any>(`${this.base}/google-books/isbn/${isbn}`).subscribe({
-                      next: (res) => { if (res.data?.price) { patch.price = res.data.price; doSave(coverUrl); } else tryEdition(); },
-                      error: () => tryEdition(),
+                      next: (res) => { if (res.data?.price) { patch.price = res.data.price; doSave(coverUrl); } else doSave(coverUrl); },
+                      error: () => doSave(coverUrl),
                     });
-                  } else { tryEdition(); }
+                  } else { doSave(coverUrl); }
                 };
-
                 tryGoogleBooks();
-              };
-
-              // 3. Sin precio fiable → guardar sin precio
-              const tryEdition = (): void => {
-                doSave(coverUrl);
               };
 
               tryEditorial();

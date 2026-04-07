@@ -26,10 +26,6 @@ export const routes: Routes = [
         loadComponent: () => import('./features/comics/comic-form/comic-form.component').then(m => m.ComicFormComponent),
       },
       {
-        path: 'comics/:id/edit',
-        loadComponent: () => import('./features/comics/comic-form/comic-form.component').then(m => m.ComicFormComponent),
-      },
-      {
         path: 'comics/:id',
         loadComponent: () => import('./features/comics/comic-detail/comic-detail.component').then(m => m.ComicDetailComponent),
       },
