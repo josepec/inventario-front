@@ -969,6 +969,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     this.filterAuthor.set(''); this.filterPublisher.set('');
     this.filterPriceMin.set(null); this.filterPriceMax.set(null);
     this.filterRatingMin.set(null); this.filterStatus = '';
+    this.filterNoPrice.set(false);
     this.page.set(1); this.load();
   }
 
