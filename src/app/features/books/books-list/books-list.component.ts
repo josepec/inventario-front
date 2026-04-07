@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ApiService, PaginatedResponse } from '../../../shared/services/api.service';
@@ -24,6 +24,14 @@ interface GBResult {
   currency: string | null;
 }
 
+interface Facets {
+  authors: string[];
+  publishers: string[];
+  genres: string[];
+  sagas: string[];
+  price: { min: number; max: number };
+}
+
 @Component({
   selector: 'app-books-list',
   standalone: true,
@@ -34,7 +42,7 @@ interface GBResult {
       <div class="flex items-start justify-between mb-5 md:mb-8 gap-3">
         <div>
           <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">Libros</h1>
-          <p class="text-[#606060] mt-0.5 text-sm">{{ total() }} libros en tu colección</p>
+          <p class="text-[#606060] mt-0.5 text-sm">{{ total() }} libros en tu coleccion</p>
         </div>
         <button (click)="openModal()"
           class="flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white
@@ -42,12 +50,12 @@ interface GBResult {
           <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
           </svg>
-          <span class="hidden sm:inline">Añadir libro</span>
-          <span class="sm:hidden">Añadir</span>
+          <span class="hidden sm:inline">Anadir libro</span>
+          <span class="sm:hidden">Anadir</span>
         </button>
       </div>
 
-      <!-- Filters -->
+      <!-- Search + sort + filters -->
       <div class="flex flex-col gap-2 mb-5 md:mb-8">
         <div class="flex items-center gap-2">
           <div class="relative flex-1 min-w-0">
@@ -56,11 +64,12 @@ interface GBResult {
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
             </svg>
             <input [(ngModel)]="search" (ngModelChange)="onSearch()"
-              type="text" placeholder="Buscar por título, autor, editorial..."
+              type="text" placeholder="Buscar por titulo, autor, editorial, ISBN..."
               class="w-full bg-[#161616] border border-[#2a2a2a] rounded-xl pl-10 pr-4 py-2.5 text-sm
                      text-white placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
           </div>
 
+          <!-- View toggle -->
           <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-1 shrink-0">
             <button (click)="viewMode.set('grid')" [class.bg-[#2a2a2a]]="viewMode() === 'grid'"
               class="p-2 rounded-lg transition-colors hover:bg-[#222]">
@@ -77,36 +86,64 @@ interface GBResult {
           </div>
         </div>
 
-        <div class="flex items-center gap-2">
+        <!-- Status + rating + sort row -->
+        <div class="flex items-center gap-2 flex-wrap">
           <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5">
-            <button (click)="filterStatus = ''; load()"
+            <button (click)="filterStatus = ''; applyFilters()"
               class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
               [class]="filterStatus === '' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
               Todos
             </button>
-            <button (click)="filterStatus = 'unread'; load()"
+            <button (click)="filterStatus = 'unread'; applyFilters()"
               class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
               [class]="filterStatus === 'unread' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
               Sin leer
             </button>
-            <button (click)="filterStatus = 'read'; load()"
+            <button (click)="filterStatus = 'read'; applyFilters()"
               class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
               [class]="filterStatus === 'read' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
-              Leído
+              Leido
             </button>
           </div>
 
+          <!-- Sort -->
+          <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5">
+            @for (opt of sortOptions; track opt.value) {
+              <button (click)="toggleSort(opt.value)"
+                class="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1"
+                [class]="sortField() === opt.value
+                  ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+                {{ opt.label }}
+                @if (sortField() === opt.value) {
+                  <span class="text-[10px]">{{ sortOrder() === 'desc' ? '↓' : '↑' }}</span>
+                }
+              </button>
+            }
+          </div>
+
+          <!-- Filter toggle -->
+          <button (click)="filtersExpanded.set(!filtersExpanded())" type="button"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors"
+            [class]="filtersExpanded() || activeFilterCount() > 0
+              ? 'bg-[#7c3aed1a] border-[#7c3aed33] text-[#8b5cf6]'
+              : 'bg-[#161616] border-[#2a2a2a] text-[#606060] hover:text-[#a0a0a0]'">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+            </svg>
+            Filtros
+            @if (activeFilterCount() > 0) {
+              <span class="w-4 h-4 bg-[#7c3aed] text-white text-[10px] rounded-full flex items-center justify-center font-bold">{{ activeFilterCount() }}</span>
+            }
+          </button>
+
           @if (filterRatingMin()) {
-            <button (click)="setFilterRatingMin(0)"
+            <button (click)="filterRatingMin.set(0); applyFilters()"
               class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#f59e0b1a] text-[#f59e0b]
                      hover:bg-[#f59e0b33] transition-colors">
               ≥ {{ filterRatingMin() }}★
-              <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <span class="hover:text-white text-base leading-none">&times;</span>
             </button>
           }
-
           <div class="flex items-center gap-0.5 ml-1">
             @for (n of [1,2,3,4,5]; track n) {
               <button (click)="setFilterRatingMin(n)"
@@ -115,7 +152,164 @@ interface GBResult {
             }
           </div>
         </div>
+
+        <!-- Active filter tags -->
+        @if (activeFilterCount() > 0 && !filtersExpanded()) {
+          <div class="flex flex-wrap gap-1.5">
+            @if (filterAuthor()) {
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-[#7c3aed1a] text-[#8b5cf6]">
+                {{ filterAuthor() }}
+                <button (click)="filterAuthor.set(''); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
+              </span>
+            }
+            @if (filterPublisher()) {
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-[#7c3aed1a] text-[#8b5cf6]">
+                {{ filterPublisher() }}
+                <button (click)="filterPublisher.set(''); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
+              </span>
+            }
+            @if (filterGenre()) {
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-[#7c3aed1a] text-[#8b5cf6]">
+                {{ filterGenre() }}
+                <button (click)="filterGenre.set(''); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
+              </span>
+            }
+            @if (filterSaga()) {
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-[#7c3aed1a] text-[#8b5cf6]">
+                {{ filterSaga() }}
+                <button (click)="filterSaga.set(''); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
+              </span>
+            }
+            @if (filterNoPrice()) {
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-[#7c3aed1a] text-[#8b5cf6]">
+                Sin precio
+                <button (click)="filterNoPrice.set(false); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
+              </span>
+            }
+            <button (click)="clearAllFilters()" class="text-xs text-[#606060] hover:text-white transition-colors ml-1">
+              Limpiar todo
+            </button>
+          </div>
+        }
+
+        <!-- Collapsible filter panel -->
+        @if (filtersExpanded()) {
+          <div class="bg-[#161616] border border-[#2a2a2a] rounded-2xl p-4 space-y-4">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <!-- Author -->
+              <div>
+                <label class="block text-[10px] text-[#606060] mb-1 uppercase tracking-wider">Autor</label>
+                <input type="text" list="authorsList" [value]="filterAuthor()"
+                  (change)="filterAuthor.set($any($event.target).value); applyFilters()"
+                  placeholder="Todos" class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2.5 py-1.5 text-xs text-white
+                    placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+                <datalist id="authorsList">
+                  @for (a of facets()?.authors ?? []; track a) { <option [value]="a"></option> }
+                </datalist>
+              </div>
+              <!-- Publisher -->
+              <div>
+                <label class="block text-[10px] text-[#606060] mb-1 uppercase tracking-wider">Editorial</label>
+                <input type="text" list="publishersList" [value]="filterPublisher()"
+                  (change)="filterPublisher.set($any($event.target).value); applyFilters()"
+                  placeholder="Todas" class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2.5 py-1.5 text-xs text-white
+                    placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+                <datalist id="publishersList">
+                  @for (p of facets()?.publishers ?? []; track p) { <option [value]="p"></option> }
+                </datalist>
+              </div>
+              <!-- Genre -->
+              <div>
+                <label class="block text-[10px] text-[#606060] mb-1 uppercase tracking-wider">Genero</label>
+                <input type="text" list="genresList" [value]="filterGenre()"
+                  (change)="filterGenre.set($any($event.target).value); applyFilters()"
+                  placeholder="Todos" class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2.5 py-1.5 text-xs text-white
+                    placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+                <datalist id="genresList">
+                  @for (g of facets()?.genres ?? []; track g) { <option [value]="g"></option> }
+                </datalist>
+              </div>
+              <!-- Saga -->
+              <div>
+                <label class="block text-[10px] text-[#606060] mb-1 uppercase tracking-wider">Saga</label>
+                <input type="text" list="sagasList" [value]="filterSaga()"
+                  (change)="filterSaga.set($any($event.target).value); applyFilters()"
+                  placeholder="Todas" class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2.5 py-1.5 text-xs text-white
+                    placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+                <datalist id="sagasList">
+                  @for (s of facets()?.sagas ?? []; track s) { <option [value]="s"></option> }
+                </datalist>
+              </div>
+            </div>
+            <!-- Price row -->
+            <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2">
+                <label class="text-[10px] text-[#606060] uppercase tracking-wider whitespace-nowrap">Precio</label>
+                <input type="number" [value]="filterPriceMin()" [disabled]="filterNoPrice()"
+                  (change)="filterPriceMin.set($any($event.target).value ? +$any($event.target).value : null); applyFilters()"
+                  placeholder="Min" class="w-20 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2.5 py-1.5 text-xs text-white
+                    placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] disabled:opacity-30" />
+                <span class="text-[#404040] text-xs">-</span>
+                <input type="number" [value]="filterPriceMax()" [disabled]="filterNoPrice()"
+                  (change)="filterPriceMax.set($any($event.target).value ? +$any($event.target).value : null); applyFilters()"
+                  placeholder="Max" class="w-20 bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2.5 py-1.5 text-xs text-white
+                    placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] disabled:opacity-30" />
+              </div>
+              <label class="group flex items-center gap-1.5 cursor-pointer select-none"
+                (click)="filterNoPrice.set(!filterNoPrice()); filterPriceMin.set(null); filterPriceMax.set(null); applyFilters()">
+                <span class="w-4 h-4 rounded border flex items-center justify-center transition-colors"
+                  [class]="filterNoPrice()
+                    ? 'bg-[#7c3aed] border-[#7c3aed]'
+                    : 'border-[#2a2a2a] group-hover:border-[#606060]'">
+                  @if (filterNoPrice()) {
+                    <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  }
+                </span>
+                <span class="text-xs transition-colors"
+                  [class]="filterNoPrice() ? 'text-[#8b5cf6]' : 'text-[#606060] group-hover:text-[#a0a0a0]'">Sin precio</span>
+              </label>
+            </div>
+            @if (activeFilterCount() > 0) {
+              <div class="flex justify-end">
+                <button (click)="clearAllFilters()" class="text-xs text-[#606060] hover:text-white transition-colors">
+                  Limpiar filtros
+                </button>
+              </div>
+            }
+          </div>
+        }
       </div>
+
+      <!-- Selection bar -->
+      @if (selectionMode()) {
+        <div class="sticky top-0 z-30 bg-[#111]/95 backdrop-blur border border-[#2a2a2a] rounded-2xl px-4 py-3 mb-4 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <button (click)="cancelSelection()" class="text-[#606060] hover:text-white transition-colors">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <span class="text-sm text-white font-medium">{{ selectedIds().size }} seleccionados</span>
+            <button (click)="selectAll()" class="text-xs text-[#8b5cf6] hover:text-[#a78bfa] transition-colors">
+              {{ selectedIds().size === books().length ? 'Deseleccionar todos' : 'Seleccionar todos' }}
+            </button>
+          </div>
+          <div class="flex items-center gap-2">
+            <button (click)="bulkSetRead('read')" [disabled]="bulkUpdating()"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#22c55e1a] text-[#22c55e] hover:bg-[#22c55e33] transition-colors
+                     disabled:opacity-40">
+              Leido
+            </button>
+            <button (click)="bulkSetRead('unread')" [disabled]="bulkUpdating()"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#ffffff0d] text-[#a0a0a0] hover:bg-[#ffffff1a] transition-colors
+                     disabled:opacity-40">
+              Sin leer
+            </button>
+          </div>
+        </div>
+      }
 
       @if (loading()) {
         <div class="flex justify-center py-20">
@@ -131,14 +325,18 @@ interface GBResult {
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
               </svg>
             </div>
-            <p class="text-[#606060] text-sm">No hay libros todavía.</p>
-            <button (click)="openModal()" class="inline-block mt-4 text-sm text-[#8b5cf6] hover:underline">Añade el primero</button>
+            <p class="text-[#606060] text-sm">No hay libros todavia.</p>
+            <button (click)="openModal()" class="inline-block mt-4 text-sm text-[#8b5cf6] hover:underline">Anade el primero</button>
           </div>
         } @else {
           <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
             @for (book of books(); track book.id) {
-              <a [routerLink]="['/app/books', book.id]" class="group cursor-pointer">
-                <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
+              <div class="group cursor-pointer relative"
+                (touchstart)="onPressStart(book.id, $event)" (touchend)="onPressEnd()" (touchmove)="onPressEnd()"
+                (mousedown)="onPressStart(book.id, $event)" (mouseup)="onPressEnd()" (mouseleave)="onPressEnd()"
+                (click)="onItemClick(book.id)">
+                <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5"
+                  [class.ring-2]="selectedIds().has(book.id)" [class.ring-[#7c3aed]]="selectedIds().has(book.id)">
                   @if (book.cover_url) {
                     <img [src]="book.cover_url" [alt]="book.title"
                       class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
@@ -150,6 +348,20 @@ interface GBResult {
                       <p class="text-[10px] text-[#404040] leading-tight">{{ book.title }}</p>
                     </div>
                   }
+                  <!-- Selection checkbox (top-left) -->
+                  @if (selectionMode()) {
+                    <div class="absolute top-2 left-2 z-10">
+                      <span class="w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors"
+                        [class]="selectedIds().has(book.id) ? 'bg-[#7c3aed] border-[#7c3aed]' : 'border-white/50 bg-black/40'">
+                        @if (selectedIds().has(book.id)) {
+                          <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                        }
+                      </span>
+                    </div>
+                  }
+                  <!-- Read badge (top-right, always visible) -->
                   <div class="absolute top-2 right-2">
                     @if (book.read_status === 'read') {
                       <span class="w-5 h-5 rounded-full bg-[#22c55e] flex items-center justify-center">
@@ -170,7 +382,7 @@ interface GBResult {
                 @if (book.author) {
                   <p class="text-[10px] text-[#606060] truncate">{{ book.author }}</p>
                 }
-              </a>
+              </div>
             }
           </div>
         }
@@ -179,9 +391,22 @@ interface GBResult {
       @if (!loading() && viewMode() === 'list') {
         <div class="space-y-2">
           @for (book of books(); track book.id) {
-            <a [routerLink]="['/app/books', book.id]"
-              class="flex items-center gap-3 md:gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
-                     rounded-xl px-3 md:px-4 py-3 transition-colors duration-150">
+            <div class="flex items-center gap-3 md:gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
+                     rounded-xl px-3 md:px-4 py-3 transition-colors duration-150 cursor-pointer"
+              [class.ring-2]="selectedIds().has(book.id)" [class.ring-[#7c3aed]]="selectedIds().has(book.id)"
+              (touchstart)="onPressStart(book.id, $event)" (touchend)="onPressEnd()" (touchmove)="onPressEnd()"
+              (mousedown)="onPressStart(book.id, $event)" (mouseup)="onPressEnd()" (mouseleave)="onPressEnd()"
+              (click)="onItemClick(book.id)">
+              @if (selectionMode()) {
+                <span class="w-5 h-5 rounded-full flex items-center justify-center border-2 shrink-0 transition-colors"
+                  [class]="selectedIds().has(book.id) ? 'bg-[#7c3aed] border-[#7c3aed]' : 'border-[#2a2a2a]'">
+                  @if (selectedIds().has(book.id)) {
+                    <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                    </svg>
+                  }
+                </span>
+              }
               <div class="w-9 h-12 md:w-10 md:h-14 rounded-lg overflow-hidden bg-[#222] shrink-0">
                 @if (book.cover_url) {
                   <img [src]="book.cover_url" [alt]="book.title" class="w-full h-full object-cover" />
@@ -200,7 +425,7 @@ interface GBResult {
                   {{ statusLabel(book.read_status) }}
                 </span>
               </div>
-            </a>
+            </div>
           }
         </div>
       }
@@ -240,7 +465,7 @@ interface GBResult {
 
           <div class="flex-1 overflow-y-auto px-5 pb-5">
             @if (gbDetail()) {
-              <!-- ── Detail view ── -->
+              <!-- Detail view -->
               <div class="space-y-4">
                 <button type="button" (click)="gbDetail.set(null); gbExistingId.set(null)"
                   class="text-xs text-[#7c3aed] hover:underline flex items-center gap-1">
@@ -271,7 +496,7 @@ interface GBResult {
                         <div><span class="text-[#505050]">Fecha</span><br><span class="text-[#a0a0a0]">{{ gbDetail()!.publishedDate }}</span></div>
                       }
                       @if (gbDetail()!.pages) {
-                        <div><span class="text-[#505050]">Páginas</span><br><span class="text-[#a0a0a0]">{{ gbDetail()!.pages }}</span></div>
+                        <div><span class="text-[#505050]">Paginas</span><br><span class="text-[#a0a0a0]">{{ gbDetail()!.pages }}</span></div>
                       }
                       @if (gbDetail()!.isbn13 || gbDetail()!.isbn) {
                         <div><span class="text-[#505050]">ISBN</span><br><span class="text-[#a0a0a0]">{{ gbDetail()!.isbn13 || gbDetail()!.isbn }}</span></div>
@@ -280,7 +505,7 @@ interface GBResult {
                         <div><span class="text-[#505050]">Precio</span><br><span class="text-[#a0a0a0]">{{ gbDetail()!.price }} {{ gbDetail()!.currency }}</span></div>
                       }
                       @if (gbDetail()!.categories.length) {
-                        <div><span class="text-[#505050]">Género</span><br><span class="text-[#a0a0a0]">{{ gbDetail()!.categories[0] }}</span></div>
+                        <div><span class="text-[#505050]">Genero</span><br><span class="text-[#a0a0a0]">{{ gbDetail()!.categories[0] }}</span></div>
                       }
                     </div>
                   </div>
@@ -294,13 +519,13 @@ interface GBResult {
                   @if (gbExistingId()) {
                     <a [routerLink]="['/app/books', gbExistingId()]" (click)="closeModal()"
                       class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#22c55e] text-center">
-                      Ya añadido — ver libro
+                      Ya anadido — ver libro
                     </a>
                   } @else {
                     <button type="button" (click)="addBook()" [disabled]="gbSaving()"
                       class="flex-1 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
                              hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                      @if (gbSaving()) { Añadiendo... } @else { Añadir }
+                      @if (gbSaving()) { Anadiendo... } @else { Anadir }
                     </button>
                     <a routerLink="/app/books/new" (click)="closeModal()"
                       class="px-5 py-3 rounded-xl text-sm text-[#a0a0a0] hover:text-white bg-[#1a1a1a]
@@ -312,14 +537,14 @@ interface GBResult {
               </div>
 
             } @else {
-              <!-- ── Search ── -->
+              <!-- Search -->
               <div class="relative mb-4">
                 <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#404040]"
                   fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
                 <input [(ngModel)]="gbQuery" (keyup.enter)="searchGB()"
-                  type="text" placeholder="Título, autor o ISBN..."
+                  type="text" placeholder="Titulo, autor o ISBN..."
                   class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl pl-10 pr-4 py-3 text-sm
                          text-white placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
               </div>
@@ -334,7 +559,6 @@ interface GBResult {
                 </div>
               }
 
-              <!-- Results list -->
               @if (gbResults().length > 0) {
                 @if (gbTotal() > 0) {
                   <p class="text-[10px] text-[#505050] mb-2">{{ gbTotal() }} resultados</p>
@@ -380,6 +604,7 @@ export class BooksListComponent implements OnInit {
   private api = inject(ApiService);
   private http = inject(HttpClient);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private base = environment.apiUrl;
 
   books = signal<Book[]>([]);
@@ -387,13 +612,52 @@ export class BooksListComponent implements OnInit {
   loading = signal(false);
   page = signal(1);
   viewMode = signal<'grid' | 'list'>('grid');
-  filterRatingMin = signal(0);
 
   search = '';
   filterStatus = '';
+  filterRatingMin = signal(0);
+  filterAuthor = signal('');
+  filterPublisher = signal('');
+  filterGenre = signal('');
+  filterSaga = signal('');
+  filterPriceMin = signal<number | null>(null);
+  filterPriceMax = signal<number | null>(null);
+  filterNoPrice = signal(false);
+  filtersExpanded = signal(false);
+
+  sortField = signal<string>('created_at');
+  sortOrder = signal<'desc' | 'asc'>('desc');
+
+  facets = signal<Facets | null>(null);
+
   readonly limit = 42;
   totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.limit)));
   private searchTimer: any;
+
+  sortOptions = [
+    { value: 'created_at', label: 'Recientes' },
+    { value: 'title', label: 'Titulo' },
+    { value: 'author', label: 'Autor' },
+    { value: 'price', label: 'Precio' },
+  ];
+
+  activeFilterCount = computed(() => {
+    let n = 0;
+    if (this.filterAuthor()) n++;
+    if (this.filterPublisher()) n++;
+    if (this.filterGenre()) n++;
+    if (this.filterSaga()) n++;
+    if (this.filterNoPrice()) n++;
+    if (this.filterPriceMin() != null || this.filterPriceMax() != null) n++;
+    return n;
+  });
+
+  // Multi-select
+  selectionMode = signal(false);
+  selectedIds = signal(new Set<number>());
+  bulkUpdating = signal(false);
+  private pressTimer: any;
+  private pressHandled = false;
 
   // Google Books modal
   modalOpen = signal(false);
@@ -407,7 +671,20 @@ export class BooksListComponent implements OnInit {
   gbSaving = signal(false);
   gbExistingId = signal<number | null>(null);
 
-  ngOnInit() { this.load(); }
+  ngOnInit() {
+    const qp = this.route.snapshot.queryParamMap;
+    if (qp.get('author')) this.filterAuthor.set(qp.get('author')!);
+    if (qp.get('publisher')) this.filterPublisher.set(qp.get('publisher')!);
+    if (qp.get('saga')) this.filterSaga.set(qp.get('saga')!);
+    this.loadFacets();
+    this.load();
+  }
+
+  loadFacets() {
+    this.http.get<Facets>(`${this.base}/books/facets`).subscribe({
+      next: f => this.facets.set(f),
+    });
+  }
 
   load() {
     this.loading.set(true);
@@ -415,8 +692,17 @@ export class BooksListComponent implements OnInit {
       page: this.page(), limit: this.limit,
       search: this.search || undefined,
       read_status: this.filterStatus || undefined,
+      sort: this.sortField(),
+      order: this.sortOrder(),
+      author: this.filterAuthor() || undefined,
+      publisher: this.filterPublisher() || undefined,
+      genre: this.filterGenre() || undefined,
+      saga: this.filterSaga() || undefined,
+      price_min: this.filterNoPrice() ? undefined : this.filterPriceMin() ?? undefined,
+      price_max: this.filterNoPrice() ? undefined : this.filterPriceMax() ?? undefined,
+      no_price: this.filterNoPrice() ? 'true' : undefined,
+      rating_min: this.filterRatingMin() || undefined,
     };
-    if (this.filterRatingMin()) params.rating_min = this.filterRatingMin();
     this.api.get<PaginatedResponse<Book>>('/books', params).subscribe({
       next: res => { this.books.set(res.data); this.total.set(res.total); this.loading.set(false); },
       error: () => this.loading.set(false)
@@ -428,18 +714,92 @@ export class BooksListComponent implements OnInit {
     this.searchTimer = setTimeout(() => { this.page.set(1); this.load(); }, 400);
   }
 
+  applyFilters() { this.page.set(1); this.load(); }
+
+  clearAllFilters() {
+    this.filterAuthor.set(''); this.filterPublisher.set('');
+    this.filterGenre.set(''); this.filterSaga.set('');
+    this.filterPriceMin.set(null); this.filterPriceMax.set(null);
+    this.filterRatingMin.set(0); this.filterStatus = '';
+    this.filterNoPrice.set(false);
+    this.page.set(1); this.load();
+  }
+
   setFilterRatingMin(n: number) {
     this.filterRatingMin.set(this.filterRatingMin() === n ? 0 : n);
-    this.page.set(1);
-    this.load();
+    this.page.set(1); this.load();
+  }
+
+  toggleSort(field: string) {
+    if (this.sortField() === field) {
+      this.sortOrder.set(this.sortOrder() === 'desc' ? 'asc' : 'desc');
+    } else {
+      this.sortField.set(field);
+      this.sortOrder.set(field === 'title' || field === 'author' ? 'asc' : 'desc');
+    }
+    this.page.set(1); this.load();
   }
 
   goTo(p: number) { this.page.set(p); this.load(); }
 
-  statusLabel(s: string) { return s === 'read' ? 'Leído' : 'Sin leer'; }
+  statusLabel(s: string) { return s === 'read' ? 'Leido' : 'Sin leer'; }
   statusClass(s: string) {
     if (s === 'read') return 'bg-[#22c55e1a] text-[#22c55e]';
     return 'bg-[#ffffff0d] text-[#606060]';
+  }
+
+  // ── Multi-select ──────────────────────────────────────────────────────
+
+  onPressStart(id: number, e: Event) {
+    this.pressHandled = false;
+    if (this.selectionMode()) return;
+    this.pressTimer = setTimeout(() => {
+      this.pressHandled = true;
+      this.selectionMode.set(true);
+      this.selectedIds.set(new Set([id]));
+    }, 500);
+  }
+
+  onPressEnd() { clearTimeout(this.pressTimer); }
+
+  onItemClick(id: number) {
+    if (this.pressHandled) { this.pressHandled = false; return; }
+    if (this.selectionMode()) {
+      const s = new Set(this.selectedIds());
+      if (s.has(id)) s.delete(id); else s.add(id);
+      this.selectedIds.set(s);
+      if (s.size === 0) this.selectionMode.set(false);
+      return;
+    }
+    this.router.navigate(['/app/books', id]);
+  }
+
+  selectAll() {
+    if (this.selectedIds().size === this.books().length) {
+      this.selectedIds.set(new Set());
+      this.selectionMode.set(false);
+    } else {
+      this.selectedIds.set(new Set(this.books().map(b => b.id)));
+    }
+  }
+
+  cancelSelection() {
+    this.selectionMode.set(false);
+    this.selectedIds.set(new Set());
+  }
+
+  bulkSetRead(status: string) {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    this.bulkUpdating.set(true);
+    this.http.patch<any>(`${this.base}/books/batch`, { ids, read_status: status }).subscribe({
+      next: () => {
+        this.bulkUpdating.set(false);
+        this.cancelSelection();
+        this.load();
+      },
+      error: () => this.bulkUpdating.set(false),
+    });
   }
 
   // ── Modal ──────────────────────────────────────────────────────────────
@@ -508,6 +868,7 @@ export class BooksListComponent implements OnInit {
         genre: d.categories[0] || null,
         pages: d.pages,
         language: d.language,
+        price: d.price,
         cover_url: coverUrl,
         read_status: 'unread',
         owned: false,

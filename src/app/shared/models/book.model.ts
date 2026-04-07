@@ -28,6 +28,8 @@ export interface Book {
   language: string | null;
   saga: string | null;
   saga_number: number | null;
+  price: number | null;
+  binding: string | null;
 
   // Portada
   cover_url: string | null;
