@@ -11,6 +11,8 @@ interface GBResult {
   googleId: string;
   title: string;
   subtitle: string | null;
+  saga: string | null;
+  sagaNumber: number | null;
   authors: string[];
   publisher: string | null;
   publishedDate: string | null;
@@ -496,6 +498,9 @@ interface Facets {
                     @if (gbDetail()!.subtitle) {
                       <p class="text-[#a0a0a0] text-xs mt-0.5">{{ gbDetail()!.subtitle }}</p>
                     }
+                    @if (gbDetail()!.saga) {
+                      <p class="text-[#8b5cf6] text-xs mt-0.5">{{ gbDetail()!.saga }} #{{ gbDetail()!.sagaNumber }}</p>
+                    }
                     @if (gbDetail()!.authors.length) {
                       <p class="text-[#7c3aed] text-xs mt-1 uppercase tracking-wider">{{ gbDetail()!.authors.join(' · ') }}</p>
                     }
@@ -964,6 +969,8 @@ export class BooksListComponent implements OnInit, OnDestroy {
         pages: d.pages,
         language: d.language,
         price: d.price,
+        saga: d.saga,
+        saga_number: d.sagaNumber,
         cover_url: coverUrl,
         read_status: 'unread',
         owned: false,
