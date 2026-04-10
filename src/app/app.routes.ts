@@ -38,6 +38,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/books/books-list/books-list.component').then(m => m.BooksListComponent),
       },
       {
+        path: 'books/sagas',
+        loadComponent: () => import('./features/books/book-sagas/book-sagas.component').then(m => m.BookSagasComponent),
+      },
+      {
         path: 'books/new',
         loadComponent: () => import('./features/books/book-form/book-form.component').then(m => m.BookFormComponent),
       },

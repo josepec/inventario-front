@@ -1,7 +1,8 @@
-import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Component, inject, OnInit, OnDestroy, signal, computed, ViewChild, ElementRef, NgZone } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 import { ApiService, PaginatedResponse } from '../../../shared/services/api.service';
 import { Book } from '../../../shared/models/book.model';
 import { environment } from '../../../../environments/environment';
@@ -44,15 +45,25 @@ interface Facets {
           <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">Libros</h1>
           <p class="text-[#606060] mt-0.5 text-sm">{{ total() }} libros en tu coleccion</p>
         </div>
-        <button (click)="openModal()"
-          class="flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white
-                 font-semibold text-sm rounded-xl px-4 py-2.5 md:px-5 transition-colors duration-200 shrink-0">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          <span class="hidden sm:inline">Anadir libro</span>
-          <span class="sm:hidden">Anadir</span>
-        </button>
+        <div class="flex items-center gap-2 shrink-0">
+          <a routerLink="/app/books/sagas"
+            class="flex items-center gap-2 bg-[#161616] hover:bg-[#1a1a1a] border border-[#2a2a2a]
+                   text-[#a0a0a0] hover:text-white font-semibold text-sm rounded-xl px-4 py-2.5 transition-colors duration-200">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 6.878V6a2.25 2.25 0 012.25-2.25h7.5A2.25 2.25 0 0118 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 004.5 9v.878m13.5-3A2.25 2.25 0 0119.5 9v.878m0 0a2.246 2.246 0 00-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0121 12v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6c0-1.014.671-1.872 1.594-2.153" />
+            </svg>
+            <span class="hidden sm:inline">Sagas</span>
+          </a>
+          <button (click)="openModal()"
+            class="flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white
+                   font-semibold text-sm rounded-xl px-4 py-2.5 md:px-5 transition-colors duration-200">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span class="hidden sm:inline">Anadir libro</span>
+            <span class="sm:hidden">Anadir</span>
+          </button>
+        </div>
       </div>
 
       <!-- Search + sort + filters -->
@@ -538,16 +549,52 @@ interface Facets {
 
             } @else {
               <!-- Search -->
-              <div class="relative mb-4">
-                <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#404040]"
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                </svg>
-                <input [(ngModel)]="gbQuery" (keyup.enter)="searchGB()"
-                  type="text" placeholder="Titulo, autor o ISBN..."
-                  class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl pl-10 pr-4 py-3 text-sm
-                         text-white placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+              <div class="flex items-center gap-2 mb-4">
+                <div class="relative flex-1 min-w-0">
+                  <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#404040]"
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                  <input [(ngModel)]="gbQuery" (keyup.enter)="searchGB()"
+                    type="text" placeholder="Titulo, autor o ISBN..."
+                    class="w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-xl pl-10 pr-4 py-3 text-sm
+                           text-white placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
+                </div>
+                <!-- Barcode scan button -->
+                <button type="button" (click)="toggleScanner()"
+                  title="Escanear codigo de barras"
+                  class="px-3 py-3 rounded-xl border transition-colors shrink-0"
+                  [class]="scannerActive()
+                    ? 'bg-[#7c3aed22] border-[#7c3aed] text-[#8b5cf6]'
+                    : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#606060] hover:text-[#8b5cf6] hover:border-[#7c3aed44]'">
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M3.75 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 013.75 9.375v-4.5zM3.75 14.625c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5a1.125 1.125 0 01-1.125-1.125v-4.5zM13.5 4.875c0-.621.504-1.125 1.125-1.125h4.5c.621 0 1.125.504 1.125 1.125v4.5c0 .621-.504 1.125-1.125 1.125h-4.5A1.125 1.125 0 0113.5 9.375v-4.5z" />
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                      d="M6.75 6.75h.75v.75h-.75v-.75zM6.75 16.5h.75v.75h-.75v-.75zM16.5 6.75h.75v.75h-.75v-.75zM13.5 13.5h.75v.75h-.75v-.75zM13.5 19.5h.75v.75h-.75v-.75zM19.5 13.5h.75v.75h-.75v-.75zM19.5 19.5h.75v.75h-.75v-.75zM16.5 16.5h.75v.75h-.75v-.75z" />
+                  </svg>
+                </button>
+                <button type="button" (click)="searchGB()" [disabled]="gbLoading()"
+                  class="px-4 py-3 rounded-xl text-sm font-semibold text-white bg-[#7c3aed]
+                         hover:bg-[#6d28d9] disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0">
+                  @if (gbLoading()) { ... } @else { Buscar }
+                </button>
               </div>
+
+              <!-- Scanner viewer -->
+              @if (scannerActive()) {
+                <div class="relative border border-[#2a2a2a] rounded-xl bg-black mb-4 shrink-0 overflow-hidden" style="height: 200px">
+                  <video #scannerVideo class="w-full h-full object-cover" autoplay muted playsinline></video>
+                  <div class="absolute inset-x-6 top-1/2 -translate-y-1/2 h-0.5 bg-[#7c3aed] opacity-70
+                              animate-pulse rounded-full shadow-[0_0_8px_#7c3aed]"></div>
+                  <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div class="w-56 h-24 border-2 border-[#7c3aed] rounded-lg opacity-50"></div>
+                  </div>
+                  <p class="absolute bottom-2 inset-x-0 text-center text-xs text-[#606060]">
+                    Apunta el codigo de barras al centro
+                  </p>
+                </div>
+              }
 
               @if (gbError()) {
                 <p class="text-[#ef4444] text-xs mt-2">{{ gbError() }}</p>
@@ -600,12 +647,15 @@ interface Facets {
     }
   `
 })
-export class BooksListComponent implements OnInit {
+export class BooksListComponent implements OnInit, OnDestroy {
   private api = inject(ApiService);
   private http = inject(HttpClient);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private zone = inject(NgZone);
   private base = environment.apiUrl;
+
+  @ViewChild('scannerVideo') private scannerVideoRef?: ElementRef<HTMLVideoElement>;
 
   books = signal<Book[]>([]);
   total = signal(0);
@@ -670,6 +720,15 @@ export class BooksListComponent implements OnInit {
   gbError = signal('');
   gbSaving = signal(false);
   gbExistingId = signal<number | null>(null);
+
+  // Barcode scanner
+  scannerActive = signal(false);
+  private barcodeReader = new BrowserMultiFormatReader();
+  private scannerControls: { stop(): void } | null = null;
+
+  ngOnDestroy() {
+    this.stopScanner();
+  }
 
   ngOnInit() {
     const qp = this.route.snapshot.queryParamMap;
@@ -802,6 +861,41 @@ export class BooksListComponent implements OnInit {
     });
   }
 
+  // ── Barcode scanner ────────────────────────────────────────────────────
+
+  toggleScanner() {
+    if (this.scannerActive()) {
+      this.stopScanner();
+    } else {
+      this.startScanner();
+    }
+  }
+
+  private stopScanner() {
+    this.scannerControls?.stop();
+    this.scannerControls = null;
+    this.scannerActive.set(false);
+  }
+
+  private startScanner() {
+    this.scannerActive.set(true);
+    setTimeout(() => {
+      const video = this.scannerVideoRef?.nativeElement;
+      if (!video) { this.scannerActive.set(false); return; }
+
+      this.barcodeReader.decodeFromVideoDevice(undefined, video, (result, _err) => {
+        if (result) {
+          this.zone.run(() => {
+            this.gbQuery = result.getText();
+            this.gbError.set('');
+            this.stopScanner();
+            this.searchGB();
+          });
+        }
+      }).then(controls => { this.scannerControls = controls; });
+    }, 100);
+  }
+
   // ── Modal ──────────────────────────────────────────────────────────────
 
   openModal() {
@@ -811,6 +905,7 @@ export class BooksListComponent implements OnInit {
   }
 
   closeModal() {
+    this.stopScanner();
     this.modalOpen.set(false);
     this.gbSaving.set(false);
     this.load();
