@@ -149,21 +149,6 @@ interface Facets {
             }
           </button>
 
-          @if (filterRatingMin()) {
-            <button (click)="filterRatingMin.set(0); applyFilters()"
-              class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#f59e0b1a] text-[#f59e0b]
-                     hover:bg-[#f59e0b33] transition-colors">
-              ≥ {{ filterRatingMin() }}★
-              <span class="hover:text-white text-base leading-none">&times;</span>
-            </button>
-          }
-          <div class="flex items-center gap-0.5 ml-1">
-            @for (n of [1,2,3,4,5]; track n) {
-              <button (click)="setFilterRatingMin(n)"
-                class="text-sm transition-colors"
-                [class]="n <= filterRatingMin() ? 'text-[#f59e0b]' : 'text-[#2a2a2a] hover:text-[#404040]'">★</button>
-            }
-          </div>
         </div>
 
         <!-- Active filter tags -->
@@ -197,6 +182,12 @@ interface Facets {
               <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-[#7c3aed1a] text-[#8b5cf6]">
                 Sin precio
                 <button (click)="filterNoPrice.set(false); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
+              </span>
+            }
+            @if (filterRatingMin() !== null) {
+              <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-[#f59e0b1a] text-[#f59e0b]">
+                ≥ {{ filterRatingMin() }}★
+                <button (click)="filterRatingMin.set(null); applyFilters()" class="hover:text-white text-base leading-none">&times;</button>
               </span>
             }
             <button (click)="clearAllFilters()" class="text-xs text-[#606060] hover:text-white transition-colors ml-1">
@@ -283,6 +274,17 @@ interface Facets {
                 <span class="text-xs transition-colors"
                   [class]="filterNoPrice() ? 'text-[#8b5cf6]' : 'text-[#606060] group-hover:text-[#a0a0a0]'">Sin precio</span>
               </label>
+              <div class="flex items-center gap-2 ml-auto">
+                <label class="text-[10px] text-[#606060] uppercase tracking-wider whitespace-nowrap">Valoracion</label>
+                <div class="flex gap-0.5 items-center">
+                  @for (s of [1,2,3,4,5]; track s) {
+                    <button type="button" (click)="setFilterRatingMin(s)"
+                      class="text-base transition-colors"
+                      [class]="s <= (filterRatingMin() ?? 0) ? 'text-[#f59e0b]' : 'text-[#2a2a2a] hover:text-[#f59e0b44]'">★</button>
+                  }
+                </div>
+                <span class="text-[10px] text-[#404040]">min.</span>
+              </div>
             </div>
             @if (activeFilterCount() > 0) {
               <div class="flex justify-end">
@@ -670,7 +672,7 @@ export class BooksListComponent implements OnInit, OnDestroy {
 
   search = '';
   filterStatus = '';
-  filterRatingMin = signal(0);
+  filterRatingMin = signal<number | null>(null);
   filterAuthor = signal('');
   filterPublisher = signal('');
   filterGenre = signal('');
@@ -704,6 +706,7 @@ export class BooksListComponent implements OnInit, OnDestroy {
     if (this.filterSaga()) n++;
     if (this.filterNoPrice()) n++;
     if (this.filterPriceMin() != null || this.filterPriceMax() != null) n++;
+    if (this.filterRatingMin() !== null) n++;
     return n;
   });
 
@@ -765,7 +768,7 @@ export class BooksListComponent implements OnInit, OnDestroy {
       price_min: this.filterNoPrice() ? undefined : this.filterPriceMin() ?? undefined,
       price_max: this.filterNoPrice() ? undefined : this.filterPriceMax() ?? undefined,
       no_price: this.filterNoPrice() ? 'true' : undefined,
-      rating_min: this.filterRatingMin() || undefined,
+      rating_min: this.filterRatingMin() ?? undefined,
     };
     this.api.get<PaginatedResponse<Book>>('/books', params).subscribe({
       next: res => { this.books.set(res.data); this.total.set(res.total); this.loading.set(false); },
@@ -784,13 +787,13 @@ export class BooksListComponent implements OnInit, OnDestroy {
     this.filterAuthor.set(''); this.filterPublisher.set('');
     this.filterGenre.set(''); this.filterSaga.set('');
     this.filterPriceMin.set(null); this.filterPriceMax.set(null);
-    this.filterRatingMin.set(0); this.filterStatus = '';
+    this.filterRatingMin.set(null); this.filterStatus = '';
     this.filterNoPrice.set(false);
     this.page.set(1); this.load();
   }
 
   setFilterRatingMin(n: number) {
-    this.filterRatingMin.set(this.filterRatingMin() === n ? 0 : n);
+    this.filterRatingMin.set(this.filterRatingMin() === n ? null : n);
     this.page.set(1); this.load();
   }
 
