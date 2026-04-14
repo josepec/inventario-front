@@ -13,7 +13,14 @@ interface ComicsDashboard {
   byRating: { rating: number; count: number }[];
   collections: { id: number; title: string; total_issues: number; cover_url: string | null; rating: number | null; owned: number }[];
   recentComics: { id: number; title: string; cover_url: string | null; rating: number | null; created_at: string }[];
-  spending: { total: number; avg: number };
+  spending: {
+    total: number;
+    avg: number;
+    estimatedTotal: number;
+    estimatedAvg: number;
+    missingCount: number;
+    missingPct: number;
+  };
   thisYear: { added: number; read: number; spent: number };
   prevYear: { added: number; read: number; spent: number };
   monthlySpending: { thisMonth: number; prevMonth: number };
@@ -179,6 +186,13 @@ interface BooksDashboard {
               <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Inversion</h3>
               <p class="text-2xl font-bold text-white">{{ comicsData()!.spending.total | number:'1.0-0' }} EUR</p>
               <p class="text-[10px] text-[#606060] mt-1">Media: {{ comicsData()!.spending.avg | number:'1.2-2' }} EUR / comic</p>
+              @if (comicsData()!.spending.missingCount > 0) {
+                <div class="mt-3 pt-3 border-t border-[#1e1e1e]">
+                  <p class="text-[10px] text-[#606060]">Estimado ({{ comicsData()!.spending.missingPct | number:'1.0-0' }}% sin precio)</p>
+                  <p class="text-base font-semibold text-[#8b5cf6]">~{{ comicsData()!.spending.estimatedTotal | number:'1.0-0' }} EUR</p>
+                  <p class="text-[10px] text-[#606060]">media ~{{ comicsData()!.spending.estimatedAvg | number:'1.2-2' }} EUR / comic</p>
+                </div>
+              }
               @if (comicsData()!.statsStartDate) {
                 <div class="mt-3 pt-3 border-t border-[#1e1e1e] space-y-2">
                   <div>
