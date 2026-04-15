@@ -116,7 +116,7 @@ interface WantedRow {
             <button (click)="tab.set('wanted'); loadWanted()"
               class="flex-1 whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors"
               [class]="tab() === 'wanted' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
-              Lo quiero @if (wanted().length > 0) { <span class="text-[10px] opacity-70">({{ wanted().length }})</span> }
+              <svg class="inline w-3.5 h-3.5 mr-1 -mt-0.5 fill-current" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>Lo quiero @if (wanted().length > 0) { <span class="ml-1 inline-flex items-center justify-center text-xs font-bold min-w-[1.25rem] h-5 px-1 rounded-full" [class]="tab() === 'wanted' ? 'bg-white/25 text-white' : 'bg-[#7c3aed] text-white'">{{ wanted().length }}</span> }
             </button>
             <button (click)="tab.set('search')"
               class="flex-1 whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors"
@@ -156,7 +156,7 @@ interface WantedRow {
                         </div>
                       }
                       @if (item.source === 'wanted' || item.wanted) {
-                        <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide">LO QUIERO</span>
+                        <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide flex items-center gap-0.5"><svg class="w-2.5 h-2.5 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>LO QUIERO</span>
                       } @else if (item.source === 'tracked') {
                         <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#1f2937] text-[#60a5fa] tracking-wide">COLECCIONANDO</span>
                       }
@@ -223,7 +223,7 @@ interface WantedRow {
                           @if (item.owned) {
                             <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-600 text-white tracking-wide">YA TENGO</span>
                           } @else if (item.wanted) {
-                            <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide">LO QUIERO</span>
+                            <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide flex items-center gap-0.5"><svg class="w-2.5 h-2.5 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>LO QUIERO</span>
                           }
                           @if (item.number) {
                             <span class="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-bold px-2 py-1 rounded-lg leading-none backdrop-blur-sm">#{{ item.number }}</span>
@@ -274,7 +274,7 @@ interface WantedRow {
                           <p class="text-[10px] text-[#404040] leading-tight">{{ w.title }}</p>
                         </div>
                       }
-                      <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide">LO QUIERO</span>
+                      <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide flex items-center gap-0.5"><svg class="w-2.5 h-2.5 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>LO QUIERO</span>
                       @if (w.number) {
                         <span class="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-bold px-2 py-1 rounded-lg leading-none backdrop-blur-sm">#{{ w.number }}</span>
                       }
