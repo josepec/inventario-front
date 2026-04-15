@@ -17,6 +17,7 @@ interface NewTitleItem {
   release_week_start: string | null;
   owned: boolean;
   wanted: boolean;
+  local_collection_id?: number | null;
   source?: 'wanted' | 'tracked';
 }
 
@@ -51,6 +52,18 @@ interface WkComicDetail {
   binding?: string | null;
   price?: number | null;
   editionId?: string | null;
+}
+
+interface WkEdition {
+  id: string;
+  title: string;
+  cover: string;
+  description: string;
+  publisher: string;
+  authors: { name: string; role: string }[];
+  issues: { id: string; number: number; title: string; cover: string; published: boolean }[];
+  total_issues: number;
+  url: string;
 }
 
 interface WantedRow {
@@ -152,7 +165,8 @@ interface WantedRow {
                       }
                       <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
                     </div>
-                    <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ item.series || item.title }}</p>
+                    <button class="text-xs font-medium text-left text-[#e0e0e0] hover:text-[#8b5cf6] truncate leading-tight w-full transition-colors"
+                      (click)="onSeriesClick(item, $event)">{{ item.series || item.title }}</button>
                     @if (item.publisher) {
                       <p class="text-[10px] text-[#606060] truncate">{{ item.publisher }}</p>
                     }
@@ -216,7 +230,8 @@ interface WantedRow {
                           }
                           <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
                         </div>
-                        <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ item.series || item.title }}</p>
+                        <button class="text-xs font-medium text-left text-[#e0e0e0] hover:text-[#8b5cf6] truncate leading-tight w-full transition-colors"
+                          (click)="onSeriesClick(item, $event)">{{ item.series || item.title }}</button>
                         @if (item.publisher) {
                           <p class="text-[10px] text-[#606060] truncate">{{ item.publisher }}</p>
                         }
@@ -265,7 +280,8 @@ interface WantedRow {
                       }
                       <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
                     </div>
-                    <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ w.series || w.title }}</p>
+                    <button class="text-xs font-medium text-left text-[#e0e0e0] hover:text-[#8b5cf6] truncate leading-tight w-full transition-colors"
+                      (click)="openDetail(w.whakoom_comic_id)">{{ w.series || w.title }}</button>
                     <div class="flex items-center justify-between">
                       <p class="text-[10px] text-[#606060] truncate">{{ w.release_month ?? '' }}</p>
                       <button class="text-[10px] text-red-400 hover:text-red-300 shrink-0"
@@ -434,9 +450,84 @@ interface WantedRow {
                   Quitar de "lo quiero"
                 </button>
               }
+              @if (detail()!.editionId) {
+                <button (click)="openEdition(detail()!.editionId!)"
+                  class="flex-1 px-4 py-3 md:py-2 rounded-xl bg-[#1f1f1f] hover:bg-[#2a2a2a] text-[#a0a0a0] text-sm font-semibold transition-colors">
+                  Ver serie completa
+                </button>
+              }
             </div>
           } @else if (detailError()) {
             <div class="p-10 text-center text-red-400 text-sm">{{ detailError() }}</div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- EDITION PANEL — info de colección Whakoom (no tenida localmente) -->
+    @if (editionOpen()) {
+      <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end md:items-center md:justify-center md:p-4"
+        (click)="closeEdition()">
+        <div class="bg-[#0f0f0f] border-t md:border border-[#2a2a2a] rounded-t-2xl md:rounded-2xl max-w-3xl w-full shadow-2xl max-h-[92dvh] md:max-h-[85vh] flex flex-col"
+          (click)="$event.stopPropagation()">
+          <div class="md:hidden flex justify-center pt-3 pb-1 shrink-0">
+            <div class="w-10 h-1 rounded-full bg-[#333]"></div>
+          </div>
+          @if (editionLoading()) {
+            <div class="p-10 text-center text-[#666] text-sm">Cargando colección…</div>
+          } @else if (edition()) {
+            <div class="flex-1 overflow-y-auto">
+              <div class="flex gap-4 p-4">
+                @if (edition()!.cover) {
+                  <div class="w-24 md:w-32 shrink-0">
+                    <div class="aspect-[2/3] rounded-xl overflow-hidden bg-[#141414]">
+                      <img [src]="edition()!.cover" [alt]="edition()!.title" class="w-full h-full object-cover" />
+                    </div>
+                  </div>
+                }
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <p class="text-[10px] text-[#888] uppercase tracking-wider">{{ edition()!.publisher }}</p>
+                      <h3 class="text-base md:text-lg font-bold text-white leading-tight">{{ edition()!.title }}</h3>
+                      <p class="text-[11px] text-[#666] mt-0.5">{{ edition()!.total_issues }} números</p>
+                    </div>
+                    <button (click)="closeEdition()" class="text-[#555] hover:text-white text-xl leading-none shrink-0">✕</button>
+                  </div>
+                  @if (edition()!.authors.length > 0) {
+                    <p class="text-[10px] text-[#888] mt-2">{{ edition()!.authors.slice(0,3).map(a => a.name).join(', ') }}</p>
+                  }
+                  @if (edition()!.description) {
+                    <p class="text-xs text-[#888] leading-relaxed mt-2 line-clamp-4 md:line-clamp-6">{{ edition()!.description }}</p>
+                  }
+                </div>
+              </div>
+              @if (edition()!.issues.length > 0) {
+                <div class="px-4 pb-4">
+                  <p class="text-[10px] text-[#555] uppercase tracking-wider font-semibold mb-2">Números publicados</p>
+                  <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2">
+                    @for (iss of edition()!.issues.slice(0, 16); track iss.id) {
+                      <div class="cursor-pointer group" (click)="openDetailFromEdition(iss.id)">
+                        <div class="aspect-[2/3] rounded-lg overflow-hidden bg-[#141414] group-hover:ring-1 group-hover:ring-[#7c3aed]">
+                          @if (iss.cover) {
+                            <img [src]="iss.cover" [alt]="iss.title" class="w-full h-full object-cover" loading="lazy" />
+                          }
+                        </div>
+                        <p class="text-[9px] text-[#666] text-center mt-0.5">#{{ iss.number }}</p>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+            <div class="shrink-0 p-4 border-t border-[#1a1a1a]">
+              <a [href]="edition()!.url" target="_blank" rel="noopener"
+                class="block w-full text-center px-4 py-3 md:py-2 rounded-xl bg-[#1f1f1f] hover:bg-[#2a2a2a] text-[#a0a0a0] text-sm font-semibold transition-colors">
+                Ver en Whakoom ↗
+              </a>
+            </div>
+          } @else if (editionError()) {
+            <div class="p-10 text-center text-red-400 text-sm">{{ editionError() }}</div>
           }
         </div>
       </div>
@@ -481,6 +572,11 @@ export class NovedadesComponent implements OnInit {
     if (!d) return false;
     return this.wanted().some(w => w.whakoom_comic_id === d.id);
   });
+
+  editionOpen = signal(false);
+  editionLoading = signal(false);
+  edition = signal<WkEdition | null>(null);
+  editionError = signal<string | null>(null);
 
   ngOnInit() {
     this.loadMine();
@@ -635,5 +731,41 @@ export class NovedadesComponent implements OnInit {
     if (!d) return;
     this.closeDetail();
     this.router.navigate(['/app/comics/new'], { queryParams: { whakoom_id: d.id } });
+  }
+
+  // Tap en el nombre de la serie en una card
+  onSeriesClick(item: NewTitleItem, event: Event) {
+    event.stopPropagation();
+    if (item.local_collection_id) {
+      this.router.navigate(['/app/collections', item.local_collection_id]);
+    } else {
+      // Abre el detail del comic; desde ahí, si hay editionId, se puede abrir la edición
+      this.openDetail(item.whakoom_comic_id);
+    }
+  }
+
+  openEdition(editionId: string) {
+    this.closeDetail();
+    this.editionOpen.set(true);
+    this.editionLoading.set(true);
+    this.edition.set(null);
+    this.editionError.set(null);
+    this.api.get<WkEdition>(`/whakoom/edition/${editionId}`).subscribe({
+      next: (e) => { this.edition.set(e); this.editionLoading.set(false); },
+      error: (err) => {
+        this.editionError.set(err?.error?.error ?? 'Error al cargar la colección');
+        this.editionLoading.set(false);
+      },
+    });
+  }
+
+  closeEdition() {
+    this.editionOpen.set(false);
+    this.edition.set(null);
+  }
+
+  openDetailFromEdition(comicId: string) {
+    this.closeEdition();
+    this.openDetail(comicId);
   }
 }
