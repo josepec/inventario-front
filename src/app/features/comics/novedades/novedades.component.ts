@@ -395,7 +395,8 @@ interface WantedRow {
                     <div class="min-w-0">
                       <p class="text-[10px] text-[#888] uppercase tracking-wider">{{ detail()!.publisher }}</p>
                       <h3 (click)="onDetailSeriesClick()"
-                        class="text-base font-bold text-white leading-tight cursor-pointer hover:text-[#a78bfa] transition-colors"
+                        style="cursor: pointer"
+                        class="text-base font-bold text-white leading-tight hover:text-[#a78bfa] transition-colors inline-block"
                         [class.underline]="detail()!.editionId || detail()!.local_collection_id || detailLocalCollId()">{{ detail()!.series || detail()!.title }}</h3>
                       @if (detail()!.number) { <p class="text-sm text-[#a0a0a0]">#{{ detail()!.number }}</p> }
                     </div>
@@ -453,7 +454,8 @@ interface WantedRow {
                     <div class="min-w-0">
                       <p class="text-[11px] text-[#888] uppercase tracking-wider">{{ detail()!.publisher }}</p>
                       <h3 (click)="onDetailSeriesClick()"
-                        class="text-xl font-bold text-white cursor-pointer hover:text-[#a78bfa] transition-colors"
+                        style="cursor: pointer"
+                        class="text-xl font-bold text-white hover:text-[#a78bfa] transition-colors inline-block"
                         [class.underline]="detail()!.editionId || detail()!.local_collection_id || detailLocalCollId()">{{ detail()!.series || detail()!.title }}</h3>
                       @if (detail()!.number) { <p class="text-sm text-[#a0a0a0]">#{{ detail()!.number }}</p> }
                     </div>
@@ -522,12 +524,15 @@ interface WantedRow {
                   </button>
                 }
               </div>
-              <!-- Fila secundaria: "Ver serie completa" -->
-              @if (detail()!.editionId) {
-                <button (click)="openEdition(detail()!.editionId!)"
-                  class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#161616] hover:bg-[#1f1f1f] text-[#888] hover:text-[#a0a0a0] text-xs font-medium transition-colors border border-[#2a2a2a]">
+              <!-- Fila secundaria: "Ver serie completa" / "Ver mi colección" -->
+              @if (detail()!.editionId || detail()!.local_collection_id || detailLocalCollId()) {
+                @let hasLocal = (detail()!.local_collection_id ?? detailLocalCollId()) !== null;
+                <button (click)="onDetailSeriesClick()"
+                  [class]="hasLocal
+                    ? 'w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#1a1033] hover:bg-[#241547] text-[#c084fc] hover:text-[#d8b4fe] text-xs font-semibold transition-colors border border-[#7c3aed]/30'
+                    : 'w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#161616] hover:bg-[#1f1f1f] text-[#888] hover:text-[#a0a0a0] text-xs font-medium transition-colors border border-[#2a2a2a]'">
                   <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-                  Ver serie completa
+                  {{ hasLocal ? 'Ver mi colección' : 'Ver serie completa' }}
                 </button>
               }
             </div>
