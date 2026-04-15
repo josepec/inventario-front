@@ -139,7 +139,7 @@ interface WantedRow {
                       @if (item.source === 'wanted' || item.wanted) {
                         <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide">LO QUIERO</span>
                       } @else if (item.source === 'tracked') {
-                        <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#1f2937] text-[#60a5fa] tracking-wide">SIGO</span>
+                        <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#1f2937] text-[#60a5fa] tracking-wide">COLECCIONANDO</span>
                       }
                       @if (item.number) {
                         <span class="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-bold px-2 py-1 rounded-lg leading-none backdrop-blur-sm">#{{ item.number }}</span>
