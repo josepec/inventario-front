@@ -141,10 +141,10 @@ interface BooksDashboard {
                   </button>
                 </div>
               } @else {
-                <div class="h-48 flex items-end gap-1.5">
+                <div class="h-48 flex gap-1.5">
                   @for (bar of comicMonthlyBars(); track bar.month) {
-                    <div class="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
-                      <div class="w-full flex flex-col justify-end h-full gap-px">
+                    <div class="flex-1 flex flex-col items-center">
+                      <div class="w-full flex-1 flex flex-col justify-end gap-px">
                         @if (bar.read > 0) {
                           <div class="w-full bg-[#22c55e] rounded-t-sm min-h-[2px] transition-all duration-500" [style.height.%]="bar.readPct"></div>
                         }
@@ -416,10 +416,10 @@ interface BooksDashboard {
                   </button>
                 </div>
               } @else {
-                <div class="h-48 flex items-end gap-1.5">
+                <div class="h-48 flex gap-1.5">
                   @for (bar of bookMonthlyBars(); track bar.month) {
-                    <div class="flex-1 flex flex-col items-center gap-0.5 h-full justify-end">
-                      <div class="w-full flex flex-col justify-end h-full gap-px">
+                    <div class="flex-1 flex flex-col items-center">
+                      <div class="w-full flex-1 flex flex-col justify-end gap-px">
                         @if (bar.read > 0) {
                           <div class="w-full bg-[#22c55e] rounded-t-sm min-h-[2px] transition-all duration-500" [style.height.%]="bar.readPct"></div>
                         }
