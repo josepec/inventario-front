@@ -70,8 +70,8 @@ interface WantedRow {
   standalone: true,
   imports: [FormsModule],
   template: `
-    <div class="min-h-screen bg-[#0a0a0a] text-white px-4 md:px-6 py-6 md:py-8">
-      <div class="max-w-[1600px] mx-auto">
+    <div class="p-4 md:p-8 max-w-7xl mx-auto">
+      <div>
 
         <header class="flex items-start justify-between mb-6 gap-3">
           <div>
