@@ -192,36 +192,41 @@ interface BooksDashboard {
           <!-- Spending + Ratings + Year -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <!-- Spending -->
-            <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
-              <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Inversion</h3>
-              <p class="text-2xl font-bold text-white">{{ comicsData()!.spending.total | number:'1.0-0' }} EUR</p>
-              <p class="text-[10px] text-[#606060] mt-1">Media: {{ comicsData()!.spending.avg | number:'1.2-2' }} EUR / comic</p>
+            <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 flex flex-col gap-3">
+              <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold">Inversión</h3>
+
+              <!-- Total real -->
+              <div>
+                <p class="text-3xl font-bold text-white leading-none">{{ comicsData()!.spending.total | number:'1.0-0' }}<span class="text-lg text-[#606060] font-normal ml-1">€</span></p>
+                <p class="text-[11px] text-[#505050] mt-1">{{ comicsData()!.spending.avg | number:'1.2-2' }} € / cómic</p>
+              </div>
+
               @if (comicsData()!.spending.missingCount > 0) {
-                <div class="mt-3 pt-3 border-t border-[#1e1e1e]">
-                  <p class="text-[10px] text-[#606060]">Estimado ({{ comicsData()!.spending.missingPct | number:'1.0-0' }}% sin precio)</p>
-                  <p class="text-base font-semibold text-[#8b5cf6]">~{{ comicsData()!.spending.estimatedTotal | number:'1.0-0' }} EUR</p>
-                  <p class="text-[10px] text-[#606060]">media ~{{ comicsData()!.spending.estimatedAvg | number:'1.2-2' }} EUR / comic</p>
+                <div class="pt-3 border-t border-[#222]">
+                  <p class="text-[10px] text-[#505050] mb-1 uppercase tracking-wide">Estimado · {{ comicsData()!.spending.missingPct | number:'1.0-0' }}% sin precio</p>
+                  <p class="text-xl font-semibold text-[#a78bfa] leading-none">~{{ comicsData()!.spending.estimatedTotal | number:'1.0-0' }}<span class="text-sm font-normal ml-1">€</span></p>
+                  <p class="text-[11px] text-[#505050] mt-0.5">~{{ comicsData()!.spending.estimatedAvg | number:'1.2-2' }} € / cómic</p>
                 </div>
               }
+
               @if (comicsData()!.statsStartDate) {
-                <div class="mt-3 pt-3 border-t border-[#1e1e1e] space-y-2">
-                  <div>
-                    <div class="flex items-baseline gap-2">
-                      <p class="text-sm font-semibold text-[#8b5cf6]">{{ comicsData()!.monthlySpending.thisMonth | number:'1.0-0' }} EUR</p>
+                <div class="pt-3 border-t border-[#222] flex gap-4">
+                  <div class="flex-1">
+                    <p class="text-[10px] text-[#505050] uppercase tracking-wide mb-0.5">Este mes</p>
+                    <div class="flex items-baseline gap-1.5">
+                      <p class="text-base font-bold text-white">{{ comicsData()!.monthlySpending.thisMonth | number:'1.0-0' }}<span class="text-xs font-normal text-[#606060] ml-0.5">€</span></p>
                       @if (comicsData()!.monthlySpending.prevMonth > 0) {
-                        <span class="text-[10px] font-medium"
+                        <span class="text-[10px] font-semibold"
                           [class]="comicsData()!.monthlySpending.thisMonth <= comicsData()!.monthlySpending.prevMonth ? 'text-[#22c55e]' : 'text-[#ef4444]'">
-                          {{ comicsData()!.monthlySpending.thisMonth <= comicsData()!.monthlySpending.prevMonth ? '▼' : '▲' }}
-                          {{ comicSpendDiffPct() }}%
+                          {{ comicsData()!.monthlySpending.thisMonth <= comicsData()!.monthlySpending.prevMonth ? '▼' : '▲' }}{{ comicSpendDiffPct() }}%
                         </span>
                       }
                     </div>
-                    <p class="text-[10px] text-[#606060]">Este mes</p>
                   </div>
                   @if (comicsData()!.thisYear.spent > 0) {
-                    <div>
-                      <p class="text-sm font-semibold text-white">{{ comicsData()!.thisYear.spent | number:'1.0-0' }} EUR</p>
-                      <p class="text-[10px] text-[#606060]">Este ano</p>
+                    <div class="flex-1">
+                      <p class="text-[10px] text-[#505050] uppercase tracking-wide mb-0.5">Este año</p>
+                      <p class="text-base font-bold text-white">{{ comicsData()!.thisYear.spent | number:'1.0-0' }}<span class="text-xs font-normal text-[#606060] ml-0.5">€</span></p>
                     </div>
                   }
                 </div>
@@ -302,13 +307,11 @@ interface BooksDashboard {
                       @if (n.cover_url) {
                         <img [src]="n.cover_url" [alt]="n.title" class="w-full h-full object-cover" loading="lazy" />
                       }
-                      <div class="absolute top-1 right-1">
-                        @if (n.source === 'wanted' || n.wanted) {
-                          <span class="text-[8px] font-semibold px-1 py-0.5 rounded bg-[#7c3aed] text-white">LO QUIERO</span>
-                        } @else if (n.source === 'tracked') {
-                          <span class="text-[8px] font-semibold px-1 py-0.5 rounded bg-[#1f2937] text-[#60a5fa]">SIGO</span>
-                        }
-                      </div>
+                      @if (n.source === 'wanted' || n.wanted) {
+                        <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide flex items-center gap-0.5"><svg class="w-2.5 h-2.5 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>LO QUIERO</span>
+                      } @else if (n.source === 'tracked') {
+                        <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#1f2937] text-[#60a5fa] tracking-wide">COLECCIONANDO</span>
+                      }
                     </div>
                     <p class="mt-1 text-[9px] md:text-[10px] text-[#606060] group-hover:text-[#a0a0a0] truncate transition-colors">{{ n.series }} #{{ n.number }}</p>
                   </a>
@@ -346,12 +349,12 @@ interface BooksDashboard {
 
           <!-- Recent comics -->
           @if (comicsData()!.recentComics.length > 0) {
-            <div class="mb-6">
-              <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Ultimos anadidos</h3>
-              <div class="grid grid-cols-3 sm:grid-cols-6 gap-2 md:gap-3">
+            <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 mb-6">
+              <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Últimos añadidos</h3>
+              <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 md:gap-3">
                 @for (comic of comicsData()!.recentComics; track comic.id) {
                   <a [routerLink]="['/app/comics', comic.id]" class="group">
-                    <div class="aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] border border-[#1e1e1e] group-hover:border-[#7c3aed]/50 transition-colors">
+                    <div class="aspect-[2/3] rounded-lg overflow-hidden bg-[#0d0d0d] border border-[#1f1f1f] group-hover:border-[#7c3aed]/60 transition-colors">
                       @if (comic.cover_url) { <img [src]="comic.cover_url" [alt]="comic.title" class="w-full h-full object-cover transition-transform group-hover:scale-105" loading="lazy" /> }
                     </div>
                     <p class="mt-1 text-[9px] md:text-[10px] text-[#606060] group-hover:text-[#a0a0a0] truncate transition-colors">{{ comic.title }}</p>
