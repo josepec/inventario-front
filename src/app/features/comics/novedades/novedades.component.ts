@@ -57,6 +57,7 @@ interface WkComicDetail {
   ratingValue?: number | null;
   ratingCount?: number | null;
   reviews?: WkReview[];
+  local_collection_id?: number | null;
 }
 
 interface WkEdition {
@@ -395,7 +396,7 @@ interface WantedRow {
                       <p class="text-[10px] text-[#888] uppercase tracking-wider">{{ detail()!.publisher }}</p>
                       <h3 (click)="onDetailSeriesClick()"
                         class="text-base font-bold text-white leading-tight cursor-pointer hover:text-[#a78bfa] transition-colors"
-                        [class.underline]="detail()!.editionId || detailLocalCollId()">{{ detail()!.series || detail()!.title }}</h3>
+                        [class.underline]="detail()!.editionId || detail()!.local_collection_id || detailLocalCollId()">{{ detail()!.series || detail()!.title }}</h3>
                       @if (detail()!.number) { <p class="text-sm text-[#a0a0a0]">#{{ detail()!.number }}</p> }
                     </div>
                     <button (click)="closeDetail()" class="text-[#555] hover:text-white text-xl leading-none shrink-0 mt-0.5">✕</button>
@@ -453,7 +454,7 @@ interface WantedRow {
                       <p class="text-[11px] text-[#888] uppercase tracking-wider">{{ detail()!.publisher }}</p>
                       <h3 (click)="onDetailSeriesClick()"
                         class="text-xl font-bold text-white cursor-pointer hover:text-[#a78bfa] transition-colors"
-                        [class.underline]="detail()!.editionId || detailLocalCollId()">{{ detail()!.series || detail()!.title }}</h3>
+                        [class.underline]="detail()!.editionId || detail()!.local_collection_id || detailLocalCollId()">{{ detail()!.series || detail()!.title }}</h3>
                       @if (detail()!.number) { <p class="text-sm text-[#a0a0a0]">#{{ detail()!.number }}</p> }
                     </div>
                     <button (click)="closeDetail()" class="text-[#666] hover:text-white text-xl leading-none">✕</button>
@@ -813,7 +814,7 @@ export class NovedadesComponent implements OnInit {
   onDetailSeriesClick() {
     const d = this.detail();
     if (!d) return;
-    const localId = this.detailLocalCollId();
+    const localId = d.local_collection_id ?? this.detailLocalCollId();
     if (localId) {
       this.closeDetail();
       this.router.navigate(['/app/collections', localId]);
