@@ -35,6 +35,8 @@ interface WkSearchResult {
   type: string;
 }
 
+interface WkReview { user: string; score: number | null; text: string; date: string | null; }
+
 interface WkComicDetail {
   id: string;
   title: string;
@@ -52,6 +54,9 @@ interface WkComicDetail {
   binding?: string | null;
   price?: number | null;
   editionId?: string | null;
+  ratingValue?: number | null;
+  ratingCount?: number | null;
+  reviews?: WkReview[];
 }
 
 interface WkEdition {
@@ -64,6 +69,9 @@ interface WkEdition {
   issues: { id: string; number: number; title: string; cover: string; published: boolean }[];
   total_issues: number;
   url: string;
+  ratingValue?: number | null;
+  ratingCount?: number | null;
+  reviews?: WkReview[];
 }
 
 interface WantedRow {
@@ -141,7 +149,7 @@ interface WantedRow {
             } @else {
               <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                 @for (item of mine(); track item.whakoom_comic_id) {
-                  <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id)">
+                  <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null)">
                     <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                       @if (item.cover_url) {
                         <img [src]="item.cover_url" [alt]="item.title"
@@ -206,7 +214,7 @@ interface WantedRow {
                   </div>
                   <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                     @for (item of group.items; track item.whakoom_comic_id) {
-                      <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id)">
+                      <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null)">
                         <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                           @if (item.cover_url) {
                             <img [src]="item.cover_url" [alt]="item.title"
@@ -374,7 +382,9 @@ interface WantedRow {
                   <div class="flex items-start justify-between gap-2">
                     <div class="min-w-0">
                       <p class="text-[10px] text-[#888] uppercase tracking-wider">{{ detail()!.publisher }}</p>
-                      <h3 class="text-base font-bold text-white leading-tight">{{ detail()!.series || detail()!.title }}</h3>
+                      <h3 (click)="onDetailSeriesClick()"
+                        class="text-base font-bold text-white leading-tight cursor-pointer hover:text-[#a78bfa] transition-colors"
+                        [class.underline]="detail()!.editionId || detailLocalCollId()">{{ detail()!.series || detail()!.title }}</h3>
                       @if (detail()!.number) { <p class="text-sm text-[#a0a0a0]">#{{ detail()!.number }}</p> }
                     </div>
                     <button (click)="closeDetail()" class="text-[#555] hover:text-white text-xl leading-none shrink-0 mt-0.5">✕</button>
@@ -388,15 +398,36 @@ interface WantedRow {
                   @if (detail()!.authors.length > 0) {
                     <p class="text-[10px] text-[#666] mt-1 truncate">{{ detail()!.authors.join(', ') }}</p>
                   }
+                  @if (detail()!.ratingValue) {
+                    <div class="flex items-center gap-1.5 mt-2">
+                      <span class="text-yellow-400 text-xs">★</span>
+                      <span class="text-sm font-bold text-white">{{ detail()!.ratingValue!.toFixed(1) }}</span>
+                      @if (detail()!.ratingCount) { <span class="text-[10px] text-[#555]">({{ detail()!.ratingCount }})</span> }
+                    </div>
+                  }
                 </div>
               </div>
 
-              <!-- Mobile: descripción -->
+              <!-- Mobile: descripción + reseñas -->
               @if (detail()!.description) {
-                <p class="md:hidden text-xs text-[#888] leading-relaxed px-4 pb-3 line-clamp-4">{{ detail()!.description }}</p>
+                <p class="md:hidden text-xs text-[#888] leading-relaxed px-4 pb-2 line-clamp-4">{{ detail()!.description }}</p>
+              }
+              @if (detail()!.reviews && detail()!.reviews!.length > 0) {
+                <div class="md:hidden px-4 pb-3 space-y-2">
+                  <p class="text-[10px] text-[#555] uppercase tracking-wider font-semibold">Opiniones</p>
+                  @for (r of detail()!.reviews!.slice(0, 3); track r.user + r.text) {
+                    <div class="bg-[#161616] rounded-lg p-2.5">
+                      <div class="flex items-center gap-1.5 mb-1">
+                        @if (r.score) { <span class="text-yellow-400 text-[10px]">★ {{ r.score.toFixed(1) }}</span> }
+                        @if (r.user) { <span class="text-[10px] text-[#666]">{{ r.user }}</span> }
+                      </div>
+                      @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug">{{ r.text }}</p> }
+                    </div>
+                  }
+                </div>
               }
 
-              <!-- Desktop: layout original -->
+              <!-- Desktop: layout con descripción + reseñas -->
               <div class="hidden md:flex">
                 <div class="w-56 p-5 shrink-0">
                   <div class="aspect-[2/3] rounded-xl overflow-hidden bg-[#141414] border border-[#1f1f1f]">
@@ -405,54 +436,85 @@ interface WantedRow {
                     }
                   </div>
                 </div>
-                <div class="flex-1 p-5 pl-0">
+                <div class="flex-1 p-5 pl-0 min-w-0">
                   <div class="flex items-start justify-between gap-3 mb-3">
                     <div class="min-w-0">
                       <p class="text-[11px] text-[#888] uppercase tracking-wider">{{ detail()!.publisher }}</p>
-                      <h3 class="text-xl font-bold text-white">{{ detail()!.series || detail()!.title }}</h3>
+                      <h3 (click)="onDetailSeriesClick()"
+                        class="text-xl font-bold text-white cursor-pointer hover:text-[#a78bfa] transition-colors"
+                        [class.underline]="detail()!.editionId || detailLocalCollId()">{{ detail()!.series || detail()!.title }}</h3>
                       @if (detail()!.number) { <p class="text-sm text-[#a0a0a0]">#{{ detail()!.number }}</p> }
                     </div>
                     <button (click)="closeDetail()" class="text-[#666] hover:text-white text-xl leading-none">✕</button>
                   </div>
-                  <div class="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#888] mb-4">
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#888] mb-3">
                     @if (detail()!.date) { <span>📅 {{ detail()!.date }}</span> }
                     @if (detail()!.pages) { <span>{{ detail()!.pages }} págs</span> }
                     @if (detail()!.binding) { <span>{{ detail()!.binding }}</span> }
                     @if (detail()!.price) { <span>{{ detail()!.price }} €</span> }
                     @if (detail()!.language) { <span>{{ detail()!.language }}</span> }
+                    @if (detail()!.ratingValue) {
+                      <span class="flex items-center gap-1 text-yellow-400 font-semibold">
+                        ★ {{ detail()!.ratingValue!.toFixed(1) }}
+                        @if (detail()!.ratingCount) { <span class="text-[#555] font-normal">({{ detail()!.ratingCount }})</span> }
+                      </span>
+                    }
                   </div>
                   @if (detail()!.authors.length > 0) {
                     <p class="text-xs text-[#a0a0a0] mb-3">{{ detail()!.authors.join(', ') }}</p>
                   }
                   @if (detail()!.description) {
-                    <p class="text-xs text-[#a0a0a0] leading-relaxed mb-4 line-clamp-6">{{ detail()!.description }}</p>
+                    <p class="text-xs text-[#a0a0a0] leading-relaxed mb-3 line-clamp-4">{{ detail()!.description }}</p>
+                  }
+                  @if (detail()!.reviews && detail()!.reviews!.length > 0) {
+                    <div class="space-y-2">
+                      <p class="text-[10px] text-[#555] uppercase tracking-wider font-semibold">Opiniones</p>
+                      @for (r of detail()!.reviews!.slice(0, 3); track r.user + r.text) {
+                        <div class="bg-[#161616] rounded-lg p-2.5">
+                          <div class="flex items-center gap-2 mb-0.5">
+                            @if (r.score) { <span class="text-yellow-400 text-[10px] font-bold">★ {{ r.score.toFixed(1) }}</span> }
+                            @if (r.user) { <span class="text-[10px] text-[#666]">{{ r.user }}</span> }
+                            @if (r.date) { <span class="text-[10px] text-[#444]">· {{ r.date }}</span> }
+                          </div>
+                          @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug line-clamp-3">{{ r.text }}</p> }
+                        </div>
+                      }
+                    </div>
                   }
                 </div>
               </div>
             </div>
 
-            <!-- Botones de acción — siempre al fondo -->
-            <div class="shrink-0 flex flex-col sm:flex-row gap-2 p-4 border-t border-[#1a1a1a]">
-              <button (click)="importFromDetail()"
-                class="flex-1 px-4 py-3 md:py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-semibold text-center transition-colors">
-                Ya lo tengo → Añadir a colección
-              </button>
-              @if (!detailIsWanted()) {
-                <button (click)="markWantedFromDetail()"
-                  [disabled]="busyId() === detail()!.id"
-                  class="flex-1 px-4 py-3 md:py-2 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold disabled:opacity-50 transition-colors">
-                  Lo quiero
+            <!-- Botones de acción -->
+            <div class="shrink-0 p-4 border-t border-[#1a1a1a]">
+              <!-- Fila principal: "Ya lo tengo" + "Lo quiero" -->
+              <div class="flex gap-2 mb-2">
+                <button (click)="importFromDetail()"
+                  class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-green-700 hover:bg-green-600 text-white text-sm font-semibold transition-colors">
+                  <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                  Ya lo tengo
                 </button>
-              } @else {
-                <button (click)="removeWanted(detail()!.id)"
-                  [disabled]="busyId() === detail()!.id"
-                  class="flex-1 px-4 py-3 md:py-2 rounded-xl bg-[#1f1f1f] hover:bg-[#2a2a2a] text-[#a0a0a0] text-sm font-semibold disabled:opacity-50 transition-colors">
-                  Quitar de "lo quiero"
-                </button>
-              }
+                @if (!detailIsWanted()) {
+                  <button (click)="markWantedFromDetail()"
+                    [disabled]="busyId() === detail()!.id"
+                    class="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold disabled:opacity-50 transition-colors">
+                    <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    Lo quiero
+                  </button>
+                } @else {
+                  <button (click)="removeWanted(detail()!.id)"
+                    [disabled]="busyId() === detail()!.id"
+                    class="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#2a1a3e] hover:bg-[#3a1f58] text-[#c084fc] text-sm font-semibold disabled:opacity-50 transition-colors border border-[#7c3aed]/30">
+                    <svg class="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                    Lo quiero
+                  </button>
+                }
+              </div>
+              <!-- Fila secundaria: "Ver serie completa" -->
               @if (detail()!.editionId) {
                 <button (click)="openEdition(detail()!.editionId!)"
-                  class="flex-1 px-4 py-3 md:py-2 rounded-xl bg-[#1f1f1f] hover:bg-[#2a2a2a] text-[#a0a0a0] text-sm font-semibold transition-colors">
+                  class="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-[#161616] hover:bg-[#1f1f1f] text-[#888] hover:text-[#a0a0a0] text-xs font-medium transition-colors border border-[#2a2a2a]">
+                  <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
                   Ver serie completa
                 </button>
               }
@@ -497,11 +559,33 @@ interface WantedRow {
                   @if (edition()!.authors.length > 0) {
                     <p class="text-[10px] text-[#888] mt-2">{{ edition()!.authors.slice(0,3).map(a => a.name).join(', ') }}</p>
                   }
+                  @if (edition()!.ratingValue) {
+                    <div class="flex items-center gap-1.5 mt-2">
+                      <span class="text-yellow-400 text-xs">★</span>
+                      <span class="text-sm font-bold text-white">{{ edition()!.ratingValue!.toFixed(1) }}</span>
+                      @if (edition()!.ratingCount) { <span class="text-[10px] text-[#555]">({{ edition()!.ratingCount }})</span> }
+                    </div>
+                  }
                   @if (edition()!.description) {
-                    <p class="text-xs text-[#888] leading-relaxed mt-2 line-clamp-4 md:line-clamp-6">{{ edition()!.description }}</p>
+                    <p class="text-xs text-[#888] leading-relaxed mt-2 line-clamp-4 md:line-clamp-5">{{ edition()!.description }}</p>
                   }
                 </div>
               </div>
+              @if (edition()!.reviews && edition()!.reviews!.length > 0) {
+                <div class="px-4 pb-3 space-y-2">
+                  <p class="text-[10px] text-[#555] uppercase tracking-wider font-semibold">Opiniones</p>
+                  @for (r of edition()!.reviews!.slice(0, 3); track r.user + r.text) {
+                    <div class="bg-[#161616] rounded-lg p-2.5">
+                      <div class="flex items-center gap-2 mb-0.5">
+                        @if (r.score) { <span class="text-yellow-400 text-[10px] font-bold">★ {{ r.score.toFixed(1) }}</span> }
+                        @if (r.user) { <span class="text-[10px] text-[#666]">{{ r.user }}</span> }
+                        @if (r.date) { <span class="text-[10px] text-[#444]">· {{ r.date }}</span> }
+                      </div>
+                      @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug line-clamp-3">{{ r.text }}</p> }
+                    </div>
+                  }
+                </div>
+              }
               @if (edition()!.issues.length > 0) {
                 <div class="px-4 pb-4">
                   <p class="text-[10px] text-[#555] uppercase tracking-wider font-semibold mb-2">Números publicados</p>
@@ -566,6 +650,7 @@ export class NovedadesComponent implements OnInit {
   detailLoading = signal(false);
   detail = signal<WkComicDetail | null>(null);
   detailError = signal<string | null>(null);
+  detailLocalCollId = signal<number | null>(null);
 
   detailIsWanted = computed(() => {
     const d = this.detail();
@@ -663,11 +748,12 @@ export class NovedadesComponent implements OnInit {
     });
   }
 
-  openDetail(id: string, type: string = 'comic') {
+  openDetail(id: string, type: string = 'comic', localCollId: number | null = null) {
     this.detailOpen.set(true);
     this.detailLoading.set(true);
     this.detail.set(null);
     this.detailError.set(null);
+    this.detailLocalCollId.set(localCollId);
     this.loadWanted();
     this.api.get<WkComicDetail>(`/whakoom/comic/${id}?type=${type}`).subscribe({
       next: (d) => { this.detail.set(d); this.detailLoading.set(false); },
@@ -681,6 +767,19 @@ export class NovedadesComponent implements OnInit {
   closeDetail() {
     this.detailOpen.set(false);
     this.detail.set(null);
+    this.detailLocalCollId.set(null);
+  }
+
+  onDetailSeriesClick() {
+    const d = this.detail();
+    if (!d) return;
+    const localId = this.detailLocalCollId();
+    if (localId) {
+      this.closeDetail();
+      this.router.navigate(['/app/collections', localId]);
+    } else if (d.editionId) {
+      this.openEdition(d.editionId);
+    }
   }
 
   markWantedFromDetail() {
