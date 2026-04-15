@@ -1205,6 +1205,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
         binding: d.binding ?? editionMeta.binding ?? null,
         price: d.price ?? editionMeta.price ?? extraPrice ?? null,
         collection_id: collectionId,
+        whakoom_id: d.id || null,
         read_status: 'unread',
         owned: false,
       }).subscribe({

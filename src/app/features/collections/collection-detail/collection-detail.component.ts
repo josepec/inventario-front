@@ -600,6 +600,7 @@ export class CollectionDetailComponent implements OnInit {
             binding: detail.binding ?? col.format ?? null,
             price: detail.price ?? null,
             collection_id: col.id,
+            whakoom_id: issue.whakoomId || null,
             read_status: 'unread',
             owned: false,
           }).subscribe({

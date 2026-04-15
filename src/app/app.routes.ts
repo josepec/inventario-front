@@ -22,6 +22,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/comics/comics-list/comics-list.component').then(m => m.ComicsListComponent),
       },
       {
+        path: 'comics/novedades',
+        loadComponent: () => import('./features/comics/novedades/novedades.component').then(m => m.NovedadesComponent),
+      },
+      {
         path: 'comics/new',
         loadComponent: () => import('./features/comics/comic-form/comic-form.component').then(m => m.ComicFormComponent),
       },
