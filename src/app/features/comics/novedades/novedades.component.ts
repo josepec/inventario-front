@@ -322,6 +322,9 @@ interface WantedRow {
             } @else if (searchError()) {
               <p class="text-sm text-red-400">{{ searchError() }}</p>
             } @else if (searchResults().length > 0) {
+              @if (searchTotal() > 0) {
+                <p class="text-[11px] text-[#555] mb-3">{{ searchResults().length }} de {{ searchTotal() }} resultados</p>
+              }
               <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                 @for (r of searchResults(); track r.id) {
                   <div class="group cursor-pointer" (click)="openDetail(r.id, r.type)">
@@ -345,6 +348,14 @@ interface WantedRow {
                   </div>
                 }
               </div>
+              @if (searchHasMore()) {
+                <div class="mt-6 flex justify-center">
+                  <button (click)="loadMoreSearch()" [disabled]="searchLoadingMore()"
+                    class="px-6 py-2.5 rounded-xl bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] text-sm text-[#a0a0a0] font-medium disabled:opacity-50 transition-colors">
+                    @if (searchLoadingMore()) { Cargando… } @else { Cargar más resultados }
+                  </button>
+                </div>
+              }
             } @else if (searchDirty()) {
               <p class="text-sm text-[#666]">Sin resultados.</p>
             }
@@ -641,8 +652,12 @@ export class NovedadesComponent implements OnInit {
   searchQuery = '';
   searchResults = signal<WkSearchResult[]>([]);
   searchLoading = signal(false);
+  searchLoadingMore = signal(false);
   searchError = signal<string | null>(null);
   searchDirty = signal(false);
+  searchPage = signal(1);
+  searchHasMore = signal(false);
+  searchTotal = signal(0);
 
   busyId = signal<string | null>(null);
 
@@ -666,6 +681,7 @@ export class NovedadesComponent implements OnInit {
   ngOnInit() {
     this.loadMine();
     this.loadAll();
+    this.loadWanted();
   }
 
   back() { this.router.navigate(['/app/comics']); }
@@ -732,20 +748,44 @@ export class NovedadesComponent implements OnInit {
     });
   }
 
-  runSearch() {
+  runSearch(page = 1) {
     const q = this.searchQuery.trim();
     if (!q) return;
-    this.searchLoading.set(true);
+    if (page === 1) {
+      this.searchLoading.set(true);
+      this.searchResults.set([]);
+    } else {
+      this.searchLoadingMore.set(true);
+    }
     this.searchError.set(null);
     this.searchDirty.set(true);
-    this.api.get<{ data: WkSearchResult[] }>(`/whakoom/search?q=${encodeURIComponent(q)}`).subscribe({
-      next: (res) => { this.searchResults.set(res.data ?? []); this.searchLoading.set(false); },
+    this.searchPage.set(page);
+    this.api.get<{ data: WkSearchResult[]; total: number; hasMore: boolean }>(
+      `/whakoom/search?q=${encodeURIComponent(q)}&page=${page}`
+    ).subscribe({
+      next: (res) => {
+        const items = res.data ?? [];
+        if (page === 1) {
+          this.searchResults.set(items);
+        } else {
+          this.searchResults.update(prev => [...prev, ...items]);
+        }
+        this.searchTotal.set(res.total ?? 0);
+        this.searchHasMore.set(res.hasMore ?? false);
+        this.searchLoading.set(false);
+        this.searchLoadingMore.set(false);
+      },
       error: (err) => {
-        this.searchResults.set([]);
+        if (page === 1) this.searchResults.set([]);
         this.searchError.set(err?.error?.error ?? 'Error buscando en Whakoom');
         this.searchLoading.set(false);
+        this.searchLoadingMore.set(false);
       },
     });
+  }
+
+  loadMoreSearch() {
+    this.runSearch(this.searchPage() + 1);
   }
 
   openDetail(id: string, type: string = 'comic', localCollId: number | null = null) {
