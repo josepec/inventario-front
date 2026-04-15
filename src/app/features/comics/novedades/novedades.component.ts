@@ -70,48 +70,54 @@ interface WantedRow {
   standalone: true,
   imports: [FormsModule],
   template: `
-    <div class="p-4 md:p-8 max-w-7xl mx-auto">
+    <div class="p-3 md:p-8 max-w-7xl mx-auto">
       <div>
 
-        <header class="flex items-start justify-between mb-6 gap-3">
-          <div>
-            <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Novedades</h1>
-            <p class="text-sm text-[#888] mt-1">Agenda de Whakoom + lo que sigo y lo que quiero.</p>
+        <header class="flex items-center justify-between mb-4 md:mb-6 gap-2">
+          <div class="min-w-0">
+            <h1 class="text-xl md:text-3xl font-bold tracking-tight">Novedades</h1>
+            <p class="text-xs md:text-sm text-[#888] mt-0.5 hidden sm:block">Agenda de Whakoom + lo que sigo y lo que quiero.</p>
           </div>
-          <button (click)="back()" class="px-3 py-2 rounded-xl text-sm text-[#a0a0a0] hover:text-white border border-[#1f1f1f] hover:border-[#2a2a2a]">
-            ← Volver a Cómics
+          <button (click)="back()"
+            class="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-[#a0a0a0] hover:text-white border border-[#1f1f1f] hover:border-[#2a2a2a] transition-colors">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+            </svg>
+            <span class="hidden sm:inline">Cómics</span>
           </button>
         </header>
 
-        <!-- Tabs -->
-        <div class="flex items-center gap-1 bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 mb-6 w-fit">
-          <button (click)="tab.set('mine')"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            [class]="tab() === 'mine' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
-            Mis novedades
-          </button>
-          <button (click)="tab.set('all')"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            [class]="tab() === 'all' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
-            Todas las novedades
-          </button>
-          <button (click)="tab.set('wanted'); loadWanted()"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            [class]="tab() === 'wanted' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
-            Lo quiero <span class="text-[10px] text-[#888]">({{ wanted().length }})</span>
-          </button>
-          <button (click)="tab.set('search')"
-            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            [class]="tab() === 'search' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
-            Buscar
-          </button>
+        <!-- Tabs — scrollable on mobile -->
+        <div class="w-full overflow-x-auto pb-1 mb-4 md:mb-6 scrollbar-none">
+          <div class="flex items-center gap-1 bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 w-max min-w-full">
+            <button (click)="tab.set('mine')"
+              class="flex-1 whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors"
+              [class]="tab() === 'mine' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+              Mis novedades
+            </button>
+            <button (click)="tab.set('all')"
+              class="flex-1 whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors"
+              [class]="tab() === 'all' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+              Todas
+            </button>
+            <button (click)="tab.set('wanted'); loadWanted()"
+              class="flex-1 whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors"
+              [class]="tab() === 'wanted' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+              Lo quiero @if (wanted().length > 0) { <span class="text-[10px] opacity-70">({{ wanted().length }})</span> }
+            </button>
+            <button (click)="tab.set('search')"
+              class="flex-1 whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors"
+              [class]="tab() === 'search' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+              Buscar
+            </button>
+          </div>
         </div>
 
         <!-- TAB: Mis novedades -->
         @if (tab() === 'mine') {
           <section>
-            <div class="flex items-baseline justify-between mb-4">
-              <h2 class="text-lg font-semibold">{{ currentMonthLabel() }}</h2>
+            <div class="flex items-center justify-between mb-3 md:mb-4">
+              <h2 class="text-base md:text-lg font-semibold">{{ currentMonthLabel() }}</h2>
               @if (mineLoading()) { <span class="text-xs text-[#666]">Cargando…</span> }
             </div>
 
@@ -160,13 +166,13 @@ interface WantedRow {
         <!-- TAB: Todas las novedades -->
         @if (tab() === 'all') {
           <section>
-            <div class="flex items-baseline justify-between mb-4">
-              <h2 class="text-lg font-semibold">Todas las novedades</h2>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 md:mb-4">
+              <h2 class="text-base md:text-lg font-semibold">Todas las novedades</h2>
               <div class="flex items-center gap-2">
-                <button class="px-2 py-1 rounded bg-[#141414] border border-[#1f1f1f] text-[#a0a0a0] hover:text-white text-sm"
+                <button class="px-3 py-1.5 rounded-lg bg-[#141414] border border-[#1f1f1f] text-[#a0a0a0] hover:text-white text-sm transition-colors active:scale-95"
                   (click)="shiftMonth(-1)">←</button>
-                <span class="text-sm text-white min-w-[120px] text-center">{{ allMonthLabel() }}</span>
-                <button class="px-2 py-1 rounded bg-[#141414] border border-[#1f1f1f] text-[#a0a0a0] hover:text-white text-sm"
+                <span class="text-sm text-white min-w-[110px] text-center font-medium">{{ allMonthLabel() }}</span>
+                <button class="px-3 py-1.5 rounded-lg bg-[#141414] border border-[#1f1f1f] text-[#a0a0a0] hover:text-white text-sm transition-colors active:scale-95"
                   (click)="shiftMonth(1)">→</button>
               </div>
             </div>
@@ -179,10 +185,10 @@ interface WantedRow {
               <p class="text-sm text-[#666]">No hay novedades publicadas para este mes.</p>
             } @else {
               @for (group of groups(); track group.week_label) {
-                <div class="mb-8">
-                  <div class="flex items-baseline gap-3 mb-3">
-                    <h3 class="text-sm font-semibold text-white capitalize">{{ group.week_label }}</h3>
-                    <span class="text-[11px] text-[#666]">{{ group.items.length }} títulos</span>
+                <div class="mb-6 md:mb-8">
+                  <div class="flex items-baseline gap-2 mb-2 md:mb-3">
+                    <h3 class="text-xs md:text-sm font-semibold text-[#a0a0a0] capitalize">{{ group.week_label }}</h3>
+                    <span class="text-[10px] text-[#444]">{{ group.items.length }}</span>
                   </div>
                   <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                     @for (item of group.items; track item.whakoom_comic_id) {
@@ -226,8 +232,8 @@ interface WantedRow {
         <!-- TAB: Lo quiero -->
         @if (tab() === 'wanted') {
           <section>
-            <div class="flex items-baseline justify-between mb-4">
-              <h2 class="text-lg font-semibold">Lo quiero</h2>
+            <div class="flex items-center justify-between mb-3 md:mb-4">
+              <h2 class="text-base md:text-lg font-semibold">Lo quiero</h2>
               @if (wantedLoading()) { <span class="text-xs text-[#666]">Cargando…</span> }
             </div>
 
@@ -276,12 +282,12 @@ interface WantedRow {
         <!-- TAB: Buscar -->
         @if (tab() === 'search') {
           <section>
-            <div class="flex items-center gap-2 mb-6 max-w-xl">
+            <div class="flex items-center gap-2 mb-4 md:mb-6 md:max-w-xl">
               <input [(ngModel)]="searchQuery" (keyup.enter)="runSearch()"
                 placeholder="Buscar en Whakoom…"
-                class="flex-1 bg-[#141414] border border-[#1f1f1f] rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-[#555] focus:outline-none focus:border-[#7c3aed]" />
+                class="flex-1 min-w-0 bg-[#141414] border border-[#1f1f1f] rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-[#555] focus:outline-none focus:border-[#7c3aed]" />
               <button (click)="runSearch()"
-                class="px-4 py-2.5 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold"
+                class="shrink-0 px-4 py-2.5 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold disabled:opacity-50 transition-colors"
                 [disabled]="searchLoading()">
                 Buscar
               </button>
@@ -323,71 +329,114 @@ interface WantedRow {
       </div>
     </div>
 
-    <!-- DETAIL MODAL -->
+    <!-- DETAIL MODAL — bottom sheet on mobile, centered on md+ -->
     @if (detailOpen()) {
-      <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-start md:items-center justify-center p-4 overflow-y-auto"
+      <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end md:items-center md:justify-center md:p-4"
         (click)="closeDetail()">
-        <div class="bg-[#0f0f0f] border border-[#2a2a2a] rounded-2xl max-w-3xl w-full my-auto shadow-2xl"
+        <div class="bg-[#0f0f0f] border-t md:border border-[#2a2a2a] rounded-t-2xl md:rounded-2xl max-w-3xl w-full shadow-2xl max-h-[92dvh] md:max-h-[85vh] flex flex-col"
           (click)="$event.stopPropagation()">
+
+          <!-- drag handle — mobile only -->
+          <div class="md:hidden flex justify-center pt-3 pb-1 shrink-0">
+            <div class="w-10 h-1 rounded-full bg-[#333]"></div>
+          </div>
+
           @if (detailLoading()) {
-            <div class="p-12 text-center text-[#666] text-sm">Cargando detalle…</div>
+            <div class="p-10 text-center text-[#666] text-sm">Cargando detalle…</div>
           } @else if (detail()) {
-            <div class="flex flex-col md:flex-row">
-              <div class="md:w-56 p-5 shrink-0">
-                <div class="aspect-[2/3] rounded-xl overflow-hidden bg-[#141414] border border-[#1f1f1f]">
-                  @if (detail()!.cover) {
-                    <img [src]="detail()!.cover" [alt]="detail()!.title" class="w-full h-full object-cover" />
+            <div class="flex-1 overflow-y-auto">
+              <!-- Mobile: portada + info en horizontal compacto arriba -->
+              <div class="flex gap-4 p-4 md:hidden">
+                <div class="w-24 shrink-0">
+                  <div class="aspect-[2/3] rounded-xl overflow-hidden bg-[#141414]">
+                    @if (detail()!.cover) {
+                      <img [src]="detail()!.cover" [alt]="detail()!.title" class="w-full h-full object-cover" />
+                    }
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0 pt-1">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <p class="text-[10px] text-[#888] uppercase tracking-wider">{{ detail()!.publisher }}</p>
+                      <h3 class="text-base font-bold text-white leading-tight">{{ detail()!.series || detail()!.title }}</h3>
+                      @if (detail()!.number) { <p class="text-sm text-[#a0a0a0]">#{{ detail()!.number }}</p> }
+                    </div>
+                    <button (click)="closeDetail()" class="text-[#555] hover:text-white text-xl leading-none shrink-0 mt-0.5">✕</button>
+                  </div>
+                  <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-[#666] mt-2">
+                    @if (detail()!.date) { <span>📅 {{ detail()!.date }}</span> }
+                    @if (detail()!.pages) { <span>{{ detail()!.pages }} pp</span> }
+                    @if (detail()!.binding) { <span>{{ detail()!.binding }}</span> }
+                    @if (detail()!.price) { <span class="font-semibold text-[#a0a0a0]">{{ detail()!.price }} €</span> }
+                  </div>
+                  @if (detail()!.authors.length > 0) {
+                    <p class="text-[10px] text-[#666] mt-1 truncate">{{ detail()!.authors.join(', ') }}</p>
                   }
                 </div>
               </div>
-              <div class="flex-1 p-5 md:pl-0">
-                <div class="flex items-start justify-between gap-3 mb-3">
-                  <div class="min-w-0">
-                    <p class="text-[11px] text-[#888] uppercase tracking-wider">{{ detail()!.publisher }}</p>
-                    <h3 class="text-lg md:text-xl font-bold text-white">{{ detail()!.series || detail()!.title }}</h3>
-                    @if (detail()!.number) {
-                      <p class="text-sm text-[#a0a0a0]">#{{ detail()!.number }}</p>
+
+              <!-- Mobile: descripción -->
+              @if (detail()!.description) {
+                <p class="md:hidden text-xs text-[#888] leading-relaxed px-4 pb-3 line-clamp-4">{{ detail()!.description }}</p>
+              }
+
+              <!-- Desktop: layout original -->
+              <div class="hidden md:flex">
+                <div class="w-56 p-5 shrink-0">
+                  <div class="aspect-[2/3] rounded-xl overflow-hidden bg-[#141414] border border-[#1f1f1f]">
+                    @if (detail()!.cover) {
+                      <img [src]="detail()!.cover" [alt]="detail()!.title" class="w-full h-full object-cover" />
                     }
                   </div>
-                  <button (click)="closeDetail()" class="text-[#666] hover:text-white text-xl leading-none">✕</button>
                 </div>
-                <div class="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#888] mb-4">
-                  @if (detail()!.date) { <span>📅 {{ detail()!.date }}</span> }
-                  @if (detail()!.pages) { <span>{{ detail()!.pages }} págs</span> }
-                  @if (detail()!.binding) { <span>{{ detail()!.binding }}</span> }
-                  @if (detail()!.price) { <span>{{ detail()!.price }} €</span> }
-                  @if (detail()!.language) { <span>{{ detail()!.language }}</span> }
-                </div>
-                @if (detail()!.authors.length > 0) {
-                  <p class="text-xs text-[#a0a0a0] mb-3">{{ detail()!.authors.join(', ') }}</p>
-                }
-                @if (detail()!.description) {
-                  <p class="text-xs text-[#a0a0a0] leading-relaxed mb-4 line-clamp-6">{{ detail()!.description }}</p>
-                }
-
-                <div class="flex flex-wrap gap-2 mt-4">
-                  <button (click)="importFromDetail()"
-                    class="px-4 py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-semibold">
-                    Ya lo tengo → Añadir a colección
-                  </button>
-                  @if (!detailIsWanted()) {
-                    <button (click)="markWantedFromDetail()"
-                      [disabled]="busyId() === detail()!.id"
-                      class="px-4 py-2 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold disabled:opacity-50">
-                      Lo quiero
-                    </button>
-                  } @else {
-                    <button (click)="removeWanted(detail()!.id)"
-                      [disabled]="busyId() === detail()!.id"
-                      class="px-4 py-2 rounded-xl bg-[#1f1f1f] hover:bg-[#2a2a2a] text-[#a0a0a0] text-sm font-semibold disabled:opacity-50">
-                      Quitar de "lo quiero"
-                    </button>
+                <div class="flex-1 p-5 pl-0">
+                  <div class="flex items-start justify-between gap-3 mb-3">
+                    <div class="min-w-0">
+                      <p class="text-[11px] text-[#888] uppercase tracking-wider">{{ detail()!.publisher }}</p>
+                      <h3 class="text-xl font-bold text-white">{{ detail()!.series || detail()!.title }}</h3>
+                      @if (detail()!.number) { <p class="text-sm text-[#a0a0a0]">#{{ detail()!.number }}</p> }
+                    </div>
+                    <button (click)="closeDetail()" class="text-[#666] hover:text-white text-xl leading-none">✕</button>
+                  </div>
+                  <div class="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[#888] mb-4">
+                    @if (detail()!.date) { <span>📅 {{ detail()!.date }}</span> }
+                    @if (detail()!.pages) { <span>{{ detail()!.pages }} págs</span> }
+                    @if (detail()!.binding) { <span>{{ detail()!.binding }}</span> }
+                    @if (detail()!.price) { <span>{{ detail()!.price }} €</span> }
+                    @if (detail()!.language) { <span>{{ detail()!.language }}</span> }
+                  </div>
+                  @if (detail()!.authors.length > 0) {
+                    <p class="text-xs text-[#a0a0a0] mb-3">{{ detail()!.authors.join(', ') }}</p>
+                  }
+                  @if (detail()!.description) {
+                    <p class="text-xs text-[#a0a0a0] leading-relaxed mb-4 line-clamp-6">{{ detail()!.description }}</p>
                   }
                 </div>
               </div>
             </div>
+
+            <!-- Botones de acción — siempre al fondo -->
+            <div class="shrink-0 flex flex-col sm:flex-row gap-2 p-4 border-t border-[#1a1a1a]">
+              <button (click)="importFromDetail()"
+                class="flex-1 px-4 py-3 md:py-2 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-semibold text-center transition-colors">
+                Ya lo tengo → Añadir a colección
+              </button>
+              @if (!detailIsWanted()) {
+                <button (click)="markWantedFromDetail()"
+                  [disabled]="busyId() === detail()!.id"
+                  class="flex-1 px-4 py-3 md:py-2 rounded-xl bg-[#7c3aed] hover:bg-[#6d28d9] text-white text-sm font-semibold disabled:opacity-50 transition-colors">
+                  Lo quiero
+                </button>
+              } @else {
+                <button (click)="removeWanted(detail()!.id)"
+                  [disabled]="busyId() === detail()!.id"
+                  class="flex-1 px-4 py-3 md:py-2 rounded-xl bg-[#1f1f1f] hover:bg-[#2a2a2a] text-[#a0a0a0] text-sm font-semibold disabled:opacity-50 transition-colors">
+                  Quitar de "lo quiero"
+                </button>
+              }
+            </div>
           } @else if (detailError()) {
-            <div class="p-12 text-center text-red-400 text-sm">{{ detailError() }}</div>
+            <div class="p-10 text-center text-red-400 text-sm">{{ detailError() }}</div>
           }
         </div>
       </div>
