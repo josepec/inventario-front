@@ -6,6 +6,16 @@ import { ApiService } from '../../shared/services/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { environment } from '../../../environments/environment';
 
+interface NovedadItem {
+  whakoom_comic_id: string;
+  title: string;
+  series: string;
+  number: string;
+  cover_url: string;
+  source?: 'wanted' | 'tracked';
+  wanted: boolean;
+}
+
 interface ComicsDashboard {
   totals: { comics: number; read: number; unread: number; reading: number; collections: number };
   monthly: { added: { month: string; count: number }[]; read: { month: string; count: number }[] };
@@ -278,6 +288,35 @@ interface BooksDashboard {
             </div>
           </div>
 
+          <!-- Mis novedades -->
+          @if (novedades().length > 0) {
+            <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 mb-6">
+              <div class="flex items-baseline justify-between mb-4">
+                <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold">Mis novedades — {{ novedadesMonthLabel }}</h3>
+                <a routerLink="/app/comics/novedades" class="text-[11px] text-[#8b5cf6] hover:text-[#a78bfa]">Ver todas →</a>
+              </div>
+              <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 md:gap-3">
+                @for (n of novedades().slice(0, 8); track n.whakoom_comic_id) {
+                  <a routerLink="/app/comics/novedades" class="group">
+                    <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-[#0d0d0d] border border-[#1f1f1f] group-hover:border-[#7c3aed]/60 transition-colors">
+                      @if (n.cover_url) {
+                        <img [src]="n.cover_url" [alt]="n.title" class="w-full h-full object-cover" loading="lazy" />
+                      }
+                      <div class="absolute top-1 right-1">
+                        @if (n.source === 'wanted' || n.wanted) {
+                          <span class="text-[8px] font-semibold px-1 py-0.5 rounded bg-[#7c3aed] text-white">LO QUIERO</span>
+                        } @else if (n.source === 'tracked') {
+                          <span class="text-[8px] font-semibold px-1 py-0.5 rounded bg-[#1f2937] text-[#60a5fa]">SIGO</span>
+                        }
+                      </div>
+                    </div>
+                    <p class="mt-1 text-[9px] md:text-[10px] text-[#606060] group-hover:text-[#a0a0a0] truncate transition-colors">{{ n.series }} #{{ n.number }}</p>
+                  </a>
+                }
+              </div>
+            </div>
+          }
+
           <!-- Collection progress -->
           @if (comicsData()!.collections.length > 0) {
             <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 mb-6">
@@ -543,6 +582,13 @@ export class DashboardComponent implements OnInit {
   activeTab = signal<'comics' | 'books'>('comics');
   currentYear = new Date().getFullYear();
 
+  novedades = signal<NovedadItem[]>([]);
+  novedadesMonthLabel = (() => {
+    const names = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const d = new Date();
+    return `${names[d.getMonth()]} ${d.getFullYear()}`;
+  })();
+
   private booksLoaded = false;
 
   // ── Comics computed ──
@@ -597,6 +643,10 @@ export class DashboardComponent implements OnInit {
     this.api.get<ComicsDashboard>('/stats/dashboard').subscribe({
       next: d => { this.comicsData.set(d); this.loading.set(false); },
       error: () => this.loading.set(false),
+    });
+    this.api.get<{ month: string; items: NovedadItem[] }>('/comics/upcoming-mine').subscribe({
+      next: res => this.novedades.set(res.items ?? []),
+      error: () => this.novedades.set([]),
     });
   }
 

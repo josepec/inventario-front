@@ -57,15 +57,25 @@ interface WkComic {
           <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">Cómics</h1>
           <p class="text-[#606060] mt-0.5 text-sm">{{ total() }} {{ tab() === 'comics' ? 'títulos' : 'colecciones' }}</p>
         </div>
-        <button (click)="openModal()"
-          class="flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white
-                 font-semibold text-sm rounded-xl px-4 py-2.5 md:px-5 transition-colors duration-200 shrink-0">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          <span class="hidden sm:inline">Añadir cómic</span>
-          <span class="sm:hidden">Añadir</span>
-        </button>
+        <div class="flex items-center gap-2 shrink-0">
+          <a routerLink="/app/comics/novedades"
+            class="flex items-center gap-2 bg-[#141414] hover:bg-[#1f1f1f] border border-[#2a2a2a] text-[#a0a0a0] hover:text-white
+                   font-semibold text-sm rounded-xl px-3 py-2.5 md:px-4 transition-colors duration-200">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5V6a3.75 3.75 0 10-7.5 0v1.5m0 0A2.25 2.25 0 002.25 9.75v9a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18.75v-9A2.25 2.25 0 0019.5 7.5h-15zm6.75 3.75h3" />
+            </svg>
+            <span class="hidden sm:inline">Novedades</span>
+          </a>
+          <button (click)="openModal()"
+            class="flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white
+                   font-semibold text-sm rounded-xl px-4 py-2.5 md:px-5 transition-colors duration-200">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span class="hidden sm:inline">Añadir cómic</span>
+            <span class="sm:hidden">Añadir</span>
+          </button>
+        </div>
       </div>
 
       <!-- Filters -->
