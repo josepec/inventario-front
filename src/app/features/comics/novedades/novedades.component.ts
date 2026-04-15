@@ -120,26 +120,37 @@ interface WantedRow {
                 No hay novedades tuyas este mes. Marca cómics como "los quiero" o activa tracking en colecciones.
               </div>
             } @else {
-              <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-3">
+              <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                 @for (item of mine(); track item.whakoom_comic_id) {
-                  <article class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id)">
-                    <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-[#141414] border border-[#1f1f1f] group-hover:border-[#7c3aed]/60 transition-colors">
+                  <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id)">
+                    <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                       @if (item.cover_url) {
-                        <img [src]="item.cover_url" [alt]="item.title" class="w-full h-full object-cover" loading="lazy" />
+                        <img [src]="item.cover_url" [alt]="item.title"
+                          class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy" draggable="false" />
                       } @else {
-                        <div class="w-full h-full flex items-center justify-center text-[#333] text-xs">Sin portada</div>
+                        <div class="w-full h-full flex flex-col items-center justify-center gap-2 p-3 text-center">
+                          <svg class="w-8 h-8 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
+                          </svg>
+                          <p class="text-[10px] text-[#404040] leading-tight">{{ item.title }}</p>
+                        </div>
                       }
-                      <div class="absolute top-1.5 right-1.5 flex flex-col gap-1">
-                        @if (item.source === 'wanted' || item.wanted) {
-                          <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white">LO QUIERO</span>
-                        } @else if (item.source === 'tracked') {
-                          <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#1f2937] text-[#60a5fa]">SIGO</span>
-                        }
-                      </div>
+                      @if (item.source === 'wanted' || item.wanted) {
+                        <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide">LO QUIERO</span>
+                      } @else if (item.source === 'tracked') {
+                        <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#1f2937] text-[#60a5fa] tracking-wide">SIGO</span>
+                      }
+                      @if (item.number) {
+                        <span class="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-bold px-2 py-1 rounded-lg leading-none backdrop-blur-sm">#{{ item.number }}</span>
+                      }
+                      <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
                     </div>
-                    <p class="mt-2 text-xs text-white line-clamp-2" [title]="item.series">{{ item.series }}</p>
-                    <p class="text-[11px] text-[#888]">#{{ item.number }}</p>
-                  </article>
+                    <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ item.series || item.title }}</p>
+                    @if (item.publisher) {
+                      <p class="text-[10px] text-[#606060] truncate">{{ item.publisher }}</p>
+                    }
+                  </div>
                 }
               </div>
             }
@@ -173,26 +184,37 @@ interface WantedRow {
                     <h3 class="text-sm font-semibold text-white capitalize">{{ group.week_label }}</h3>
                     <span class="text-[11px] text-[#666]">{{ group.items.length }} títulos</span>
                   </div>
-                  <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-3">
+                  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                     @for (item of group.items; track item.whakoom_comic_id) {
-                      <article class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id)">
-                        <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-[#141414] border border-[#1f1f1f] group-hover:border-[#7c3aed]/60 transition-colors">
+                      <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id)">
+                        <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                           @if (item.cover_url) {
-                            <img [src]="item.cover_url" [alt]="item.title" class="w-full h-full object-cover" loading="lazy" />
+                            <img [src]="item.cover_url" [alt]="item.title"
+                              class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                              loading="lazy" draggable="false" />
                           } @else {
-                            <div class="w-full h-full flex items-center justify-center text-[#333] text-xs">Sin portada</div>
+                            <div class="w-full h-full flex flex-col items-center justify-center gap-2 p-3 text-center">
+                              <svg class="w-8 h-8 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
+                              </svg>
+                              <p class="text-[10px] text-[#404040] leading-tight">{{ item.title }}</p>
+                            </div>
                           }
-                          <div class="absolute top-1.5 right-1.5 flex flex-col gap-1">
-                            @if (item.owned) {
-                              <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-green-600 text-white">YA TENGO</span>
-                            } @else if (item.wanted) {
-                              <span class="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white">LO QUIERO</span>
-                            }
-                          </div>
+                          @if (item.owned) {
+                            <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-green-600 text-white tracking-wide">YA TENGO</span>
+                          } @else if (item.wanted) {
+                            <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide">LO QUIERO</span>
+                          }
+                          @if (item.number) {
+                            <span class="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-bold px-2 py-1 rounded-lg leading-none backdrop-blur-sm">#{{ item.number }}</span>
+                          }
+                          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
                         </div>
-                        <p class="mt-2 text-xs text-white line-clamp-2" [title]="item.series">{{ item.series }}</p>
-                        <p class="text-[11px] text-[#888]">#{{ item.number }}</p>
-                      </article>
+                        <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ item.series || item.title }}</p>
+                        @if (item.publisher) {
+                          <p class="text-[10px] text-[#606060] truncate">{{ item.publisher }}</p>
+                        }
+                      </div>
                     }
                   </div>
                 </div>
@@ -214,29 +236,37 @@ interface WantedRow {
                 Aún no has marcado ningún cómic como "lo quiero".
               </div>
             } @else {
-              <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-3">
+              <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                 @for (w of wanted(); track w.whakoom_comic_id) {
-                  <article class="group relative">
-                    <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-[#141414] border border-[#1f1f1f] cursor-pointer hover:border-[#7c3aed]/60"
+                  <div class="group">
+                    <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5 cursor-pointer"
                       (click)="openDetail(w.whakoom_comic_id)">
                       @if (w.cover_url) {
-                        <img [src]="w.cover_url" [alt]="w.title" class="w-full h-full object-cover" loading="lazy" />
+                        <img [src]="w.cover_url" [alt]="w.title"
+                          class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy" draggable="false" />
                       } @else {
-                        <div class="w-full h-full flex items-center justify-center text-[#333] text-xs">Sin portada</div>
+                        <div class="w-full h-full flex flex-col items-center justify-center gap-2 p-3 text-center">
+                          <svg class="w-8 h-8 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
+                          </svg>
+                          <p class="text-[10px] text-[#404040] leading-tight">{{ w.title }}</p>
+                        </div>
                       }
-                      <span class="absolute top-1.5 right-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white">LO QUIERO</span>
+                      <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide">LO QUIERO</span>
+                      @if (w.number) {
+                        <span class="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-bold px-2 py-1 rounded-lg leading-none backdrop-blur-sm">#{{ w.number }}</span>
+                      }
+                      <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
                     </div>
-                    <p class="mt-2 text-xs text-white line-clamp-2" [title]="w.series ?? w.title">{{ w.series ?? w.title }}</p>
+                    <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ w.series || w.title }}</p>
                     <div class="flex items-center justify-between">
-                      <p class="text-[11px] text-[#888]">{{ w.number ? '#' + w.number : '' }}</p>
-                      <button class="text-[10px] text-red-400 hover:text-red-300"
+                      <p class="text-[10px] text-[#606060] truncate">{{ w.release_month ?? '' }}</p>
+                      <button class="text-[10px] text-red-400 hover:text-red-300 shrink-0"
                         [disabled]="busyId() === w.whakoom_comic_id"
                         (click)="removeWanted(w.whakoom_comic_id)">Quitar</button>
                     </div>
-                    @if (w.release_month) {
-                      <p class="text-[10px] text-[#666]">{{ w.release_month }}</p>
-                    }
-                  </article>
+                  </div>
                 }
               </div>
             }
@@ -262,19 +292,27 @@ interface WantedRow {
             } @else if (searchError()) {
               <p class="text-sm text-red-400">{{ searchError() }}</p>
             } @else if (searchResults().length > 0) {
-              <div class="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-7 gap-3">
+              <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                 @for (r of searchResults(); track r.id) {
-                  <article class="group cursor-pointer" (click)="openDetail(r.id, r.type)">
-                    <div class="relative aspect-[2/3] rounded-lg overflow-hidden bg-[#141414] border border-[#1f1f1f] group-hover:border-[#7c3aed]/60">
+                  <div class="group cursor-pointer" (click)="openDetail(r.id, r.type)">
+                    <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                       @if (r.cover) {
-                        <img [src]="r.cover" [alt]="r.title" class="w-full h-full object-cover" loading="lazy" />
+                        <img [src]="r.cover" [alt]="r.title"
+                          class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                          loading="lazy" draggable="false" />
                       } @else {
-                        <div class="w-full h-full flex items-center justify-center text-[#333] text-xs">Sin portada</div>
+                        <div class="w-full h-full flex flex-col items-center justify-center gap-2 p-3 text-center">
+                          <svg class="w-8 h-8 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
+                          </svg>
+                          <p class="text-[10px] text-[#404040] leading-tight">{{ r.title }}</p>
+                        </div>
                       }
+                      <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
                     </div>
-                    <p class="mt-2 text-xs text-white line-clamp-2" [title]="r.title">{{ r.title }}</p>
-                    <p class="text-[11px] text-[#888]">{{ r.publisher }}</p>
-                  </article>
+                    <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ r.title }}</p>
+                    <p class="text-[10px] text-[#606060] truncate">{{ r.publisher }}</p>
+                  </div>
                 }
               </div>
             } @else if (searchDirty()) {
