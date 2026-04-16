@@ -85,6 +85,16 @@ interface AtrasadoCollection {
   missing_issues: { number: number; title: string; cover: string | null; release_date: string | null }[];
 }
 
+interface WantedPastItem {
+  whakoom_comic_id: string;
+  title: string;
+  series: string | null;
+  number: string | null;
+  cover_url: string | null;
+  publisher: string | null;
+  release_month: string | null;
+}
+
 interface WantedRow {
   whakoom_comic_id: string;
   title: string;
@@ -161,7 +171,7 @@ interface WantedRow {
               @if (mineMain().length > 0) {
                 <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                   @for (item of mineMain(); track item.whakoom_comic_id) {
-                    <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null)">
+                    <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null, item.tracking_mode ?? null)">
                       <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                         @if (item.cover_url) {
                           <img [src]="item.cover_url" [alt]="item.title" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" draggable="false" />
@@ -188,20 +198,19 @@ interface WantedRow {
                   }
                 </div>
               }
-              <!-- Atrasados: publicados sin comprar en colecciones coleccionando -->
-              @if (atrasados().length > 0) {
+              <!-- Atrasados: publicados sin comprar + Lo quiero de meses pasados -->
+              @if (atrasados().length > 0 || wantedPast().length > 0) {
                 <div class="mt-6">
                   <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
                     Atrasados
                     <span class="inline-flex items-center justify-center text-[10px] font-bold min-w-[1.25rem] h-4 px-1 rounded-full bg-[#7c3aed33] text-[#a78bfa]">
-                      {{ atrasados().reduce(acumulaAtrasados, 0) }}
+                      {{ atrasados().reduce(acumulaAtrasados, 0) + wantedPast().length }}
                     </span>
                   </h3>
                   <div class="flex flex-col gap-2">
                     @for (col of atrasados(); track col.collection_id) {
                       <div class="group flex items-center gap-3 bg-[#111] hover:bg-[#161616] border border-[#1a1a1a] hover:border-[#2a2a2a] rounded-xl px-3 py-2.5 cursor-pointer transition-colors"
                         (click)="router.navigate(['/app/collections', col.collection_id])">
-                        <!-- Cover miniatura -->
                         <div class="shrink-0 w-9 h-[54px] rounded-lg overflow-hidden bg-[#1a1a1a]">
                           @if (col.collection_cover) {
                             <img [src]="col.collection_cover" [alt]="col.collection_title" class="w-full h-full object-cover" loading="lazy" draggable="false" />
@@ -211,7 +220,6 @@ interface WantedRow {
                             </div>
                           }
                         </div>
-                        <!-- Info -->
                         <div class="flex-1 min-w-0">
                           <p class="text-sm font-medium text-[#e0e0e0] group-hover:text-white truncate transition-colors">{{ col.collection_title }}</p>
                           <p class="text-[11px] text-[#606060] mt-0.5">
@@ -219,7 +227,32 @@ interface WantedRow {
                             <span class="text-[#444] ml-1">#{{ col.missing_issues.map(i => i.number).join(', #') }}</span>
                           </p>
                         </div>
-                        <!-- Chevron -->
+                        <svg class="shrink-0 w-4 h-4 text-[#333] group-hover:text-[#666] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                      </div>
+                    }
+                    @for (w of wantedPast(); track w.whakoom_comic_id) {
+                      <div class="group flex items-center gap-3 bg-[#111] hover:bg-[#161616] border border-[#1a1a1a] hover:border-[#2a2a2a] rounded-xl px-3 py-2.5 cursor-pointer transition-colors"
+                        (click)="openDetail(w.whakoom_comic_id, 'comic', null)">
+                        <div class="shrink-0 w-9 h-[54px] rounded-lg overflow-hidden bg-[#1a1a1a]">
+                          @if (w.cover_url) {
+                            <img [src]="w.cover_url" [alt]="w.title" class="w-full h-full object-cover" loading="lazy" draggable="false" />
+                          } @else {
+                            <div class="w-full h-full flex items-center justify-center">
+                              <svg class="w-4 h-4 text-[#333]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/></svg>
+                            </div>
+                          }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium text-[#e0e0e0] group-hover:text-white truncate transition-colors">{{ w.series || w.title }}</p>
+                          <p class="text-[11px] text-[#606060] mt-0.5 flex items-center gap-1.5">
+                            <svg class="w-2.5 h-2.5 fill-current text-[#7c3aed] shrink-0" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                            Lo quiero
+                            @if (w.number) { <span class="text-[#444]">#{{ w.number }}</span> }
+                            @if (w.release_month) { <span class="text-[#383838]">· {{ w.release_month }}</span> }
+                          </p>
+                        </div>
                         <svg class="shrink-0 w-4 h-4 text-[#333] group-hover:text-[#666] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                         </svg>
@@ -234,7 +267,7 @@ interface WantedRow {
                   <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Siguiendo</h3>
                   <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                     @for (item of mineSiguiendo(); track item.whakoom_comic_id) {
-                      <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null)">
+                      <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null, 2)">
                         <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                           @if (item.cover_url) {
                             <img [src]="item.cover_url" [alt]="item.title" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" draggable="false" />
@@ -607,7 +640,7 @@ interface WantedRow {
                   <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                   Ya lo tengo
                 </button>
-                @if (!detailLocalCollId()) {
+                @if (detailTrackingMode() !== 1) {
                   @if (!detailIsWanted()) {
                     <button (click)="markWantedFromDetail()"
                       [disabled]="busyId() === detail()!.id"
@@ -763,6 +796,7 @@ export class NovedadesComponent implements OnInit {
   mineSiguiendo = computed(() => this.mine().filter(i => i.source === 'tracked' && (i.tracking_mode ?? 1) === 2));
 
   atrasados = signal<AtrasadoCollection[]>([]);
+  wantedPast = signal<WantedPastItem[]>([]);
   atrasadosLoading = signal(false);
   acumulaAtrasados = (acc: number, col: AtrasadoCollection) => acc + col.missing_issues.length;
 
@@ -791,6 +825,7 @@ export class NovedadesComponent implements OnInit {
   detail = signal<WkComicDetail | null>(null);
   detailError = signal<string | null>(null);
   detailLocalCollId = signal<number | null>(null);
+  detailTrackingMode = signal<number | null>(null);
 
   detailIsWanted = computed(() => {
     const d = this.detail();
@@ -846,9 +881,13 @@ export class NovedadesComponent implements OnInit {
 
   loadAtrasados() {
     this.atrasadosLoading.set(true);
-    this.api.get<{ data: AtrasadoCollection[] }>('/comics/atrasados').subscribe({
-      next: (res) => { this.atrasados.set(res.data ?? []); this.atrasadosLoading.set(false); },
-      error: () => { this.atrasados.set([]); this.atrasadosLoading.set(false); },
+    this.api.get<{ data: AtrasadoCollection[]; wanted_past: WantedPastItem[] }>('/comics/atrasados').subscribe({
+      next: (res) => {
+        this.atrasados.set(res.data ?? []);
+        this.wantedPast.set(res.wanted_past ?? []);
+        this.atrasadosLoading.set(false);
+      },
+      error: () => { this.atrasados.set([]); this.wantedPast.set([]); this.atrasadosLoading.set(false); },
     });
   }
 
@@ -927,12 +966,13 @@ export class NovedadesComponent implements OnInit {
     this.runSearch(this.searchPage() + 1);
   }
 
-  openDetail(id: string, type: string = 'comic', localCollId: number | null = null) {
+  openDetail(id: string, type: string = 'comic', localCollId: number | null = null, trackingMode: number | null = null) {
     this.detailOpen.set(true);
     this.detailLoading.set(true);
     this.detail.set(null);
     this.detailError.set(null);
     this.detailLocalCollId.set(localCollId);
+    this.detailTrackingMode.set(trackingMode);
     this.detailShowReviews.set(false);
     this.detailReviewsLimit.set(3);
     this.loadWanted();
