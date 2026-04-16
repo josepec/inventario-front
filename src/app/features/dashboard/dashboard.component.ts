@@ -71,7 +71,7 @@ interface BooksDashboard {
         <div class="flex items-start justify-between mb-6 md:mb-8">
           <div>
             <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">
-              Bienvenido, {{ auth.currentUser()?.username }}
+              Bienvenido
             </h1>
             <p class="text-[#606060] mt-1">Tu coleccion de un vistazo</p>
           </div>

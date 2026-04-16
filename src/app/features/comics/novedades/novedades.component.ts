@@ -679,7 +679,19 @@ interface WantedRow {
               }
             </div>
           } @else if (detailError()) {
-            <div class="p-10 text-center text-red-400 text-sm">{{ detailError() }}</div>
+            <div class="p-8 flex flex-col items-center gap-4 text-center">
+              <svg class="w-10 h-10 text-[#333]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/>
+              </svg>
+              <p class="text-sm text-[#888]">No se puede mostrar este cómic.<br><span class="text-[#555] text-xs">{{ detailError() }}</span></p>
+              @if (detailOpenId() && wanted().some(w => w.whakoom_comic_id === detailOpenId())) {
+                <button (click)="removeWanted(detailOpenId()!); closeDetail()"
+                  class="flex items-center gap-2 px-4 py-2 rounded-xl text-sm text-[#c084fc] border border-[#7c3aed]/30 hover:bg-[#2a1a3e] transition-colors">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                  Quitar de Lo quiero
+                </button>
+              }
+            </div>
           }
         </div>
       </div>
@@ -800,8 +812,12 @@ export class NovedadesComponent implements OnInit {
 
   mine = signal<NewTitleItem[]>([]);
   mineLoading = signal(false);
-  mineMain = computed(() => this.mine().filter(i => i.source === 'wanted' || (i.tracking_mode ?? 1) === 1));
-  mineSiguiendo = computed(() => this.mine().filter(i => i.source === 'tracked' && (i.tracking_mode ?? 1) === 2));
+  mineMain = computed(() => this.mine().filter(i =>
+    i.source === 'wanted' || (i.tracking_mode ?? 1) === 1 || ((i.tracking_mode ?? 1) === 2 && i.wanted)
+  ));
+  mineSiguiendo = computed(() => this.mine().filter(i =>
+    i.source === 'tracked' && (i.tracking_mode ?? 1) === 2 && !i.wanted
+  ));
 
   atrasados = signal<AtrasadoCollection[]>([]);
   wantedPast = signal<WantedPastItem[]>([]);
@@ -834,6 +850,7 @@ export class NovedadesComponent implements OnInit {
   detailError = signal<string | null>(null);
   detailLocalCollId = signal<number | null>(null);
   detailTrackingMode = signal<number | null>(null);
+  detailOpenId = signal<string | null>(null);
 
   detailIsWanted = computed(() => {
     const d = this.detail();
@@ -979,6 +996,7 @@ export class NovedadesComponent implements OnInit {
     this.detailLoading.set(true);
     this.detail.set(null);
     this.detailError.set(null);
+    this.detailOpenId.set(id);
     this.detailLocalCollId.set(localCollId);
     this.detailTrackingMode.set(trackingMode);
     this.detailShowReviews.set(false);

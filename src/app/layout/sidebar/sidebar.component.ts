@@ -23,7 +23,7 @@ interface NavItem {
               d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
           </svg>
         </div>
-        <span class="font-bold text-white text-base tracking-tight">Inventario</span>
+        <span class="font-bold text-white text-base tracking-tight">Books &amp; Comics</span>
       </div>
 
       <!-- Nav -->
@@ -71,9 +71,6 @@ interface NavItem {
           (click)="auth.logout()">
           <div class="w-7 h-7 rounded-full bg-[#7c3aed] flex items-center justify-center text-xs font-bold text-white shrink-0">
             {{ userInitial() }}
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm text-white font-medium truncate">{{ auth.currentUser()?.username }}</p>
           </div>
           <svg class="w-4 h-4 text-[#404040] group-hover:text-[#a0a0a0] shrink-0 transition-colors"
             fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
