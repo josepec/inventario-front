@@ -466,13 +466,13 @@ interface WantedRow {
                       </div>
                     }
                     @if (detail()!.reviews!.length > detailReviewsLimit()) {
-                      <button (click)="detailReviewsLimit.update(v => v + 5)" class="text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors">
-                        Mostrar más opiniones ({{ detail()!.reviews!.length - detailReviewsLimit() }} más)
+                      <button (click)="detailReviewsLimit.update(v => v + 5)" class="block w-full text-center text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors bg-[#161616] rounded-lg py-1.5 px-2">
+                        Mostrar más ({{ detail()!.reviews!.length - detailReviewsLimit() }} más)
                       </button>
                     }
                   }
                   <a [href]="detail()!.url" target="_blank" rel="noopener"
-                    class="inline-flex items-center gap-1 text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors">
+                    class="flex items-center justify-center gap-1 text-[10px] text-[#555] hover:text-[#888] transition-colors pt-0.5">
                     Ver todas en Whakoom ↗
                   </a>
                 </div>
@@ -533,13 +533,13 @@ interface WantedRow {
                           </div>
                         }
                         @if (detail()!.reviews!.length > detailReviewsLimit()) {
-                          <button (click)="detailReviewsLimit.update(v => v + 5)" class="text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors">
-                            Mostrar más opiniones ({{ detail()!.reviews!.length - detailReviewsLimit() }} más)
+                          <button (click)="detailReviewsLimit.update(v => v + 5)" class="block w-full text-center text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors bg-[#161616] rounded-lg py-1.5 px-2">
+                            Mostrar más ({{ detail()!.reviews!.length - detailReviewsLimit() }} más)
                           </button>
                         }
                       }
                       <a [href]="detail()!.url" target="_blank" rel="noopener"
-                        class="inline-flex items-center gap-1 text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors">
+                        class="flex items-center justify-center gap-1 text-[10px] text-[#555] hover:text-[#888] transition-colors pt-0.5">
                         Ver todas en Whakoom ↗
                       </a>
                     </div>
@@ -652,13 +652,13 @@ interface WantedRow {
                       </div>
                     }
                     @if (edition()!.reviews!.length > editionReviewsLimit()) {
-                      <button (click)="editionReviewsLimit.update(v => v + 5)" class="text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors">
-                        Mostrar más opiniones ({{ edition()!.reviews!.length - editionReviewsLimit() }} más)
+                      <button (click)="editionReviewsLimit.update(v => v + 5)" class="block w-full text-center text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors bg-[#161616] rounded-lg py-1.5 px-2">
+                        Mostrar más ({{ edition()!.reviews!.length - editionReviewsLimit() }} más)
                       </button>
                     }
                   }
                   <a [href]="edition()!.url" target="_blank" rel="noopener"
-                    class="inline-flex items-center gap-1 text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors">
+                    class="flex items-center justify-center gap-1 text-[10px] text-[#555] hover:text-[#888] transition-colors pt-0.5">
                     Ver todas en Whakoom ↗
                   </a>
                 </div>
