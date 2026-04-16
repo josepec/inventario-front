@@ -933,6 +933,10 @@ export class ComicsListComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     const qp = this.route.snapshot.queryParamMap;
+    if (qp.get('tab') === 'collections') {
+      this.tab.set('collections');
+      this.loadColStatuses();
+    }
     if (qp.get('author')) this.filterAuthor.set(qp.get('author')!);
     if (qp.get('publisher')) this.filterPublisher.set(qp.get('publisher')!);
     this.loadFacets();
@@ -947,6 +951,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     this.filterPriceMin.set(null); this.filterPriceMax.set(null);
     this.colTrackingFilter.set(''); this.colStatusFilter.set(''); this.colReadFilter.set('');
     if (t === 'collections' && this.colStatusOptions().length === 0) this.loadColStatuses();
+    this.router.navigate([], { queryParams: { tab: t === 'collections' ? 'collections' : null }, queryParamsHandling: 'merge', replaceUrl: true });
     this.load();
   }
 
