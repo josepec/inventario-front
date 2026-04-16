@@ -164,6 +164,18 @@ interface WkComic {
                 Siguiendo
               </button>
             </div>
+            <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5 shrink-0">
+              <button (click)="colReadFilter.set(colReadFilter() === 'unread' ? '' : 'unread'); loadCollections()"
+                class="px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                [class]="colReadFilter() === 'unread' ? 'bg-[#f59e0b1a] text-[#f59e0b]' : 'text-[#606060] hover:text-[#a0a0a0]'">
+                Sin leer
+              </button>
+              <button (click)="colReadFilter.set(colReadFilter() === 'read' ? '' : 'read'); loadCollections()"
+                class="px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                [class]="colReadFilter() === 'read' ? 'bg-[#22c55e1a] text-[#22c55e]' : 'text-[#606060] hover:text-[#a0a0a0]'">
+                Leído
+              </button>
+            </div>
             @if (colStatusOptions().length > 0) {
               <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5 shrink-0">
                 @for (st of colStatusOptions(); track st) {
@@ -804,6 +816,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   filterStatus = '';
   colTrackingFilter = signal('');
   colStatusFilter = signal('');
+  colReadFilter = signal('');
   colStatusOptions = signal<string[]>([]);
   readonly limit = 42;
   totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.limit)));
@@ -932,7 +945,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     this.tab.set(t); this.page.set(1); this.search = ''; this.filterStatus = '';
     this.filterAuthor.set(''); this.filterPublisher.set('');
     this.filterPriceMin.set(null); this.filterPriceMax.set(null);
-    this.colTrackingFilter.set(''); this.colStatusFilter.set('');
+    this.colTrackingFilter.set(''); this.colStatusFilter.set(''); this.colReadFilter.set('');
     if (t === 'collections' && this.colStatusOptions().length === 0) this.loadColStatuses();
     this.load();
   }
@@ -975,6 +988,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     if (this.sortOrder() !== 'desc') p['order'] = this.sortOrder();
     if (this.colTrackingFilter()) p['tracking'] = this.colTrackingFilter();
     if (this.colStatusFilter()) p['status'] = this.colStatusFilter();
+    if (this.colReadFilter()) p['read'] = this.colReadFilter();
     this.http.get<PaginatedResponse<CollectionItem>>(`${this.base}/collections`, { params: p }).subscribe({
       next: res => { this.collections.set(res.data); this.total.set(res.total); this.loading.set(false); },
       error: () => this.loading.set(false),

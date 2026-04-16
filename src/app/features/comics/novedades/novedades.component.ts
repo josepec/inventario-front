@@ -111,11 +111,11 @@ interface WantedRow {
             <p class="text-xs md:text-sm text-[#888] mt-0.5 hidden sm:block">Agenda de Whakoom + lo que sigo y lo que quiero.</p>
           </div>
           <button (click)="back()"
-            class="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-[#a0a0a0] hover:text-white border border-[#1f1f1f] hover:border-[#2a2a2a] transition-colors">
+            class="shrink-0 flex items-center gap-2 text-sm text-[#606060] hover:text-white transition-colors">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
             </svg>
-            <span class="hidden sm:inline">Cómics</span>
+            Volver
           </button>
         </header>
 
