@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -22,13 +23,13 @@ import { environment } from '../../../../environments/environment';
       @if (!loading() && comic()) {
         <!-- Back + actions -->
         <div class="flex items-center justify-between mb-5 md:mb-8">
-          <a routerLink="/app/comics"
+          <button (click)="goBack()"
             class="flex items-center gap-2 text-sm text-[#606060] hover:text-white transition-colors">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
             </svg>
             Volver
-          </a>
+          </button>
           <div class="flex items-center gap-2">
             @if (!editing()) {
               <button (click)="refreshFromWhakoom()" [disabled]="syncing()" type="button"
@@ -436,6 +437,7 @@ export class ComicDetailComponent implements OnInit {
   private http = inject(HttpClient);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private location = inject(Location);
   private base = environment.apiUrl;
 
   comic = signal<Comic | null>(null);
@@ -473,6 +475,8 @@ export class ComicDetailComponent implements OnInit {
     const guionista = authors.find(a => a.role.toLowerCase().includes('guion'));
     return guionista?.name || authors[0]?.name || this.comic()?.writer || '';
   });
+
+  goBack() { this.location.back(); }
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id')!;

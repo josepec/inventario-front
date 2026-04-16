@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Location } from '@angular/common';
 import { Router } from '@angular/router';
 import { ApiService } from '../../../shared/services/api.service';
 
@@ -698,6 +699,7 @@ interface WantedRow {
 export class NovedadesComponent implements OnInit {
   private api = inject(ApiService);
   private router = inject(Router);
+  private location = inject(Location);
 
   tab = signal<'mine' | 'all' | 'wanted' | 'search'>('mine');
 
@@ -757,7 +759,7 @@ export class NovedadesComponent implements OnInit {
     this.loadWanted();
   }
 
-  back() { this.router.navigate(['/app/comics']); }
+  back() { this.location.back(); }
 
   private thisMonth(): { year: number; month: number } {
     const d = new Date();
