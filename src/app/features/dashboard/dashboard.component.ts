@@ -130,10 +130,10 @@ interface BooksDashboard {
           <!-- Charts row -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
             <!-- Monthly evolution -->
-            <div class="lg:col-span-2 bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
+            <div class="lg:col-span-2 bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 flex flex-col">
               <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-4">Evolucion mensual</h3>
               @if (!comicsData()!.statsStartDate) {
-                <div class="h-48 flex flex-col items-center justify-center text-center">
+                <div class="flex-1 flex flex-col items-center justify-center text-center">
                   <p class="text-sm text-[#606060] mb-3">Activa el seguimiento cuando termines de inventariar</p>
                   <button (click)="activateStats()" [disabled]="activatingStats()"
                     class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-40 transition-colors">
@@ -141,6 +141,7 @@ interface BooksDashboard {
                   </button>
                 </div>
               } @else {
+                <div class="mt-auto">
                 <div class="h-48 flex gap-1.5">
                   @for (bar of comicMonthlyBars(); track bar.month) {
                     <div class="flex-1 flex flex-col items-center">
@@ -159,6 +160,7 @@ interface BooksDashboard {
                 <div class="flex gap-4 mt-3 text-[10px] text-[#606060]">
                   <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#7c3aed] inline-block"></span> Anadidos</span>
                   <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#22c55e] inline-block"></span> Leidos</span>
+                </div>
                 </div>
               }
             </div>
@@ -405,10 +407,10 @@ interface BooksDashboard {
           <!-- Charts row -->
           <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
             <!-- Monthly evolution -->
-            <div class="lg:col-span-2 bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
+            <div class="lg:col-span-2 bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 flex flex-col">
               <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-4">Evolucion mensual</h3>
               @if (!booksData()!.statsStartDate) {
-                <div class="h-48 flex flex-col items-center justify-center text-center">
+                <div class="flex-1 flex flex-col items-center justify-center text-center">
                   <p class="text-sm text-[#606060] mb-3">Activa el seguimiento cuando termines de inventariar</p>
                   <button (click)="activateStats()" [disabled]="activatingStats()"
                     class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-40 transition-colors">
@@ -416,6 +418,7 @@ interface BooksDashboard {
                   </button>
                 </div>
               } @else {
+                <div class="mt-auto">
                 <div class="h-48 flex gap-1.5">
                   @for (bar of bookMonthlyBars(); track bar.month) {
                     <div class="flex-1 flex flex-col items-center">
@@ -434,6 +437,7 @@ interface BooksDashboard {
                 <div class="flex gap-4 mt-3 text-[10px] text-[#606060]">
                   <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#7c3aed] inline-block"></span> Anadidos</span>
                   <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#22c55e] inline-block"></span> Leidos</span>
+                </div>
                 </div>
               }
             </div>

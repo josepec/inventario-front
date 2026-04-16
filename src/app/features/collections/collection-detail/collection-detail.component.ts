@@ -52,6 +52,29 @@ interface WhakoomAuthor {
   role: string;
 }
 
+interface PreviewReview { user: string; score: number | null; text: string; date: string | null; }
+
+interface ComicPreview {
+  id: string;
+  title: string;
+  cover: string;
+  description: string;
+  authors: string[];
+  publisher: string;
+  date: string;
+  series: string;
+  number: string;
+  isbn: string;
+  language: string;
+  url: string;
+  pages?: number | null;
+  binding?: string | null;
+  price?: number | null;
+  ratingValue?: number | null;
+  ratingCount?: number | null;
+  reviews?: PreviewReview[];
+}
+
 interface WhakoomEdition {
   id: string;
   title: string;
@@ -338,9 +361,8 @@ interface WhakoomEdition {
                 <p class="mt-1 text-[9px] md:text-[10px] text-[#303030] truncate">{{ issue.subtitle || issue.title }}</p>
               </div>
             } @else {
-              <!-- Not owned, published — show add button -->
-              <button type="button" (click)="addIssue(issue)" [disabled]="addingIssue() === issue.whakoomId"
-                class="group text-left">
+              <!-- Not owned, published — add or preview -->
+              <div class="group">
                 <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#0d0d0d] border border-[#2a2a2a]
                             group-hover:border-[#7c3aed]/50 transition-colors">
                   @if (issue.cover) {
@@ -357,25 +379,177 @@ interface WhakoomEdition {
                     <span class="absolute bottom-1 right-1 bg-black/70 text-white/50 text-[9px] md:text-[10px] font-bold
                                  px-1 md:px-1.5 py-0.5 rounded-md leading-none">#{{ issue.number }}</span>
                   }
-                  <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div class="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                     @if (addingIssue() === issue.whakoomId) {
                       <div class="w-5 h-5 border-2 border-[#2a2a2a] border-t-[#7c3aed] rounded-full animate-spin"></div>
                     } @else {
-                      <span class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#7c3aed] flex items-center justify-center shadow-lg">
+                      <button (click)="openPreview(issue.whakoomId!)" class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#333] hover:bg-[#444] flex items-center justify-center shadow-lg transition-colors" title="Ver info">
+                        <svg class="w-3.5 h-3.5 md:w-4 md:h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.64 0 8.577 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.64 0-8.577-3.007-9.963-7.178z" />
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      </button>
+                      <button (click)="addIssue(issue)" class="w-7 h-7 md:w-8 md:h-8 rounded-full bg-[#7c3aed] hover:bg-[#6d28d9] flex items-center justify-center shadow-lg transition-colors" title="Añadir">
                         <svg class="w-3.5 h-3.5 md:w-4 md:h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
                         </svg>
-                      </span>
+                      </button>
                     }
                   </div>
                 </div>
                 <p class="mt-1 text-[9px] md:text-[10px] text-[#404040] truncate">{{ issue.subtitle || issue.title }}</p>
-              </button>
+              </div>
             }
           }
         </div>
       }
     </div>
+
+    <!-- Preview modal -->
+    @if (previewOpen()) {
+      <div class="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end md:items-center md:justify-center md:p-4"
+        (click)="closePreview()">
+        <div class="bg-[#0f0f0f] border-t md:border border-[#2a2a2a] rounded-t-2xl md:rounded-2xl max-w-3xl w-full shadow-2xl max-h-[92dvh] md:max-h-[85vh] flex flex-col"
+          (click)="$event.stopPropagation()">
+          <div class="md:hidden flex justify-center pt-3 pb-1 shrink-0">
+            <div class="w-10 h-1 rounded-full bg-[#333]"></div>
+          </div>
+          @if (previewLoading()) {
+            <div class="p-10 text-center text-[#666] text-sm">Cargando detalle…</div>
+          } @else if (preview()) {
+            <div class="flex-1 overflow-y-auto">
+              <!-- Mobile -->
+              <div class="flex gap-4 p-4 md:hidden">
+                <div class="w-24 shrink-0">
+                  <div class="aspect-[2/3] rounded-xl overflow-hidden bg-[#141414]">
+                    @if (preview()!.cover) {
+                      <img [src]="preview()!.cover" [alt]="preview()!.title" class="w-full h-full object-cover" />
+                    }
+                  </div>
+                </div>
+                <div class="flex-1 min-w-0 pt-1">
+                  <div class="flex items-start justify-between gap-2">
+                    <div class="min-w-0">
+                      <p class="text-[10px] text-[#888] uppercase tracking-wider">{{ preview()!.publisher }}</p>
+                      <h3 class="text-base font-bold text-white leading-tight">{{ preview()!.series || preview()!.title }}</h3>
+                      @if (preview()!.number) { <p class="text-sm text-[#a0a0a0]">#{{ preview()!.number }}</p> }
+                    </div>
+                    <button (click)="closePreview()" class="text-[#555] hover:text-white text-xl leading-none shrink-0 mt-0.5">✕</button>
+                  </div>
+                  <div class="flex flex-wrap gap-x-3 gap-y-0.5 text-[10px] text-[#666] mt-2">
+                    @if (preview()!.date) { <span>📅 {{ preview()!.date }}</span> }
+                    @if (preview()!.pages) { <span>{{ preview()!.pages }} pp</span> }
+                    @if (preview()!.binding) { <span>{{ preview()!.binding }}</span> }
+                    @if (preview()!.price) { <span class="font-semibold text-[#a0a0a0]">{{ preview()!.price }} €</span> }
+                  </div>
+                  @if (preview()!.authors?.length) {
+                    <p class="text-[10px] text-[#666] mt-1 truncate">{{ preview()!.authors.join(', ') }}</p>
+                  }
+                  @if (preview()!.ratingValue) {
+                    <button (click)="previewShowReviews.set(!previewShowReviews())" class="flex items-center gap-1.5 mt-2 hover:opacity-80 transition-opacity">
+                      <span class="text-yellow-400 text-xs">★</span>
+                      <span class="text-sm font-bold text-white">{{ preview()!.ratingValue!.toFixed(1) }}</span>
+                      @if (preview()!.ratingCount) { <span class="text-[10px] text-[#888] hover:text-white transition-colors">({{ preview()!.ratingCount }} opiniones)</span> }
+                    </button>
+                  }
+                </div>
+              </div>
+              @if (preview()!.description) {
+                <p class="md:hidden text-xs text-[#888] leading-relaxed px-4 pb-2">{{ preview()!.description }}</p>
+              }
+              @if (previewShowReviews() && preview()!.reviews?.length) {
+                <div class="md:hidden px-4 pb-3 space-y-2">
+                  <p class="text-[10px] text-[#555] uppercase tracking-wider font-semibold">Opiniones</p>
+                  @for (r of preview()!.reviews!.slice(0, previewReviewsLimit()); track r.user + r.text) {
+                    <div class="bg-[#161616] rounded-lg p-2.5">
+                      <div class="flex items-center gap-1.5 mb-1">
+                        @if (r.score) { <span class="text-yellow-400 text-[10px]">★ {{ r.score.toFixed(1) }}</span> }
+                        @if (r.user) { <span class="text-[10px] text-[#666]">{{ r.user }}</span> }
+                        @if (r.date) { <span class="text-[10px] text-[#444]">· {{ r.date }}</span> }
+                      </div>
+                      @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug">{{ r.text }}</p> }
+                    </div>
+                  }
+                  @if (preview()!.reviews!.length > previewReviewsLimit()) {
+                    <button (click)="previewReviewsLimit.update(v => v + 5)" class="text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium">
+                      Mostrar más ({{ preview()!.reviews!.length - previewReviewsLimit() }} más)
+                    </button>
+                  }
+                </div>
+              }
+              <!-- Desktop -->
+              <div class="hidden md:flex">
+                <div class="w-56 p-5 shrink-0">
+                  <div class="aspect-[2/3] rounded-xl overflow-hidden bg-[#141414] border border-[#1f1f1f]">
+                    @if (preview()!.cover) {
+                      <img [src]="preview()!.cover" [alt]="preview()!.title" class="w-full h-full object-cover" />
+                    }
+                  </div>
+                </div>
+                <div class="flex-1 p-5 pl-0 min-w-0">
+                  <div class="flex items-start justify-between gap-3 mb-3">
+                    <div class="min-w-0">
+                      <p class="text-[11px] text-[#888] uppercase tracking-wider">{{ preview()!.publisher }}</p>
+                      <h3 class="text-xl font-bold text-white">{{ preview()!.series || preview()!.title }}</h3>
+                      @if (preview()!.number) { <p class="text-sm text-[#a0a0a0]">#{{ preview()!.number }}</p> }
+                    </div>
+                    <button (click)="closePreview()" class="text-[#666] hover:text-white text-xl leading-none">✕</button>
+                  </div>
+                  <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#888] mb-3">
+                    @if (preview()!.date) { <span>📅 {{ preview()!.date }}</span> }
+                    @if (preview()!.pages) { <span>{{ preview()!.pages }} págs</span> }
+                    @if (preview()!.binding) { <span>{{ preview()!.binding }}</span> }
+                    @if (preview()!.price) { <span>{{ preview()!.price }} €</span> }
+                    @if (preview()!.language) { <span>{{ preview()!.language }}</span> }
+                    @if (preview()!.ratingValue) {
+                      <button (click)="previewShowReviews.set(!previewShowReviews())" class="flex items-center gap-1 text-yellow-400 font-semibold hover:opacity-80 transition-opacity cursor-pointer">
+                        ★ {{ preview()!.ratingValue!.toFixed(1) }}
+                        @if (preview()!.ratingCount) { <span class="text-[#888] font-normal hover:text-white transition-colors">({{ preview()!.ratingCount }} opiniones)</span> }
+                      </button>
+                    }
+                  </div>
+                  @if (preview()!.authors?.length) {
+                    <p class="text-xs text-[#a0a0a0] mb-3">{{ preview()!.authors.join(', ') }}</p>
+                  }
+                  @if (preview()!.description) {
+                    <p class="text-xs text-[#a0a0a0] leading-relaxed mb-3">{{ preview()!.description }}</p>
+                  }
+                  @if (previewShowReviews() && preview()!.reviews?.length) {
+                    <div class="space-y-2">
+                      <p class="text-[10px] text-[#555] uppercase tracking-wider font-semibold">Opiniones</p>
+                      @for (r of preview()!.reviews!.slice(0, previewReviewsLimit()); track r.user + r.text) {
+                        <div class="bg-[#161616] rounded-lg p-2.5">
+                          <div class="flex items-center gap-2 mb-0.5">
+                            @if (r.score) { <span class="text-yellow-400 text-[10px] font-bold">★ {{ r.score.toFixed(1) }}</span> }
+                            @if (r.user) { <span class="text-[10px] text-[#666]">{{ r.user }}</span> }
+                            @if (r.date) { <span class="text-[10px] text-[#444]">· {{ r.date }}</span> }
+                          </div>
+                          @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug">{{ r.text }}</p> }
+                        </div>
+                      }
+                      @if (preview()!.reviews!.length > previewReviewsLimit()) {
+                        <button (click)="previewReviewsLimit.update(v => v + 5)" class="text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium">
+                          Mostrar más ({{ preview()!.reviews!.length - previewReviewsLimit() }} más)
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            </div>
+            <div class="shrink-0 p-4 border-t border-[#1a1a1a]">
+              <button (click)="addIssueFromPreview()" [disabled]="addingIssue() === previewId()"
+                class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-green-700 hover:bg-green-600 text-white text-sm font-semibold disabled:opacity-50 transition-colors">
+                <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                Añadir a mi colección
+              </button>
+            </div>
+          } @else if (previewError()) {
+            <div class="p-10 text-center text-red-400 text-sm">{{ previewError() }}</div>
+          }
+        </div>
+      </div>
+    }
   `
 })
 export class CollectionDetailComponent implements OnInit {
@@ -393,6 +567,14 @@ export class CollectionDetailComponent implements OnInit {
   notesOpen = signal(false);
   notesText = '';
   savingNotes = signal(false);
+
+  previewOpen = signal(false);
+  previewLoading = signal(false);
+  preview = signal<ComicPreview | null>(null);
+  previewError = signal<string | null>(null);
+  previewId = signal<string | null>(null);
+  previewShowReviews = signal(false);
+  previewReviewsLimit = signal(3);
 
   mergedIssues = computed(() => {
     const col = this.collection();
@@ -633,5 +815,38 @@ export class CollectionDetailComponent implements OnInit {
       },
       error: () => this.addingIssue.set(null),
     });
+  }
+
+  openPreview(whakoomId: string) {
+    this.previewOpen.set(true);
+    this.previewLoading.set(true);
+    this.preview.set(null);
+    this.previewError.set(null);
+    this.previewId.set(whakoomId);
+    this.previewShowReviews.set(false);
+    this.previewReviewsLimit.set(3);
+    this.http.get<ComicPreview>(`${this.base}/whakoom/comic/${whakoomId}?type=comic`).subscribe({
+      next: (d) => { this.preview.set(d); this.previewLoading.set(false); },
+      error: (err) => {
+        this.previewError.set(err?.error?.error ?? 'Error al cargar detalle');
+        this.previewLoading.set(false);
+      },
+    });
+  }
+
+  closePreview() {
+    this.previewOpen.set(false);
+    this.preview.set(null);
+    this.previewId.set(null);
+  }
+
+  addIssueFromPreview() {
+    const id = this.previewId();
+    if (!id) return;
+    const merged = this.mergedIssues().find(i => i.whakoomId === id);
+    if (merged) {
+      this.closePreview();
+      this.addIssue(merged);
+    }
   }
 }

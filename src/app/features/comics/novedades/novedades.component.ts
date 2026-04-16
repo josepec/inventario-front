@@ -412,30 +412,36 @@ interface WantedRow {
                     <p class="text-[10px] text-[#666] mt-1 truncate">{{ detail()!.authors.join(', ') }}</p>
                   }
                   @if (detail()!.ratingValue) {
-                    <div class="flex items-center gap-1.5 mt-2">
+                    <button (click)="detailShowReviews.set(!detailShowReviews())" class="flex items-center gap-1.5 mt-2 hover:opacity-80 transition-opacity">
                       <span class="text-yellow-400 text-xs">★</span>
                       <span class="text-sm font-bold text-white">{{ detail()!.ratingValue!.toFixed(1) }}</span>
-                      @if (detail()!.ratingCount) { <span class="text-[10px] text-[#555]">({{ detail()!.ratingCount }})</span> }
-                    </div>
+                      @if (detail()!.ratingCount) { <span class="text-[10px] text-[#888] hover:text-white transition-colors">({{ detail()!.ratingCount }} opiniones)</span> }
+                    </button>
                   }
                 </div>
               </div>
 
               <!-- Mobile: descripción + reseñas -->
               @if (detail()!.description) {
-                <p class="md:hidden text-xs text-[#888] leading-relaxed px-4 pb-2 line-clamp-4">{{ detail()!.description }}</p>
+                <p class="md:hidden text-xs text-[#888] leading-relaxed px-4 pb-2">{{ detail()!.description }}</p>
               }
-              @if (detail()!.reviews && detail()!.reviews!.length > 0) {
+              @if (detailShowReviews() && detail()!.reviews && detail()!.reviews!.length > 0) {
                 <div class="md:hidden px-4 pb-3 space-y-2">
                   <p class="text-[10px] text-[#555] uppercase tracking-wider font-semibold">Opiniones</p>
-                  @for (r of detail()!.reviews!.slice(0, 3); track r.user + r.text) {
+                  @for (r of detail()!.reviews!.slice(0, detailReviewsLimit()); track r.user + r.text) {
                     <div class="bg-[#161616] rounded-lg p-2.5">
                       <div class="flex items-center gap-1.5 mb-1">
                         @if (r.score) { <span class="text-yellow-400 text-[10px]">★ {{ r.score.toFixed(1) }}</span> }
                         @if (r.user) { <span class="text-[10px] text-[#666]">{{ r.user }}</span> }
+                        @if (r.date) { <span class="text-[10px] text-[#444]">· {{ r.date }}</span> }
                       </div>
                       @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug">{{ r.text }}</p> }
                     </div>
+                  }
+                  @if (detail()!.reviews!.length > detailReviewsLimit()) {
+                    <button (click)="detailReviewsLimit.update(v => v + 5)" class="text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors">
+                      Mostrar más opiniones ({{ detail()!.reviews!.length - detailReviewsLimit() }} más)
+                    </button>
                   }
                 </div>
               }
@@ -468,30 +474,35 @@ interface WantedRow {
                     @if (detail()!.price) { <span>{{ detail()!.price }} €</span> }
                     @if (detail()!.language) { <span>{{ detail()!.language }}</span> }
                     @if (detail()!.ratingValue) {
-                      <span class="flex items-center gap-1 text-yellow-400 font-semibold">
+                      <button (click)="detailShowReviews.set(!detailShowReviews())" class="flex items-center gap-1 text-yellow-400 font-semibold hover:opacity-80 transition-opacity cursor-pointer">
                         ★ {{ detail()!.ratingValue!.toFixed(1) }}
-                        @if (detail()!.ratingCount) { <span class="text-[#555] font-normal">({{ detail()!.ratingCount }})</span> }
-                      </span>
+                        @if (detail()!.ratingCount) { <span class="text-[#888] font-normal hover:text-white transition-colors">({{ detail()!.ratingCount }} opiniones)</span> }
+                      </button>
                     }
                   </div>
                   @if (detail()!.authors.length > 0) {
                     <p class="text-xs text-[#a0a0a0] mb-3">{{ detail()!.authors.join(', ') }}</p>
                   }
                   @if (detail()!.description) {
-                    <p class="text-xs text-[#a0a0a0] leading-relaxed mb-3 line-clamp-4">{{ detail()!.description }}</p>
+                    <p class="text-xs text-[#a0a0a0] leading-relaxed mb-3">{{ detail()!.description }}</p>
                   }
-                  @if (detail()!.reviews && detail()!.reviews!.length > 0) {
+                  @if (detailShowReviews() && detail()!.reviews && detail()!.reviews!.length > 0) {
                     <div class="space-y-2">
                       <p class="text-[10px] text-[#555] uppercase tracking-wider font-semibold">Opiniones</p>
-                      @for (r of detail()!.reviews!.slice(0, 3); track r.user + r.text) {
+                      @for (r of detail()!.reviews!.slice(0, detailReviewsLimit()); track r.user + r.text) {
                         <div class="bg-[#161616] rounded-lg p-2.5">
                           <div class="flex items-center gap-2 mb-0.5">
                             @if (r.score) { <span class="text-yellow-400 text-[10px] font-bold">★ {{ r.score.toFixed(1) }}</span> }
                             @if (r.user) { <span class="text-[10px] text-[#666]">{{ r.user }}</span> }
                             @if (r.date) { <span class="text-[10px] text-[#444]">· {{ r.date }}</span> }
                           </div>
-                          @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug line-clamp-3">{{ r.text }}</p> }
+                          @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug">{{ r.text }}</p> }
                         </div>
+                      }
+                      @if (detail()!.reviews!.length > detailReviewsLimit()) {
+                        <button (click)="detailReviewsLimit.update(v => v + 5)" class="text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors">
+                          Mostrar más opiniones ({{ detail()!.reviews!.length - detailReviewsLimit() }} más)
+                        </button>
                       }
                     </div>
                   }
@@ -577,29 +588,34 @@ interface WantedRow {
                     <p class="text-[10px] text-[#888] mt-2">{{ edition()!.authors.slice(0,3).map(a => a.name).join(', ') }}</p>
                   }
                   @if (edition()!.ratingValue) {
-                    <div class="flex items-center gap-1.5 mt-2">
+                    <button (click)="editionShowReviews.set(!editionShowReviews())" class="flex items-center gap-1.5 mt-2 hover:opacity-80 transition-opacity cursor-pointer">
                       <span class="text-yellow-400 text-xs">★</span>
                       <span class="text-sm font-bold text-white">{{ edition()!.ratingValue!.toFixed(1) }}</span>
-                      @if (edition()!.ratingCount) { <span class="text-[10px] text-[#555]">({{ edition()!.ratingCount }})</span> }
-                    </div>
+                      @if (edition()!.ratingCount) { <span class="text-[10px] text-[#888] hover:text-white transition-colors">({{ edition()!.ratingCount }} opiniones)</span> }
+                    </button>
                   }
                   @if (edition()!.description) {
-                    <p class="text-xs text-[#888] leading-relaxed mt-2 line-clamp-4 md:line-clamp-5">{{ edition()!.description }}</p>
+                    <p class="text-xs text-[#888] leading-relaxed mt-2">{{ edition()!.description }}</p>
                   }
                 </div>
               </div>
-              @if (edition()!.reviews && edition()!.reviews!.length > 0) {
+              @if (editionShowReviews() && edition()!.reviews && edition()!.reviews!.length > 0) {
                 <div class="px-4 pb-3 space-y-2">
                   <p class="text-[10px] text-[#555] uppercase tracking-wider font-semibold">Opiniones</p>
-                  @for (r of edition()!.reviews!.slice(0, 3); track r.user + r.text) {
+                  @for (r of edition()!.reviews!.slice(0, editionReviewsLimit()); track r.user + r.text) {
                     <div class="bg-[#161616] rounded-lg p-2.5">
                       <div class="flex items-center gap-2 mb-0.5">
                         @if (r.score) { <span class="text-yellow-400 text-[10px] font-bold">★ {{ r.score.toFixed(1) }}</span> }
                         @if (r.user) { <span class="text-[10px] text-[#666]">{{ r.user }}</span> }
                         @if (r.date) { <span class="text-[10px] text-[#444]">· {{ r.date }}</span> }
                       </div>
-                      @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug line-clamp-3">{{ r.text }}</p> }
+                      @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug">{{ r.text }}</p> }
                     </div>
+                  }
+                  @if (edition()!.reviews!.length > editionReviewsLimit()) {
+                    <button (click)="editionReviewsLimit.update(v => v + 5)" class="text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors">
+                      Mostrar más opiniones ({{ edition()!.reviews!.length - editionReviewsLimit() }} más)
+                    </button>
                   }
                 </div>
               }
@@ -679,10 +695,15 @@ export class NovedadesComponent implements OnInit {
     return this.wanted().some(w => w.whakoom_comic_id === d.id);
   });
 
+  detailShowReviews = signal(false);
+  detailReviewsLimit = signal(3);
+
   editionOpen = signal(false);
   editionLoading = signal(false);
   edition = signal<WkEdition | null>(null);
   editionError = signal<string | null>(null);
+  editionShowReviews = signal(false);
+  editionReviewsLimit = signal(3);
 
   ngOnInit() {
     this.loadMine();
@@ -800,6 +821,8 @@ export class NovedadesComponent implements OnInit {
     this.detail.set(null);
     this.detailError.set(null);
     this.detailLocalCollId.set(localCollId);
+    this.detailShowReviews.set(false);
+    this.detailReviewsLimit.set(3);
     this.loadWanted();
     this.api.get<WkComicDetail>(`/whakoom/comic/${id}?type=${type}`).subscribe({
       next: (d) => { this.detail.set(d); this.detailLoading.set(false); },
@@ -895,6 +918,8 @@ export class NovedadesComponent implements OnInit {
     this.editionLoading.set(true);
     this.edition.set(null);
     this.editionError.set(null);
+    this.editionShowReviews.set(false);
+    this.editionReviewsLimit.set(3);
     this.api.get<WkEdition>(`/whakoom/edition/${editionId}`).subscribe({
       next: (e) => { this.edition.set(e); this.editionLoading.set(false); },
       error: (err) => {
