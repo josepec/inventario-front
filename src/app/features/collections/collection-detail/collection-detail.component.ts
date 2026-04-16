@@ -32,6 +32,7 @@ interface Collection {
   issues: WhakoomIssue[];
   whakoom_synced_at: string | null;
   tracking: boolean;
+  tracking_mode: 0 | 1 | 2;
   rating: number | null;
   notes: string | null;
   comics: CollectionComic[];
@@ -193,13 +194,15 @@ interface WhakoomEdition {
                   </span>
                 }
                 @if (!isCompleted()) {
-                  <button (click)="toggleTracking()" type="button"
+                  <button (click)="cycleTracking()" type="button"
                     class="text-xs px-2.5 py-1 rounded-full font-medium cursor-pointer
                            hover:opacity-80 active:scale-95 transition-all"
-                    [class]="collection()!.tracking
+                    [class]="collection()!.tracking_mode === 1
                       ? 'bg-[#7c3aed1a] text-[#7c3aed]'
-                      : 'bg-[#ffffff0d] text-[#606060]'">
-                    {{ collection()!.tracking ? 'Coleccionando' : 'No completar' }}
+                      : collection()!.tracking_mode === 2
+                        ? 'bg-[#3b82f61a] text-[#3b82f6]'
+                        : 'bg-[#ffffff0d] text-[#606060]'">
+                    {{ collection()!.tracking_mode === 1 ? 'Coleccionando' : collection()!.tracking_mode === 2 ? 'Siguiendo' : 'Sin seguimiento' }}
                   </button>
                 }
               </div>
@@ -704,15 +707,15 @@ export class CollectionDetailComponent implements OnInit {
     });
   }
 
-  toggleTracking() {
+  cycleTracking() {
     const col = this.collection();
     if (!col) return;
-    const newVal = !col.tracking;
-    this.collection.update(c => c ? { ...c, tracking: newVal } : c);
+    const next = ((col.tracking_mode + 1) % 3) as 0 | 1 | 2;
+    this.collection.update(c => c ? { ...c, tracking_mode: next, tracking: next >= 1 } : c);
     this.api.put<Collection>(`/collections/${col.id}`, {
       title: col.title, publisher: col.publisher, cover_url: col.cover_url,
       total_issues: col.total_issues, description: col.description, url: col.url,
-      tracking: newVal,
+      tracking_mode: next,
     }).subscribe();
   }
 

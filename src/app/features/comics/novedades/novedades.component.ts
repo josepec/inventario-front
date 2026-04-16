@@ -19,6 +19,7 @@ interface NewTitleItem {
   wanted: boolean;
   local_collection_id?: number | null;
   source?: 'wanted' | 'tracked';
+  tracking_mode?: number;
 }
 
 interface NewTitleGroup {
@@ -148,40 +149,65 @@ interface WantedRow {
                 No hay novedades tuyas este mes. Marca cómics como "los quiero" o activa tracking en colecciones.
               </div>
             } @else {
-              <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
-                @for (item of mine(); track item.whakoom_comic_id) {
-                  <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null)">
-                    <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
-                      @if (item.cover_url) {
-                        <img [src]="item.cover_url" [alt]="item.title"
-                          class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-                          loading="lazy" draggable="false" />
-                      } @else {
-                        <div class="w-full h-full flex flex-col items-center justify-center gap-2 p-3 text-center">
-                          <svg class="w-8 h-8 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z" />
-                          </svg>
-                          <p class="text-[10px] text-[#404040] leading-tight">{{ item.title }}</p>
-                        </div>
-                      }
-                      @if (item.source === 'wanted' || item.wanted) {
-                        <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide flex items-center gap-0.5"><svg class="w-2.5 h-2.5 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>LO QUIERO</span>
-                      } @else if (item.source === 'tracked') {
-                        <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#1f2937] text-[#60a5fa] tracking-wide">COLECCIONANDO</span>
-                      }
-                      @if (item.number) {
-                        <span class="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-bold px-2 py-1 rounded-lg leading-none backdrop-blur-sm">#{{ item.number }}</span>
-                      }
-                      <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
+              @if (mineMain().length > 0) {
+                <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
+                  @for (item of mineMain(); track item.whakoom_comic_id) {
+                    <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null)">
+                      <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
+                        @if (item.cover_url) {
+                          <img [src]="item.cover_url" [alt]="item.title" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" draggable="false" />
+                        } @else {
+                          <div class="w-full h-full flex flex-col items-center justify-center gap-2 p-3 text-center">
+                            <svg class="w-8 h-8 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/></svg>
+                            <p class="text-[10px] text-[#404040] leading-tight">{{ item.title }}</p>
+                          </div>
+                        }
+                        @if (item.source === 'wanted' || item.wanted) {
+                          <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide flex items-center gap-0.5"><svg class="w-2.5 h-2.5 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>LO QUIERO</span>
+                        } @else if (item.source === 'tracked') {
+                          <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#1f2937] text-[#60a5fa] tracking-wide">COLECCIONANDO</span>
+                        }
+                        @if (item.number) {
+                          <span class="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-bold px-2 py-1 rounded-lg leading-none backdrop-blur-sm">#{{ item.number }}</span>
+                        }
+                        <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
+                      </div>
+                      <button class="text-xs font-medium text-left text-[#e0e0e0] hover:text-[#8b5cf6] truncate leading-tight w-full transition-colors"
+                        (click)="onSeriesClick(item, $event)">{{ item.series || item.title }}</button>
+                      @if (item.publisher) { <p class="text-[10px] text-[#606060] truncate">{{ item.publisher }}</p> }
                     </div>
-                    <button class="text-xs font-medium text-left text-[#e0e0e0] hover:text-[#8b5cf6] truncate leading-tight w-full transition-colors"
-                      (click)="onSeriesClick(item, $event)">{{ item.series || item.title }}</button>
-                    @if (item.publisher) {
-                      <p class="text-[10px] text-[#606060] truncate">{{ item.publisher }}</p>
+                  }
+                </div>
+              }
+              @if (mineSiguiendo().length > 0) {
+                <div class="mt-6">
+                  <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Siguiendo</h3>
+                  <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
+                    @for (item of mineSiguiendo(); track item.whakoom_comic_id) {
+                      <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null)">
+                        <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
+                          @if (item.cover_url) {
+                            <img [src]="item.cover_url" [alt]="item.title" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" draggable="false" />
+                          } @else {
+                            <div class="w-full h-full flex flex-col items-center justify-center gap-2 p-3 text-center">
+                              <svg class="w-8 h-8 text-[#2a2a2a]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/></svg>
+                              <p class="text-[10px] text-[#404040] leading-tight">{{ item.title }}</p>
+                            </div>
+                          }
+                          <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#0c4a6e] text-[#38bdf8] tracking-wide">SIGUIENDO</span>
+                          @if (item.number) {
+                            <span class="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-bold px-2 py-1 rounded-lg leading-none backdrop-blur-sm">#{{ item.number }}</span>
+                          }
+                          <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
+                        </div>
+                        <button class="text-xs font-medium text-left text-[#e0e0e0] hover:text-[#8b5cf6] truncate leading-tight w-full transition-colors"
+                          (click)="onSeriesClick(item, $event)">{{ item.series || item.title }}</button>
+                        @if (item.publisher) { <p class="text-[10px] text-[#606060] truncate">{{ item.publisher }}</p> }
+                      </div>
                     }
                   </div>
-                }
-              </div>
+                </div>
+              }
             }
           </section>
         }
@@ -680,6 +706,8 @@ export class NovedadesComponent implements OnInit {
 
   mine = signal<NewTitleItem[]>([]);
   mineLoading = signal(false);
+  mineMain = computed(() => this.mine().filter(i => i.source === 'wanted' || (i.tracking_mode ?? 1) === 1));
+  mineSiguiendo = computed(() => this.mine().filter(i => i.source === 'tracked' && (i.tracking_mode ?? 1) === 2));
 
   groups = signal<NewTitleGroup[]>([]);
   allLoading = signal(false);

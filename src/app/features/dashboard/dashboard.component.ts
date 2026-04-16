@@ -14,6 +14,7 @@ interface NovedadItem {
   cover_url: string;
   source?: 'wanted' | 'tracked';
   wanted: boolean;
+  tracking_mode?: number;
 }
 
 interface ComicsDashboard {
@@ -311,6 +312,8 @@ interface BooksDashboard {
                       }
                       @if (n.source === 'wanted' || n.wanted) {
                         <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#7c3aed] text-white tracking-wide flex items-center gap-0.5"><svg class="w-2.5 h-2.5 fill-current flex-shrink-0" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>LO QUIERO</span>
+                      } @else if (n.source === 'tracked' && (n.tracking_mode ?? 1) === 2) {
+                        <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#0c4a6e] text-[#38bdf8] tracking-wide">SIGUIENDO</span>
                       } @else if (n.source === 'tracked') {
                         <span class="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-[#1f2937] text-[#60a5fa] tracking-wide">COLECCIONANDO</span>
                       }
@@ -652,7 +655,14 @@ export class DashboardComponent implements OnInit {
       error: () => this.loading.set(false),
     });
     this.api.get<{ month: string; items: NovedadItem[] }>('/comics/upcoming-mine').subscribe({
-      next: res => this.novedades.set(res.items ?? []),
+      next: res => {
+        const items = res.items ?? [];
+        items.sort((a, b) => {
+          const order = (i: NovedadItem) => i.source === 'wanted' ? 0 : (i.tracking_mode ?? 1) === 1 ? 1 : 2;
+          return order(a) - order(b);
+        });
+        this.novedades.set(items);
+      },
       error: () => this.novedades.set([]),
     });
   }

@@ -146,6 +146,36 @@ interface WkComic {
               </button>
             </div>
           }
+          @if (tab() === 'collections') {
+            <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5 shrink-0">
+              <button (click)="colTrackingFilter.set(''); loadCollections()"
+                class="px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                [class]="colTrackingFilter() === '' ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+                Todas
+              </button>
+              <button (click)="colTrackingFilter.set('coleccionando'); loadCollections()"
+                class="px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                [class]="colTrackingFilter() === 'coleccionando' ? 'bg-[#7c3aed1a] text-[#7c3aed]' : 'text-[#606060] hover:text-[#a0a0a0]'">
+                Coleccionando
+              </button>
+              <button (click)="colTrackingFilter.set('siguiendo'); loadCollections()"
+                class="px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                [class]="colTrackingFilter() === 'siguiendo' ? 'bg-[#3b82f61a] text-[#3b82f6]' : 'text-[#606060] hover:text-[#a0a0a0]'">
+                Siguiendo
+              </button>
+            </div>
+            @if (colStatusOptions().length > 0) {
+              <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5 shrink-0">
+                @for (st of colStatusOptions(); track st) {
+                  <button (click)="colStatusFilter.set(colStatusFilter() === st ? '' : st); loadCollections()"
+                    class="px-2.5 md:px-3 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap"
+                    [class]="colStatusFilter() === st ? 'bg-[#22c55e1a] text-[#22c55e]' : 'text-[#606060] hover:text-[#a0a0a0]'">
+                    {{ st }}
+                  </button>
+                }
+              </div>
+            }
+          }
 
           <!-- Sort -->
           <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5 shrink-0">
@@ -772,6 +802,9 @@ export class ComicsListComponent implements OnInit, OnDestroy {
 
   search = '';
   filterStatus = '';
+  colTrackingFilter = signal('');
+  colStatusFilter = signal('');
+  colStatusOptions = signal<string[]>([]);
   readonly limit = 42;
   totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.limit)));
   private searchTimer: any;
@@ -899,24 +932,16 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     this.tab.set(t); this.page.set(1); this.search = ''; this.filterStatus = '';
     this.filterAuthor.set(''); this.filterPublisher.set('');
     this.filterPriceMin.set(null); this.filterPriceMax.set(null);
+    this.colTrackingFilter.set(''); this.colStatusFilter.set('');
+    if (t === 'collections' && this.colStatusOptions().length === 0) this.loadColStatuses();
     this.load();
   }
 
   load() {
     this.loading.set(true);
     if (this.tab() === 'collections') {
-      const p: Record<string, string> = {
-        page: this.page().toString(), limit: this.limit.toString(),
-      };
-      if (this.search) p['search'] = this.search;
-      if (this.filterAuthor()) p['author'] = this.filterAuthor();
-      if (this.filterPublisher()) p['publisher'] = this.filterPublisher();
-      if (this.sortField() !== 'created_at') p['sort'] = this.sortField();
-      if (this.sortOrder() !== 'desc') p['order'] = this.sortOrder();
-      this.http.get<PaginatedResponse<CollectionItem>>(`${this.base}/collections`, { params: p }).subscribe({
-        next: res => { this.collections.set(res.data); this.total.set(res.total); this.loading.set(false); },
-        error: () => this.loading.set(false),
-      });
+      this.loadCollections();
+      return;
     } else {
       this.api.get<PaginatedResponse<Comic>>('/comics', {
         page: this.page(), limit: this.limit,
@@ -936,6 +961,33 @@ export class ComicsListComponent implements OnInit, OnDestroy {
       });
     }
     this.updateUrl();
+  }
+
+  loadCollections() {
+    this.loading.set(true);
+    const p: Record<string, string> = {
+      page: this.page().toString(), limit: this.limit.toString(),
+    };
+    if (this.search) p['search'] = this.search;
+    if (this.filterAuthor()) p['author'] = this.filterAuthor();
+    if (this.filterPublisher()) p['publisher'] = this.filterPublisher();
+    if (this.sortField() !== 'created_at') p['sort'] = this.sortField();
+    if (this.sortOrder() !== 'desc') p['order'] = this.sortOrder();
+    if (this.colTrackingFilter()) p['tracking'] = this.colTrackingFilter();
+    if (this.colStatusFilter()) p['status'] = this.colStatusFilter();
+    this.http.get<PaginatedResponse<CollectionItem>>(`${this.base}/collections`, { params: p }).subscribe({
+      next: res => { this.collections.set(res.data); this.total.set(res.total); this.loading.set(false); },
+      error: () => this.loading.set(false),
+    });
+  }
+
+  loadColStatuses() {
+    this.http.get<{ data: { status: string }[] }>(`${this.base}/collections`, { params: { limit: '1000' } }).subscribe({
+      next: res => {
+        const statuses = [...new Set(res.data.map((c: any) => c.status).filter(Boolean))].sort();
+        this.colStatusOptions.set(statuses as string[]);
+      },
+    });
   }
 
   onSearch() {
