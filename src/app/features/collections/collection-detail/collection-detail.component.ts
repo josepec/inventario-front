@@ -457,24 +457,30 @@ interface WhakoomEdition {
               @if (preview()!.description) {
                 <p class="md:hidden text-xs text-[#888] leading-relaxed px-4 pb-2">{{ preview()!.description }}</p>
               }
-              @if (previewShowReviews() && preview()!.reviews?.length) {
+              @if (previewShowReviews()) {
                 <div class="md:hidden px-4 pb-3 space-y-2">
                   <p class="text-[10px] text-[#555] uppercase tracking-wider font-semibold">Opiniones</p>
-                  @for (r of preview()!.reviews!.slice(0, previewReviewsLimit()); track r.user + r.text) {
-                    <div class="bg-[#161616] rounded-lg p-2.5">
-                      <div class="flex items-center gap-1.5 mb-1">
-                        @if (r.score) { <span class="text-yellow-400 text-[10px]">★ {{ r.score.toFixed(1) }}</span> }
-                        @if (r.user) { <span class="text-[10px] text-[#666]">{{ r.user }}</span> }
-                        @if (r.date) { <span class="text-[10px] text-[#444]">· {{ r.date }}</span> }
+                  @if (preview()!.reviews && preview()!.reviews!.length > 0) {
+                    @for (r of preview()!.reviews!.slice(0, previewReviewsLimit()); track r.user + r.text) {
+                      <div class="bg-[#161616] rounded-lg p-2.5">
+                        <div class="flex items-center gap-1.5 mb-1">
+                          @if (r.score) { <span class="text-yellow-400 text-[10px]">★ {{ r.score.toFixed(1) }}</span> }
+                          @if (r.user) { <span class="text-[10px] text-[#666]">{{ r.user }}</span> }
+                          @if (r.date) { <span class="text-[10px] text-[#444]">· {{ r.date }}</span> }
+                        </div>
+                        @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug">{{ r.text }}</p> }
                       </div>
-                      @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug">{{ r.text }}</p> }
-                    </div>
+                    }
+                    @if (preview()!.reviews!.length > previewReviewsLimit()) {
+                      <button (click)="previewReviewsLimit.update(v => v + 5)" class="text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium">
+                        Mostrar más ({{ preview()!.reviews!.length - previewReviewsLimit() }} más)
+                      </button>
+                    }
                   }
-                  @if (preview()!.reviews!.length > previewReviewsLimit()) {
-                    <button (click)="previewReviewsLimit.update(v => v + 5)" class="text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium">
-                      Mostrar más ({{ preview()!.reviews!.length - previewReviewsLimit() }} más)
-                    </button>
-                  }
+                  <a [href]="preview()!.url" target="_blank" rel="noopener"
+                    class="inline-flex items-center gap-1 text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors">
+                    Ver todas en Whakoom ↗
+                  </a>
                 </div>
               }
               <!-- Desktop -->
@@ -514,24 +520,30 @@ interface WhakoomEdition {
                   @if (preview()!.description) {
                     <p class="text-xs text-[#a0a0a0] leading-relaxed mb-3">{{ preview()!.description }}</p>
                   }
-                  @if (previewShowReviews() && preview()!.reviews?.length) {
+                  @if (previewShowReviews()) {
                     <div class="space-y-2">
                       <p class="text-[10px] text-[#555] uppercase tracking-wider font-semibold">Opiniones</p>
-                      @for (r of preview()!.reviews!.slice(0, previewReviewsLimit()); track r.user + r.text) {
-                        <div class="bg-[#161616] rounded-lg p-2.5">
-                          <div class="flex items-center gap-2 mb-0.5">
-                            @if (r.score) { <span class="text-yellow-400 text-[10px] font-bold">★ {{ r.score.toFixed(1) }}</span> }
-                            @if (r.user) { <span class="text-[10px] text-[#666]">{{ r.user }}</span> }
-                            @if (r.date) { <span class="text-[10px] text-[#444]">· {{ r.date }}</span> }
+                      @if (preview()!.reviews && preview()!.reviews!.length > 0) {
+                        @for (r of preview()!.reviews!.slice(0, previewReviewsLimit()); track r.user + r.text) {
+                          <div class="bg-[#161616] rounded-lg p-2.5">
+                            <div class="flex items-center gap-2 mb-0.5">
+                              @if (r.score) { <span class="text-yellow-400 text-[10px] font-bold">★ {{ r.score.toFixed(1) }}</span> }
+                              @if (r.user) { <span class="text-[10px] text-[#666]">{{ r.user }}</span> }
+                              @if (r.date) { <span class="text-[10px] text-[#444]">· {{ r.date }}</span> }
+                            </div>
+                            @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug">{{ r.text }}</p> }
                           </div>
-                          @if (r.text) { <p class="text-[11px] text-[#aaa] leading-snug">{{ r.text }}</p> }
-                        </div>
+                        }
+                        @if (preview()!.reviews!.length > previewReviewsLimit()) {
+                          <button (click)="previewReviewsLimit.update(v => v + 5)" class="text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium">
+                            Mostrar más ({{ preview()!.reviews!.length - previewReviewsLimit() }} más)
+                          </button>
+                        }
                       }
-                      @if (preview()!.reviews!.length > previewReviewsLimit()) {
-                        <button (click)="previewReviewsLimit.update(v => v + 5)" class="text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium">
-                          Mostrar más ({{ preview()!.reviews!.length - previewReviewsLimit() }} más)
-                        </button>
-                      }
+                      <a [href]="preview()!.url" target="_blank" rel="noopener"
+                        class="inline-flex items-center gap-1 text-[11px] text-[#7c3aed] hover:text-[#a78bfa] font-medium transition-colors">
+                        Ver todas en Whakoom ↗
+                      </a>
                     </div>
                   }
                 </div>
