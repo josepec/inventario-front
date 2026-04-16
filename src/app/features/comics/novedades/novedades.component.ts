@@ -36,7 +36,7 @@ interface WkSearchResult {
   type: string;
 }
 
-interface WkReview { user: string; score: number | null; text: string; date: string | null; }
+interface WkReview { user: string; score: number | null; text: string; date?: string | null; }
 
 interface WkComicDetail {
   id: string;

@@ -53,7 +53,7 @@ interface WhakoomAuthor {
   role: string;
 }
 
-interface PreviewReview { user: string; score: number | null; text: string; date: string | null; }
+interface PreviewReview { user: string; score: number | null; text: string; date?: string | null; }
 
 interface ComicPreview {
   id: string;
