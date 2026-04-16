@@ -13,6 +13,7 @@ interface NewTitleItem {
   publisher: string | null;
   collection_whakoom_id: string | null;
   collection_slug: string | null;
+  comics_url_path: string | null;
   release_month: string;
   release_week: string | null;
   release_week_start: string | null;
@@ -92,6 +93,7 @@ interface WantedPastItem {
   number: string | null;
   cover_url: string | null;
   publisher: string | null;
+  comics_url_path: string | null;
   release_month: string | null;
 }
 
@@ -103,6 +105,7 @@ interface WantedRow {
   cover_url: string | null;
   publisher: string | null;
   collection_whakoom_id: string | null;
+  comics_url_path: string | null;
   release_month: string | null;
   added_at: string;
 }
@@ -171,7 +174,7 @@ interface WantedRow {
               @if (mineMain().length > 0) {
                 <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                   @for (item of mineMain(); track item.whakoom_comic_id) {
-                    <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null, item.tracking_mode ?? null)">
+                    <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null, item.tracking_mode ?? null, item.comics_url_path ?? null)">
                       <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                         @if (item.cover_url) {
                           <img [src]="item.cover_url" [alt]="item.title" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" draggable="false" />
@@ -234,7 +237,7 @@ interface WantedRow {
                     }
                     @for (w of wantedPast(); track w.whakoom_comic_id) {
                       <div class="group flex items-center gap-3 bg-[#111] hover:bg-[#161616] border border-[#1a1a1a] hover:border-[#2a2a2a] rounded-xl px-3 py-2.5 cursor-pointer transition-colors"
-                        (click)="openDetail(w.whakoom_comic_id, 'comic', null)">
+                        (click)="openDetail(w.whakoom_comic_id, 'comic', null, null, w.comics_url_path ?? null)">
                         <div class="shrink-0 w-9 h-[54px] rounded-lg overflow-hidden bg-[#1a1a1a]">
                           @if (w.cover_url) {
                             <img [src]="w.cover_url" [alt]="w.title" class="w-full h-full object-cover" loading="lazy" draggable="false" />
@@ -267,7 +270,7 @@ interface WantedRow {
                   <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Siguiendo</h3>
                   <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                     @for (item of mineSiguiendo(); track item.whakoom_comic_id) {
-                      <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null, 2)">
+                      <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null, 2, item.comics_url_path ?? null)">
                         <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                           @if (item.cover_url) {
                             <img [src]="item.cover_url" [alt]="item.title" class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" draggable="false" />
@@ -324,7 +327,7 @@ interface WantedRow {
                   </div>
                   <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
                     @for (item of group.items; track item.whakoom_comic_id) {
-                      <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null)">
+                      <div class="group cursor-pointer" (click)="openDetail(item.whakoom_comic_id, 'comic', item.local_collection_id ?? null, null, item.comics_url_path ?? null)">
                         <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
                           @if (item.cover_url) {
                             <img [src]="item.cover_url" [alt]="item.title"
@@ -379,7 +382,7 @@ interface WantedRow {
                 @for (w of wanted(); track w.whakoom_comic_id) {
                   <div class="group">
                     <div class="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#161616] mb-1.5 cursor-pointer"
-                      (click)="openDetail(w.whakoom_comic_id)">
+                      (click)="openDetail(w.whakoom_comic_id, 'comic', null, null, w.comics_url_path ?? null)">
                       @if (w.cover_url) {
                         <img [src]="w.cover_url" [alt]="w.title"
                           class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
@@ -399,7 +402,7 @@ interface WantedRow {
                       <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
                     </div>
                     <button class="text-xs font-medium text-left text-[#e0e0e0] hover:text-[#8b5cf6] truncate leading-tight w-full transition-colors"
-                      (click)="openDetail(w.whakoom_comic_id)">{{ w.series || w.title }}</button>
+                      (click)="openDetail(w.whakoom_comic_id, 'comic', null, null, w.comics_url_path ?? null)">{{ w.series || w.title }}</button>
                     <div class="flex items-center justify-between">
                       <p class="text-[10px] text-[#606060] truncate">{{ w.release_month ?? '' }}</p>
                       <button class="text-[10px] text-red-400 hover:text-red-300 shrink-0"
@@ -851,6 +854,7 @@ export class NovedadesComponent implements OnInit {
   detailLocalCollId = signal<number | null>(null);
   detailTrackingMode = signal<number | null>(null);
   detailOpenId = signal<string | null>(null);
+  detailUrlPath = signal<string | null>(null);
 
   detailIsWanted = computed(() => {
     const d = this.detail();
@@ -991,7 +995,7 @@ export class NovedadesComponent implements OnInit {
     this.runSearch(this.searchPage() + 1);
   }
 
-  openDetail(id: string, type: string = 'comic', localCollId: number | null = null, trackingMode: number | null = null) {
+  openDetail(id: string, type: string = 'comic', localCollId: number | null = null, trackingMode: number | null = null, urlPath: string | null = null) {
     this.detailOpen.set(true);
     this.detailLoading.set(true);
     this.detail.set(null);
@@ -999,10 +1003,12 @@ export class NovedadesComponent implements OnInit {
     this.detailOpenId.set(id);
     this.detailLocalCollId.set(localCollId);
     this.detailTrackingMode.set(trackingMode);
+    this.detailUrlPath.set(urlPath);
     this.detailShowReviews.set(false);
     this.detailReviewsLimit.set(3);
     this.loadWanted();
-    this.api.get<WkComicDetail>(`/whakoom/comic/${id}?type=${type}`).subscribe({
+    const urlPathParam = urlPath ? `&url_path=${encodeURIComponent(urlPath)}` : '';
+    this.api.get<WkComicDetail>(`/whakoom/comic/${id}?type=${type}${urlPathParam}`).subscribe({
       next: (d) => { this.detail.set(d); this.detailLoading.set(false); },
       error: (err) => {
         this.detailError.set(err?.error?.error ?? 'Error al cargar detalle');
@@ -1041,6 +1047,7 @@ export class NovedadesComponent implements OnInit {
       number: d.number,
       cover_url: d.cover,
       publisher: d.publisher,
+      comics_url_path: this.detailUrlPath(),
       release_month: releaseMonth,
     }).subscribe({
       next: (row) => {
@@ -1086,7 +1093,7 @@ export class NovedadesComponent implements OnInit {
       this.router.navigate(['/app/collections', item.local_collection_id]);
     } else {
       // Abre el detail del comic; desde ahí, si hay editionId, se puede abrir la edición
-      this.openDetail(item.whakoom_comic_id);
+      this.openDetail(item.whakoom_comic_id, 'comic', null, null, item.comics_url_path ?? null);
     }
   }
 
