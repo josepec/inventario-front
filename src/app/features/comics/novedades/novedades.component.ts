@@ -77,6 +77,14 @@ interface WkEdition {
   reviews?: WkReview[];
 }
 
+interface AtrasadoCollection {
+  collection_id: number;
+  collection_title: string;
+  collection_cover: string | null;
+  collection_whakoom_id: string | null;
+  missing_issues: { number: number; title: string; cover: string | null; release_date: string | null }[];
+}
+
 interface WantedRow {
   whakoom_comic_id: string;
   title: string;
@@ -180,6 +188,47 @@ interface WantedRow {
                   }
                 </div>
               }
+              <!-- Atrasados: publicados sin comprar en colecciones coleccionando -->
+              @if (atrasados().length > 0) {
+                <div class="mt-6">
+                  <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
+                    Atrasados
+                    <span class="inline-flex items-center justify-center text-[10px] font-bold min-w-[1.25rem] h-4 px-1 rounded-full bg-[#7c3aed33] text-[#a78bfa]">
+                      {{ atrasados().reduce(acumulaAtrasados, 0) }}
+                    </span>
+                  </h3>
+                  <div class="flex flex-col gap-2">
+                    @for (col of atrasados(); track col.collection_id) {
+                      <div class="group flex items-center gap-3 bg-[#111] hover:bg-[#161616] border border-[#1a1a1a] hover:border-[#2a2a2a] rounded-xl px-3 py-2.5 cursor-pointer transition-colors"
+                        (click)="router.navigate(['/app/collections', col.collection_id])">
+                        <!-- Cover miniatura -->
+                        <div class="shrink-0 w-9 h-[54px] rounded-lg overflow-hidden bg-[#1a1a1a]">
+                          @if (col.collection_cover) {
+                            <img [src]="col.collection_cover" [alt]="col.collection_title" class="w-full h-full object-cover" loading="lazy" draggable="false" />
+                          } @else {
+                            <div class="w-full h-full flex items-center justify-center">
+                              <svg class="w-4 h-4 text-[#333]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/></svg>
+                            </div>
+                          }
+                        </div>
+                        <!-- Info -->
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium text-[#e0e0e0] group-hover:text-white truncate transition-colors">{{ col.collection_title }}</p>
+                          <p class="text-[11px] text-[#606060] mt-0.5">
+                            {{ col.missing_issues.length }} número{{ col.missing_issues.length === 1 ? '' : 's' }} sin comprar
+                            <span class="text-[#444] ml-1">#{{ col.missing_issues.map(i => i.number).join(', #') }}</span>
+                          </p>
+                        </div>
+                        <!-- Chevron -->
+                        <svg class="shrink-0 w-4 h-4 text-[#333] group-hover:text-[#666] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
               @if (mineSiguiendo().length > 0) {
                 <div class="mt-6">
                   <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Siguiendo</h3>
@@ -698,7 +747,7 @@ interface WantedRow {
 })
 export class NovedadesComponent implements OnInit {
   private api = inject(ApiService);
-  private router = inject(Router);
+  router = inject(Router);
   private location = inject(Location);
 
   tab = signal<'mine' | 'all' | 'wanted' | 'search'>('mine');
@@ -710,6 +759,10 @@ export class NovedadesComponent implements OnInit {
   mineLoading = signal(false);
   mineMain = computed(() => this.mine().filter(i => i.source === 'wanted' || (i.tracking_mode ?? 1) === 1));
   mineSiguiendo = computed(() => this.mine().filter(i => i.source === 'tracked' && (i.tracking_mode ?? 1) === 2));
+
+  atrasados = signal<AtrasadoCollection[]>([]);
+  atrasadosLoading = signal(false);
+  acumulaAtrasados = (acc: number, col: AtrasadoCollection) => acc + col.missing_issues.length;
 
   groups = signal<NewTitleGroup[]>([]);
   allLoading = signal(false);
@@ -757,6 +810,7 @@ export class NovedadesComponent implements OnInit {
     this.loadMine();
     this.loadAll();
     this.loadWanted();
+    this.loadAtrasados();
   }
 
   back() { this.location.back(); }
@@ -786,6 +840,14 @@ export class NovedadesComponent implements OnInit {
     if (m > 12) { m = 1; y++; }
     this.viewMonth.set({ year: y, month: m });
     this.loadAll();
+  }
+
+  loadAtrasados() {
+    this.atrasadosLoading.set(true);
+    this.api.get<{ data: AtrasadoCollection[] }>('/comics/atrasados').subscribe({
+      next: (res) => { this.atrasados.set(res.data ?? []); this.atrasadosLoading.set(false); },
+      error: () => { this.atrasados.set([]); this.atrasadosLoading.set(false); },
+    });
   }
 
   loadMine() {
