@@ -211,30 +211,6 @@ interface WantedRow {
                     </span>
                   </h3>
                   <div class="flex flex-col gap-2">
-                    @for (col of atrasados(); track col.collection_id) {
-                      <div class="group flex items-center gap-3 bg-[#111] hover:bg-[#161616] border border-[#1a1a1a] hover:border-[#2a2a2a] rounded-xl px-3 py-2.5 cursor-pointer transition-colors"
-                        (click)="router.navigate(['/app/collections', col.collection_id])">
-                        <div class="shrink-0 w-9 h-[54px] rounded-lg overflow-hidden bg-[#1a1a1a]">
-                          @if (col.collection_cover) {
-                            <img [src]="col.collection_cover" [alt]="col.collection_title" class="w-full h-full object-cover" loading="lazy" draggable="false" />
-                          } @else {
-                            <div class="w-full h-full flex items-center justify-center">
-                              <svg class="w-4 h-4 text-[#333]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/></svg>
-                            </div>
-                          }
-                        </div>
-                        <div class="flex-1 min-w-0">
-                          <p class="text-sm font-medium text-[#e0e0e0] group-hover:text-white truncate transition-colors">{{ col.collection_title }}</p>
-                          <p class="text-[11px] text-[#606060] mt-0.5">
-                            {{ col.missing_issues.length }} número{{ col.missing_issues.length === 1 ? '' : 's' }} sin comprar
-                            <span class="text-[#444] ml-1">#{{ col.missing_issues.map(i => i.number).join(', #') }}</span>
-                          </p>
-                        </div>
-                        <svg class="shrink-0 w-4 h-4 text-[#333] group-hover:text-[#666] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-                        </svg>
-                      </div>
-                    }
                     @for (w of wantedPast(); track w.whakoom_comic_id) {
                       <div class="group flex items-center gap-3 bg-[#111] hover:bg-[#161616] border border-[#1a1a1a] hover:border-[#2a2a2a] rounded-xl px-3 py-2.5 cursor-pointer transition-colors"
                         (click)="openDetail(w.whakoom_comic_id, 'comic', null, null, w.comics_url_path ?? null)">
@@ -254,6 +230,30 @@ interface WantedRow {
                             Lo quiero
                             @if (w.number) { <span class="text-[#444]">#{{ w.number }}</span> }
                             @if (w.release_month) { <span class="text-[#383838]">· {{ w.release_month }}</span> }
+                          </p>
+                        </div>
+                        <svg class="shrink-0 w-4 h-4 text-[#333] group-hover:text-[#666] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                        </svg>
+                      </div>
+                    }
+                    @for (col of atrasados(); track col.collection_id) {
+                      <div class="group flex items-center gap-3 bg-[#111] hover:bg-[#161616] border border-[#1a1a1a] hover:border-[#2a2a2a] rounded-xl px-3 py-2.5 cursor-pointer transition-colors"
+                        (click)="router.navigate(['/app/collections', col.collection_id])">
+                        <div class="shrink-0 w-9 h-[54px] rounded-lg overflow-hidden bg-[#1a1a1a]">
+                          @if (col.collection_cover) {
+                            <img [src]="col.collection_cover" [alt]="col.collection_title" class="w-full h-full object-cover" loading="lazy" draggable="false" />
+                          } @else {
+                            <div class="w-full h-full flex items-center justify-center">
+                              <svg class="w-4 h-4 text-[#333]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/></svg>
+                            </div>
+                          }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <p class="text-sm font-medium text-[#e0e0e0] group-hover:text-white truncate transition-colors">{{ col.collection_title }}</p>
+                          <p class="text-[11px] text-[#606060] mt-0.5">
+                            {{ col.missing_issues.length }} número{{ col.missing_issues.length === 1 ? '' : 's' }} sin comprar
+                            <span class="text-[#444] ml-1">#{{ col.missing_issues.map(i => i.number).join(', #') }}</span>
                           </p>
                         </div>
                         <svg class="shrink-0 w-4 h-4 text-[#333] group-hover:text-[#666] transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
