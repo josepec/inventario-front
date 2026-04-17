@@ -1045,7 +1045,10 @@ export class NovedadesComponent implements OnInit {
     const d = this.detail();
     if (!d) return;
     this.busyId.set(d.id);
-    const releaseMonth = d.date && /^\d{4}-\d{2}/.test(d.date) ? d.date.slice(0, 7) : null;
+    // Preferir fecha propia del comic; si no, el mes que se esta visualizando en el grid.
+    const vm = this.viewMonth();
+    const fallbackMonth = `${vm.year}-${String(vm.month).padStart(2, '0')}`;
+    const releaseMonth = d.date && /^\d{4}-\d{2}/.test(d.date) ? d.date.slice(0, 7) : fallbackMonth;
     this.api.post<WantedRow>('/wanted', {
       whakoom_comic_id: d.id,
       title: d.title,
