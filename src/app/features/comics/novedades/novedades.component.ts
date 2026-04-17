@@ -46,6 +46,7 @@ interface WkComicDetail {
   cover: string;
   description: string;
   authors: string[];
+  structuredAuthors?: { name: string; role: string }[];
   publisher: string;
   date: string;
   series: string;
@@ -639,7 +640,8 @@ interface WantedRow {
               <!-- Fila principal: "Ya lo tengo" + "Lo quiero" -->
               <div class="flex gap-2 mb-2">
                 <button (click)="importFromDetail()"
-                  class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-green-700 hover:bg-green-600 text-white text-sm font-semibold transition-colors">
+                  [disabled]="busyId() === detail()!.id"
+                  class="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white text-sm font-semibold transition-colors">
                   <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
                   Ya lo tengo
                 </button>
@@ -1086,8 +1088,69 @@ export class NovedadesComponent implements OnInit {
   importFromDetail() {
     const d = this.detail();
     if (!d) return;
-    this.closeDetail();
-    this.router.navigate(['/app/comics/new'], { queryParams: { whakoom_id: d.id } });
+    this.busyId.set(d.id);
+
+    const localId = d.local_collection_id ?? this.detailLocalCollId();
+
+    const doImport = (collection_id: number | null) => {
+      const sa = d.structuredAuthors ?? [];
+      const guionista = sa.find(a => a.role.toLowerCase().includes('guion'));
+      const dibujante = sa.find(a => a.role.toLowerCase().includes('dibujo'));
+      const writer = guionista?.name ?? d.authors?.[0] ?? null;
+      const artist = dibujante?.name ?? d.authors?.[1] ?? null;
+
+      this.api.post<{ id: number }>('/comics', {
+        title: d.title,
+        series: d.series,
+        number: d.number ? Number(d.number) : null,
+        publisher: d.publisher,
+        isbn: d.isbn || null,
+        publish_date: d.date || null,
+        language: d.language || null,
+        pages: d.pages ?? null,
+        binding: d.binding ?? null,
+        price: d.price ?? null,
+        synopsis: d.description || null,
+        cover_url: d.cover || null,
+        collection_id,
+        authors: sa.length ? sa : null,
+        writer,
+        artist,
+        whakoom_id: d.id,
+        owned: true,
+      }).subscribe({
+        next: () => {
+          this.busyId.set(null);
+          this.closeDetail();
+          this.groups.update(gs => gs.map(g => ({
+            ...g,
+            items: g.items.map(i => i.whakoom_comic_id === d.id ? { ...i, owned: true, wanted: false } : i),
+          })));
+          this.wanted.update(list => list.filter(w => w.whakoom_comic_id !== d.id));
+          this.mine.update(list => list.filter(i => i.whakoom_comic_id !== d.id));
+          this.loadAtrasados();
+        },
+        error: () => this.busyId.set(null),
+      });
+    };
+
+    if (localId) {
+      doImport(localId);
+    } else if (d.editionId) {
+      this.api.post<{ id: number }>('/collections', {
+        whakoom_id: d.editionId,
+        whakoom_type: 'edition',
+        title: d.series || d.title,
+        publisher: d.publisher,
+        cover_url: d.cover,
+        url: `https://www.whakoom.com/ediciones/${d.editionId}`,
+      }).subscribe({
+        next: (col) => doImport(col.id),
+        error: () => doImport(null),
+      });
+    } else {
+      doImport(null);
+    }
   }
 
   // Tap en el nombre de la serie en una card
