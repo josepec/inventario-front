@@ -70,9 +70,14 @@ interface WkEdition {
   cover: string;
   description: string;
   publisher: string;
-  authors: { name: string; role: string }[];
+  authors: string[];
+  structuredAuthors?: { name: string; role: string }[];
   issues: { id: string; number: number; title: string; cover: string; published: boolean }[];
-  total_issues: number;
+  totalIssues: number;
+  isOneShot?: boolean;
+  format?: string;
+  status?: string;
+  editionDetails?: string;
   url: string;
   ratingValue?: number | null;
   ratingCount?: number | null;
@@ -136,7 +141,7 @@ interface WantedRow {
         <!-- Tabs — scrollable on mobile -->
         <div class="w-full overflow-x-auto pb-1 mb-4 md:mb-6 scrollbar-none">
           <div class="flex items-center gap-1 bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 w-max min-w-full">
-            <button (click)="tab.set('mine')"
+            <button (click)="tab.set('mine'); loadMine(); loadAtrasados()"
               class="flex-1 whitespace-nowrap px-3 md:px-4 py-2 rounded-lg text-xs md:text-sm font-medium transition-colors"
               [class]="tab() === 'mine' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
               Mis novedades
@@ -728,12 +733,12 @@ interface WantedRow {
                     <div class="min-w-0">
                       <p class="text-[10px] text-[#888] uppercase tracking-wider">{{ edition()!.publisher }}</p>
                       <h3 class="text-base md:text-lg font-bold text-white leading-tight">{{ edition()!.title }}</h3>
-                      <p class="text-[11px] text-[#666] mt-0.5">{{ edition()!.total_issues }} números</p>
+                      <p class="text-[11px] text-[#666] mt-0.5">{{ edition()!.totalIssues }} números</p>
                     </div>
                     <button (click)="closeEdition()" class="text-[#555] hover:text-white text-xl leading-none shrink-0">✕</button>
                   </div>
                   @if (edition()!.authors.length > 0) {
-                    <p class="text-[10px] text-[#888] mt-2">{{ edition()!.authors.slice(0,3).map(a => a.name).join(', ') }}</p>
+                    <p class="text-[10px] text-[#888] mt-2">{{ edition()!.authors.slice(0,3).join(', ') }}</p>
                   }
                   @if (edition()!.ratingValue) {
                     <button (click)="editionShowReviews.set(!editionShowReviews())" class="flex items-center gap-1.5 mt-2 hover:opacity-80 transition-opacity cursor-pointer">
@@ -1074,6 +1079,7 @@ export class NovedadesComponent implements OnInit {
           items: g.items.map(i => i.whakoom_comic_id === d.id ? { ...i, wanted: true } : i),
         })));
         this.loadMine();
+        this.loadAtrasados();
       },
       error: () => this.busyId.set(null),
     });
@@ -1090,6 +1096,7 @@ export class NovedadesComponent implements OnInit {
           items: g.items.map(i => i.whakoom_comic_id === id ? { ...i, wanted: false } : i),
         })));
         this.mine.update(list => list.filter(i => i.whakoom_comic_id !== id));
+        this.loadAtrasados();
       },
       error: () => this.busyId.set(null),
     });
@@ -1146,21 +1153,40 @@ export class NovedadesComponent implements OnInit {
 
     if (localId) {
       doImport(localId);
-    } else if (d.editionId) {
-      this.api.post<{ id: number }>('/collections', {
-        whakoom_id: d.editionId,
-        whakoom_type: 'edition',
-        title: d.series || d.title,
-        publisher: d.publisher,
-        cover_url: d.cover,
-        url: `https://www.whakoom.com/ediciones/${d.editionId}`,
-      }).subscribe({
-        next: (col) => doImport(col.id),
-        error: () => doImport(null),
-      });
-    } else {
-      doImport(null);
+      return;
     }
+    if (!d.editionId) {
+      doImport(null);
+      return;
+    }
+    // Hay editionId pero no colección local → fetch edición para comprobar isOneShot
+    this.api.get<WkEdition>(`/whakoom/edition/${d.editionId}`).subscribe({
+      next: (edition) => {
+        if (edition.isOneShot) {
+          doImport(null);
+          return;
+        }
+        this.api.post<{ id: number }>('/collections', {
+          whakoom_id: d.editionId,
+          whakoom_type: 'edition',
+          title: edition.title || d.series || d.title,
+          publisher: edition.publisher || d.publisher,
+          cover_url: edition.cover || d.cover,
+          total_issues: edition.totalIssues || null,
+          description: edition.description || '',
+          format: edition.format || '',
+          status: edition.status || '',
+          edition_details: edition.editionDetails || '',
+          authors: edition.structuredAuthors || edition.authors || [],
+          issues: edition.issues || [],
+          url: edition.url || `https://www.whakoom.com/ediciones/${d.editionId}`,
+        }).subscribe({
+          next: (col) => doImport(col.id),
+          error: () => doImport(null),
+        });
+      },
+      error: () => doImport(null),
+    });
   }
 
   // Tap en el nombre de la serie en una card

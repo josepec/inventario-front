@@ -699,7 +699,9 @@ export class DashboardComponent implements OnInit {
     const now = new Date();
     for (let i = 11; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push(date.toISOString().slice(0, 7));
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, '0');
+      months.push(`${y}-${m}`);
     }
     const addedMap = new Map(monthly.added.map(m => [m.month, m.count]));
     const readMap = new Map(monthly.read.map(m => [m.month, m.count]));

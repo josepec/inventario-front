@@ -989,8 +989,8 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     if (this.search) p['search'] = this.search;
     if (this.filterAuthor()) p['author'] = this.filterAuthor();
     if (this.filterPublisher()) p['publisher'] = this.filterPublisher();
-    if (this.sortField() !== 'created_at') p['sort'] = this.sortField();
-    if (this.sortOrder() !== 'desc') p['order'] = this.sortOrder();
+    p['sort'] = this.sortField();
+    p['order'] = this.sortOrder();
     if (this.colTrackingFilter()) p['tracking'] = this.colTrackingFilter();
     if (this.colStatusFilter()) p['status'] = this.colStatusFilter();
     if (this.colReadFilter()) p['read'] = this.colReadFilter();
@@ -1374,10 +1374,17 @@ export class ComicsListComponent implements OnInit, OnDestroy {
       }
     };
 
-    // Fetch edición y crear colección
+    // Fetch edición y crear colección (salvo tomo único → solo comic)
     const fetchAndCreateFromEdition = (editionId: string, comicCoverUrl: string, wkId?: string) => {
       this.http.get<any>(`${this.base}/whakoom/edition/${editionId}`).subscribe({
-        next: (edition) => createCollectionFromEdition(edition, comicCoverUrl, wkId),
+        next: (edition) => {
+          if (edition.isOneShot) {
+            editionMeta = { binding: edition.binding, price: edition.price, pages: edition.pages };
+            doSave(comicCoverUrl, null);
+          } else {
+            createCollectionFromEdition(edition, comicCoverUrl, wkId);
+          }
+        },
         error: () => {
           createCollection(comicCoverUrl, {
             whakoom_id: wkId || null,
@@ -1391,16 +1398,16 @@ export class ComicsListComponent implements OnInit, OnDestroy {
 
     const withCover = (coverUrl: string) => {
       if (src?.type === 'edition') {
-        // Fetch edición para ver si tiene múltiples números
+        // Fetch edición para ver si es tomo único (oneshot en Whakoom)
         this.http.get<any>(`${this.base}/whakoom/edition/${src.id}`).subscribe({
           next: (edition) => {
-            if (edition.totalIssues > 1 || (edition.issues && edition.issues.length > 1)) {
-              // Edición con múltiples números → crear colección (reutiliza datos ya cargados)
-              createCollectionFromEdition(edition, coverUrl, src.id);
-            } else {
-              // Tomo único → guardar como cómic suelto
+            if (edition.isOneShot) {
+              // Tomo único → guardar como cómic suelto, sin colección
               editionMeta = { binding: edition.binding, price: edition.price, pages: edition.pages };
               doSave(coverUrl, null);
+            } else {
+              // Edición multi-issue → crear colección (reutiliza datos ya cargados)
+              createCollectionFromEdition(edition, coverUrl, src.id);
             }
           },
           error: () => doSave(coverUrl, null),
