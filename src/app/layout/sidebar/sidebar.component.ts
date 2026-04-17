@@ -66,17 +66,27 @@ interface NavItem {
       </nav>
 
       <!-- User -->
-      <div class="px-3 py-4 border-t border-[#1e1e1e] shrink-0">
-        <div class="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#1f1f1f] cursor-pointer group"
-          (click)="auth.logout()">
-          <div class="w-7 h-7 rounded-full bg-[#7c3aed] flex items-center justify-center text-xs font-bold text-white shrink-0">
+      <div class="px-3 py-3 border-t border-[#1e1e1e] shrink-0">
+        <div class="flex items-center gap-3 px-2 py-2 rounded-xl">
+          <div class="w-9 h-9 rounded-full bg-[#7c3aed] flex items-center justify-center text-sm font-bold text-white shrink-0">
             {{ userInitial() }}
           </div>
-          <svg class="w-4 h-4 text-[#404040] group-hover:text-[#a0a0a0] shrink-0 transition-colors"
-            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
-            <path stroke-linecap="round" stroke-linejoin="round"
-              d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-          </svg>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-medium text-white truncate leading-tight">{{ userName() }}</p>
+            @if (userEmail()) {
+              <p class="text-[11px] text-[#606060] truncate leading-tight mt-0.5">{{ userEmail() }}</p>
+            }
+          </div>
+          <button type="button"
+            (click)="confirmLogout()"
+            title="Cerrar sesión"
+            aria-label="Cerrar sesión"
+            class="shrink-0 w-9 h-9 flex items-center justify-center rounded-lg text-[#606060] hover:text-red-400 hover:bg-red-500/10 transition-colors">
+            <svg class="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round"
+                d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+            </svg>
+          </button>
         </div>
       </div>
 
@@ -90,4 +100,13 @@ export class SidebarComponent {
     const u = this.auth.currentUser()?.username;
     return u ? u.charAt(0).toUpperCase() : '?';
   };
+
+  userName = () => this.auth.currentUser()?.username ?? 'Invitado';
+  userEmail = () => this.auth.currentUser()?.email ?? null;
+
+  confirmLogout() {
+    if (confirm('¿Cerrar sesión?')) {
+      this.auth.logout();
+    }
+  }
 }
