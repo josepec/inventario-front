@@ -201,10 +201,10 @@ import { environment } from '../../../../environments/environment';
                 @if (comic()!.collection_id && comic()!.number != null) {
                   <a [routerLink]="['/app/collections', comic()!.collection_id]"
                     class="text-[#8b5cf6] hover:text-[#a78bfa] text-sm font-medium mb-1 inline-block transition-colors">
-                    {{ comic()!.collection_name || comic()!.series }}
+                    {{ comic()!.collection_name || comic()!.series }}@if (comic()!.subtitle && comic()!.number != null) { <span class="text-[#7c3aed]/70"> · #{{ comic()!.number }}</span> }
                   </a>
                 }
-                <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">{{ comic()!.title }}</h1>
+                <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">{{ comic()!.subtitle || comic()!.title }}</h1>
                 @if (mainWriter()) {
                   <p class="text-[#a0a0a0] mt-2 text-sm">Por <span class="text-white">{{ mainWriter() }}</span></p>
                 }
@@ -214,6 +214,11 @@ import { environment } from '../../../../environments/environment';
                     <label class="edit-label">Titulo</label>
                     <input [(ngModel)]="draft.title" type="text" placeholder="Titulo del comic"
                       class="edit-input text-lg font-bold" />
+                  </div>
+                  <div>
+                    <label class="edit-label">Subtitulo <span class="text-[#505050] font-normal">(si pertenece a una coleccion tipo "One-Shot")</span></label>
+                    <input [(ngModel)]="draft.subtitle" type="text" placeholder="Ej: Batman: Patrones oscuros 2"
+                      class="edit-input" />
                   </div>
                   <div class="grid grid-cols-2 gap-3">
                     <div>
@@ -451,7 +456,7 @@ export class ComicDetailComponent implements OnInit {
 
   // Draft for inline editing
   draft = {
-    title: '', series: '', number: null as number | null, cover_url: '',
+    title: '', subtitle: '', series: '', number: null as number | null, cover_url: '',
     synopsis: '', writer: '', artist: '', colorist: '', cover_artist: '',
     publisher: '', original_publisher: '', publish_date: '', format: null as ComicFormat | null,
     pages: null as number | null, binding: '', price: null as number | null,
@@ -490,6 +495,7 @@ export class ComicDetailComponent implements OnInit {
     const c = this.comic()!;
     this.draft = {
       title: c.title ?? '',
+      subtitle: c.subtitle ?? '',
       series: c.series ?? '',
       number: c.number,
       cover_url: c.cover_url ?? '',

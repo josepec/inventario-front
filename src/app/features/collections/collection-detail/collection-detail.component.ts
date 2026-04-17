@@ -88,7 +88,8 @@ interface WhakoomEdition {
   description: string;
   editionDetails: string;
   synopsis: string;
-  authors: WhakoomAuthor[];
+  authors: string[];
+  structuredAuthors?: WhakoomAuthor[];
   issues: WhakoomIssue[];
   url: string;
   pages?: number | null;
@@ -737,7 +738,9 @@ export class CollectionDetailComponent implements OnInit {
   }
 
   private syncEdition(col: Collection, ed: WhakoomEdition, done?: () => void) {
-    this.api.put<Collection>(`/collections/${col.id}`, {
+    // No enviar authors/issues vacios: el backend hace COALESCE, pero un array
+    // vacio NO es null, sobreescribiria y borraria los datos previos.
+    const payload: Record<string, unknown> = {
       title: ed.title || col.title,
       publisher: ed.publisher || col.publisher,
       cover_url: col.cover_url,
@@ -748,10 +751,16 @@ export class CollectionDetailComponent implements OnInit {
       status: ed.status || null,
       edition_details: ed.editionDetails || null,
       synopsis: ed.synopsis || null,
-      authors: ed.authors || [],
-      issues: ed.issues || [],
       whakoom_synced_at: new Date().toISOString(),
-    }).subscribe({
+    };
+    // Usar structuredAuthors ({name, role}) — que es lo que espera el template.
+    // ed.authors es string[] desde el cambio en parseEdition; almacenarlo
+    // directamente romperia el render que hace author.name / author.role.
+    if (ed.structuredAuthors && ed.structuredAuthors.length > 0) {
+      payload['authors'] = ed.structuredAuthors;
+    }
+    if (ed.issues && ed.issues.length > 0) payload['issues'] = ed.issues;
+    this.api.put<Collection>(`/collections/${col.id}`, payload).subscribe({
       next: updated => {
         this.collection.update(c => c ? { ...c, ...updated, comics: c.comics } : c);
         done?.();
@@ -773,7 +782,7 @@ export class CollectionDetailComponent implements OnInit {
     });
   }
 
-  addIssue(issue: { whakoomId: string | null; number: number | null; title: string; cover: string | null }) {
+  addIssue(issue: { whakoomId: string | null; number: number | null; title: string; subtitle?: string | null; cover: string | null }) {
     if (!issue.whakoomId || this.addingIssue()) return;
 
     this.addingIssue.set(issue.whakoomId);
@@ -786,6 +795,7 @@ export class CollectionDetailComponent implements OnInit {
         const createComic = (finalCoverUrl: string) => {
           this.api.post<any>('/comics', {
             title: detail.title || issue.title,
+            subtitle: detail.subtitle || issue.subtitle || null,
             series: detail.series || col.title,
             number: issue.number,
             publisher: detail.publisher || wk?.publisher || col.publisher,

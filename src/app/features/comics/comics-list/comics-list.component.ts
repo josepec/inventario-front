@@ -42,6 +42,7 @@ interface WkComic {
   binding?: string | null;
   price?: number | null;
   editionId?: string | null;
+  subtitle?: string | null;
 }
 
 @Component({
@@ -459,9 +460,9 @@ interface WkComic {
                       <div class="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors duration-200 rounded-xl"></div>
                     }
                   </div>
-                  <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ comic.title }}</p>
-                  @if (comic.series && comic.series !== comic.title) {
-                    <p class="text-[10px] text-[#606060] truncate">{{ comic.series }}</p>
+                  <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ comic.subtitle || comic.title }}</p>
+                  @if (comic.series && comic.series !== (comic.subtitle || comic.title)) {
+                    <p class="text-[10px] text-[#606060] truncate">{{ comic.series }}@if (comic.subtitle && comic.number) { <span class="text-[#404040]"> · #{{ comic.number }}</span> }</p>
                   }
                 </div>
               }
@@ -493,8 +494,10 @@ interface WkComic {
                   }
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-sm font-semibold text-white truncate">{{ comic.title }}</p>
-                  @if (comic.series && comic.series !== comic.title) { <p class="text-xs text-[#606060] truncate">{{ comic.series }}</p> }
+                  <p class="text-sm font-semibold text-white truncate">{{ comic.subtitle || comic.title }}</p>
+                  @if (comic.series && comic.series !== (comic.subtitle || comic.title)) {
+                    <p class="text-xs text-[#606060] truncate">{{ comic.series }}@if (comic.subtitle && comic.number) { <span class="text-[#404040]"> · #{{ comic.number }}</span> }</p>
+                  }
                 </div>
                 <div class="hidden sm:block shrink-0 text-xs text-[#606060]">{{ comic.publisher }}</div>
                 <div class="shrink-0">
@@ -1271,6 +1274,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
       const artist = sa.find(a => a.role.toLowerCase().includes('dibujo'))?.name || d.authors?.[1] || '';
       this.api.post<any>('/comics', {
         title: d.title,
+        subtitle: d.subtitle || null,
         series: d.series || '',
         number: d.number ? Number(d.number) : null,
         publisher: d.publisher || '',

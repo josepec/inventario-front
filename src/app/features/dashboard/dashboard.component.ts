@@ -23,7 +23,7 @@ interface ComicsDashboard {
   byPublisher: { publisher: string; count: number }[];
   byRating: { rating: number; count: number }[];
   collections: { id: number; title: string; total_issues: number; cover_url: string | null; rating: number | null; owned: number }[];
-  recentComics: { id: number; title: string; cover_url: string | null; rating: number | null; created_at: string }[];
+  recentComics: { id: number; title: string; subtitle: string | null; cover_url: string | null; rating: number | null; created_at: string }[];
   spending: {
     total: number;
     avg: number;
@@ -362,7 +362,7 @@ interface BooksDashboard {
                     <div class="aspect-[2/3] rounded-lg overflow-hidden bg-[#0d0d0d] border border-[#1f1f1f] group-hover:border-[#7c3aed]/60 transition-colors">
                       @if (comic.cover_url) { <img [src]="comic.cover_url" [alt]="comic.title" class="w-full h-full object-cover transition-transform group-hover:scale-105" loading="lazy" /> }
                     </div>
-                    <p class="mt-1 text-[9px] md:text-[10px] text-[#606060] group-hover:text-[#a0a0a0] truncate transition-colors">{{ comic.title }}</p>
+                    <p class="mt-1 text-[9px] md:text-[10px] text-[#606060] group-hover:text-[#a0a0a0] truncate transition-colors">{{ comic.subtitle || comic.title }}</p>
                   </a>
                 }
               </div>

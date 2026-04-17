@@ -5,6 +5,7 @@ export interface Comic {
   id: number;
   // Identificación
   title: string;
+  subtitle: string | null;
   series: string;
   number: number | null;
   volume: number | null;

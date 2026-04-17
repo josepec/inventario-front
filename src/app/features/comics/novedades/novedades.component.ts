@@ -62,6 +62,7 @@ interface WkComicDetail {
   ratingCount?: number | null;
   reviews?: WkReview[];
   local_collection_id?: number | null;
+  subtitle?: string | null;
 }
 
 interface WkEdition {
@@ -1118,6 +1119,7 @@ export class NovedadesComponent implements OnInit {
 
       this.api.post<{ id: number }>('/comics', {
         title: d.title,
+        subtitle: d.subtitle || null,
         series: d.series,
         number: d.number ? Number(d.number) : null,
         publisher: d.publisher,
