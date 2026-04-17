@@ -1049,6 +1049,13 @@ export class NovedadesComponent implements OnInit {
     const vm = this.viewMonth();
     const fallbackMonth = `${vm.year}-${String(vm.month).padStart(2, '0')}`;
     const releaseMonth = d.date && /^\d{4}-\d{2}/.test(d.date) ? d.date.slice(0, 7) : fallbackMonth;
+    // Si el caller no pasó urlPath, derivarlo de d.url (siempre canonico: /comics/X o /ediciones/X)
+    // para que el item sea reabrible sin depender del fallback /comics/{id} — que falla cuando el
+    // id es de edición, no de comic.
+    let urlPath = this.detailUrlPath();
+    if (!urlPath && d.url) {
+      urlPath = d.url.replace(/^https?:\/\/[^/]+/, '') || null;
+    }
     this.api.post<WantedRow>('/wanted', {
       whakoom_comic_id: d.id,
       title: d.title,
@@ -1056,7 +1063,7 @@ export class NovedadesComponent implements OnInit {
       number: d.number,
       cover_url: d.cover,
       publisher: d.publisher,
-      comics_url_path: this.detailUrlPath(),
+      comics_url_path: urlPath,
       release_month: releaseMonth,
     }).subscribe({
       next: (row) => {
