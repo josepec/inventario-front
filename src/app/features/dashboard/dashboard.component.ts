@@ -31,6 +31,9 @@ interface ComicsDashboard {
     estimatedAvg: number;
     missingCount: number;
     missingPct: number;
+    pricedCount: number;
+    byPublisher: { publisher: string; spent: number; count: number }[];
+    byBinding: { binding: string; spent: number; count: number }[];
   };
   thisYear: { added: number; read: number; spent: number };
   prevYear: { added: number; read: number; spent: number };
@@ -46,7 +49,12 @@ interface BooksDashboard {
   byRating: { rating: number; count: number }[];
   bySaga: { saga: string; count: number }[];
   recentBooks: { id: number; title: string; cover_url: string | null; rating: number | null; created_at: string }[];
-  spending: { total: number; avg: number };
+  spending: {
+    total: number;
+    avg: number;
+    byPublisher: { publisher: string; spent: number; count: number }[];
+    byFormat: { format: string; spent: number; count: number }[];
+  };
   thisYear: { added: number; read: number; spent: number };
   prevYear: { added: number; read: number; spent: number };
   monthlySpending: { thisMonth: number; prevMonth: number };
@@ -145,7 +153,12 @@ interface BooksDashboard {
                 <div class="mt-auto">
                 <div class="h-48 flex gap-1.5">
                   @for (bar of comicMonthlyBars(); track bar.month) {
-                    <div class="flex-1 flex flex-col items-center">
+                    <div class="flex-1 flex flex-col items-center relative group">
+                      <div class="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity bg-[#1e1e1e] border border-[#2a2a2a] rounded-md px-2.5 py-1.5 text-[10px] text-white whitespace-nowrap z-10 shadow-lg">
+                        <div class="font-semibold text-[#d0d0d0] mb-1">{{ bar.fullLabel }}</div>
+                        <div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-[#7c3aed]"></span>Añadidos: <span class="font-semibold text-white">{{ bar.added }}</span></div>
+                        <div class="flex items-center gap-1.5 mt-0.5"><span class="w-1.5 h-1.5 rounded-full bg-[#22c55e]"></span>Leídos: <span class="font-semibold text-white">{{ bar.read }}</span></div>
+                      </div>
                       <div class="w-full flex-1 flex flex-col justify-end gap-px">
                         @if (bar.read > 0) {
                           <div class="w-full bg-[#22c55e] rounded-t-sm min-h-[2px] transition-all duration-500" [style.height.%]="bar.readPct"></div>
@@ -195,8 +208,12 @@ interface BooksDashboard {
           <!-- Spending + Ratings + Year -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <!-- Spending -->
-            <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 flex flex-col gap-3">
-              <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold">Inversión</h3>
+            <button type="button" (click)="spendingDetailOpen.set('comics')"
+              class="text-left bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 flex flex-col gap-3 hover:border-[#2a2a2a] hover:bg-[#181818] transition-colors cursor-pointer">
+              <div class="flex items-center justify-between">
+                <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold">Inversión</h3>
+                <span class="text-[#606060] text-xs">↗</span>
+              </div>
 
               <!-- Total real -->
               <div>
@@ -234,7 +251,7 @@ interface BooksDashboard {
                   }
                 </div>
               }
-            </div>
+            </button>
             <!-- Ratings -->
             <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
               <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Valoraciones</h3>
@@ -424,7 +441,12 @@ interface BooksDashboard {
                 <div class="mt-auto">
                 <div class="h-48 flex gap-1.5">
                   @for (bar of bookMonthlyBars(); track bar.month) {
-                    <div class="flex-1 flex flex-col items-center">
+                    <div class="flex-1 flex flex-col items-center relative group">
+                      <div class="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity bg-[#1e1e1e] border border-[#2a2a2a] rounded-md px-2.5 py-1.5 text-[10px] text-white whitespace-nowrap z-10 shadow-lg">
+                        <div class="font-semibold text-[#d0d0d0] mb-1">{{ bar.fullLabel }}</div>
+                        <div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-[#7c3aed]"></span>Añadidos: <span class="font-semibold text-white">{{ bar.added }}</span></div>
+                        <div class="flex items-center gap-1.5 mt-0.5"><span class="w-1.5 h-1.5 rounded-full bg-[#22c55e]"></span>Leídos: <span class="font-semibold text-white">{{ bar.read }}</span></div>
+                      </div>
                       <div class="w-full flex-1 flex flex-col justify-end gap-px">
                         @if (bar.read > 0) {
                           <div class="w-full bg-[#22c55e] rounded-t-sm min-h-[2px] transition-all duration-500" [style.height.%]="bar.readPct"></div>
@@ -473,8 +495,12 @@ interface BooksDashboard {
 
           <!-- Spending + Ratings + Year -->
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
-              <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Inversion</h3>
+            <button type="button" (click)="spendingDetailOpen.set('books')"
+              class="text-left bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 hover:border-[#2a2a2a] hover:bg-[#181818] transition-colors cursor-pointer">
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold">Inversion</h3>
+                <span class="text-[#606060] text-xs">↗</span>
+              </div>
               <p class="text-2xl font-bold text-white">{{ booksData()!.spending.total | number:'1.0-0' }} EUR</p>
               <p class="text-[10px] text-[#606060] mt-1">Media: {{ booksData()!.spending.avg | number:'1.2-2' }} EUR / libro</p>
               @if (booksData()!.statsStartDate) {
@@ -485,7 +511,7 @@ interface BooksDashboard {
                   </div>
                 </div>
               }
-            </div>
+            </button>
             <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
               <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Valoraciones</h3>
               <div class="space-y-2">
@@ -577,6 +603,158 @@ interface BooksDashboard {
         </div>
       }
     </div>
+
+    @if (spendingDetailOpen() === 'comics' && comicsData()) {
+      <div class="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto"
+        (click)="spendingDetailOpen.set(null)">
+        <div class="bg-[#161616] border border-[#2a2a2a] rounded-2xl max-w-2xl w-full my-auto shadow-2xl" (click)="$event.stopPropagation()">
+          <div class="flex items-center justify-between p-5 border-b border-[#1e1e1e]">
+            <h2 class="text-base font-semibold text-white">Desglose de inversión · Cómics</h2>
+            <button type="button" (click)="spendingDetailOpen.set(null)"
+              class="text-[#808080] hover:text-white transition-colors text-xl leading-none">×</button>
+          </div>
+          <div class="p-5 space-y-5">
+            <!-- Totales -->
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-[10px] text-[#606060] uppercase tracking-wide mb-1">Total real</p>
+                <p class="text-2xl font-bold text-white">{{ comicsData()!.spending.total | number:'1.0-0' }}<span class="text-sm text-[#606060] ml-1">€</span></p>
+                <p class="text-[11px] text-[#505050] mt-0.5">{{ comicsData()!.spending.pricedCount | number }} cómics con precio · {{ comicsData()!.spending.avg | number:'1.2-2' }} €/cómic</p>
+              </div>
+              <div>
+                <p class="text-[10px] text-[#606060] uppercase tracking-wide mb-1">Estimado total</p>
+                <p class="text-2xl font-bold text-[#a78bfa]">~{{ comicsData()!.spending.estimatedTotal | number:'1.0-0' }}<span class="text-sm text-[#606060] ml-1">€</span></p>
+                <p class="text-[11px] text-[#505050] mt-0.5">{{ comicsData()!.spending.missingCount | number }} sin precio ({{ comicsData()!.spending.missingPct | number:'1.0-0' }}%)</p>
+              </div>
+            </div>
+            <!-- Método estimación -->
+            <div class="p-3 rounded-xl bg-[#0e0e0e] border border-[#1e1e1e]">
+              <p class="text-[10px] text-[#606060] uppercase tracking-wide mb-1">Cómo se calcula la estimación</p>
+              <p class="text-xs text-[#a0a0a0] leading-relaxed">Para cada cómic sin precio se aplica una media: <span class="text-white">editorial + formato</span> si hay ≥3 muestras, si no <span class="text-white">editorial</span>, si no <span class="text-white">formato</span>, y si no la <span class="text-white">media global</span>.</p>
+            </div>
+            <!-- Top editoriales por gasto -->
+            @if (comicsData()!.spending.byPublisher.length > 0) {
+              <div>
+                <p class="text-[10px] text-[#606060] uppercase tracking-wide mb-2">Top editoriales por gasto real</p>
+                <div class="space-y-1.5">
+                  @for (p of comicsData()!.spending.byPublisher; track p.publisher) {
+                    <div class="flex items-center justify-between text-xs">
+                      <span class="text-[#d0d0d0] truncate">{{ p.publisher }}</span>
+                      <span class="ml-2 shrink-0 text-[#a0a0a0]">
+                        <span class="font-semibold text-white">{{ p.spent | number:'1.0-0' }} €</span>
+                        <span class="text-[#606060]"> · {{ p.count }}</span>
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+            <!-- Por formato -->
+            @if (comicsData()!.spending.byBinding.length > 0) {
+              <div>
+                <p class="text-[10px] text-[#606060] uppercase tracking-wide mb-2">Por formato</p>
+                <div class="space-y-1.5">
+                  @for (b of comicsData()!.spending.byBinding; track b.binding) {
+                    <div class="flex items-center justify-between text-xs">
+                      <span class="text-[#d0d0d0] capitalize">{{ b.binding === 'null' ? 'Sin clasificar' : b.binding }}</span>
+                      <span class="ml-2 shrink-0 text-[#a0a0a0]">
+                        <span class="font-semibold text-white">{{ b.spent | number:'1.0-0' }} €</span>
+                        <span class="text-[#606060]"> · {{ b.count }}</span>
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+            <!-- Mes / Año -->
+            <div class="pt-4 border-t border-[#1e1e1e] grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-[10px] text-[#606060] uppercase tracking-wide mb-1">Este mes</p>
+                <p class="text-lg font-bold text-white">{{ comicsData()!.monthlySpending.thisMonth | number:'1.0-0' }}<span class="text-xs text-[#606060] ml-1">€</span></p>
+                @if (comicsData()!.monthlySpending.prevMonth > 0) {
+                  <p class="text-[11px] text-[#505050] mt-0.5">Mes anterior: {{ comicsData()!.monthlySpending.prevMonth | number:'1.0-0' }} €</p>
+                }
+              </div>
+              <div>
+                <p class="text-[10px] text-[#606060] uppercase tracking-wide mb-1">Este año</p>
+                <p class="text-lg font-bold text-white">{{ comicsData()!.thisYear.spent | number:'1.0-0' }}<span class="text-xs text-[#606060] ml-1">€</span></p>
+                @if (comicsData()!.prevYear.spent > 0) {
+                  <p class="text-[11px] text-[#505050] mt-0.5">Año anterior: {{ comicsData()!.prevYear.spent | number:'1.0-0' }} €</p>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (spendingDetailOpen() === 'books' && booksData()) {
+      <div class="fixed inset-0 z-50 flex items-start sm:items-center justify-center bg-black/70 backdrop-blur-sm p-4 overflow-y-auto"
+        (click)="spendingDetailOpen.set(null)">
+        <div class="bg-[#161616] border border-[#2a2a2a] rounded-2xl max-w-2xl w-full my-auto shadow-2xl" (click)="$event.stopPropagation()">
+          <div class="flex items-center justify-between p-5 border-b border-[#1e1e1e]">
+            <h2 class="text-base font-semibold text-white">Desglose de inversión · Libros</h2>
+            <button type="button" (click)="spendingDetailOpen.set(null)"
+              class="text-[#808080] hover:text-white transition-colors text-xl leading-none">×</button>
+          </div>
+          <div class="p-5 space-y-5">
+            <div>
+              <p class="text-[10px] text-[#606060] uppercase tracking-wide mb-1">Total</p>
+              <p class="text-2xl font-bold text-white">{{ booksData()!.spending.total | number:'1.0-0' }}<span class="text-sm text-[#606060] ml-1">€</span></p>
+              <p class="text-[11px] text-[#505050] mt-0.5">Media: {{ booksData()!.spending.avg | number:'1.2-2' }} €/libro</p>
+            </div>
+            @if (booksData()!.spending.byPublisher.length > 0) {
+              <div>
+                <p class="text-[10px] text-[#606060] uppercase tracking-wide mb-2">Top editoriales por gasto</p>
+                <div class="space-y-1.5">
+                  @for (p of booksData()!.spending.byPublisher; track p.publisher) {
+                    <div class="flex items-center justify-between text-xs">
+                      <span class="text-[#d0d0d0] truncate">{{ p.publisher }}</span>
+                      <span class="ml-2 shrink-0 text-[#a0a0a0]">
+                        <span class="font-semibold text-white">{{ p.spent | number:'1.0-0' }} €</span>
+                        <span class="text-[#606060]"> · {{ p.count }}</span>
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+            @if (booksData()!.spending.byFormat.length > 0) {
+              <div>
+                <p class="text-[10px] text-[#606060] uppercase tracking-wide mb-2">Por formato</p>
+                <div class="space-y-1.5">
+                  @for (f of booksData()!.spending.byFormat; track f.format) {
+                    <div class="flex items-center justify-between text-xs">
+                      <span class="text-[#d0d0d0] truncate">{{ f.format }}</span>
+                      <span class="ml-2 shrink-0 text-[#a0a0a0]">
+                        <span class="font-semibold text-white">{{ f.spent | number:'1.0-0' }} €</span>
+                        <span class="text-[#606060]"> · {{ f.count }}</span>
+                      </span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+            <div class="pt-4 border-t border-[#1e1e1e] grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-[10px] text-[#606060] uppercase tracking-wide mb-1">Este mes</p>
+                <p class="text-lg font-bold text-white">{{ booksData()!.monthlySpending.thisMonth | number:'1.0-0' }}<span class="text-xs text-[#606060] ml-1">€</span></p>
+                @if (booksData()!.monthlySpending.prevMonth > 0) {
+                  <p class="text-[11px] text-[#505050] mt-0.5">Mes anterior: {{ booksData()!.monthlySpending.prevMonth | number:'1.0-0' }} €</p>
+                }
+              </div>
+              <div>
+                <p class="text-[10px] text-[#606060] uppercase tracking-wide mb-1">Este año</p>
+                <p class="text-lg font-bold text-white">{{ booksData()!.thisYear.spent | number:'1.0-0' }}<span class="text-xs text-[#606060] ml-1">€</span></p>
+                @if (booksData()!.prevYear.spent > 0) {
+                  <p class="text-[11px] text-[#505050] mt-0.5">Año anterior: {{ booksData()!.prevYear.spent | number:'1.0-0' }} €</p>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }
   `
 })
 export class DashboardComponent implements OnInit {
@@ -590,6 +768,7 @@ export class DashboardComponent implements OnInit {
   loading = signal(true);
   activatingStats = signal(false);
   activeTab = signal<'comics' | 'books'>('comics');
+  spendingDetailOpen = signal<'comics' | 'books' | null>(null);
   currentYear = new Date().getFullYear();
 
   novedades = signal<NovedadItem[]>([]);
@@ -710,8 +889,10 @@ export class DashboardComponent implements OnInit {
     return months.map(m => {
       const added = addedMap.get(m) ?? 0;
       const read = readMap.get(m) ?? 0;
+      const idx = parseInt(m.slice(5, 7)) - 1;
+      const year = m.slice(0, 4);
       return {
-        month: m, label: names[parseInt(m.slice(5, 7)) - 1],
+        month: m, label: names[idx], fullLabel: `${names[idx]} ${year}`,
         added, read,
         addedPct: (added / maxVal) * 100, readPct: (read / maxVal) * 100,
       };
