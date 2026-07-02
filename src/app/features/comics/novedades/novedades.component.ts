@@ -130,13 +130,22 @@ interface WantedRow {
             <h1 class="text-xl md:text-3xl font-bold tracking-tight">Novedades</h1>
             <p class="text-xs md:text-sm text-[#888] mt-0.5 hidden sm:block">Agenda de Whakoom + lo que sigo y lo que quiero.</p>
           </div>
-          <button (click)="back()"
-            class="shrink-0 flex items-center gap-2 text-sm text-[#606060] hover:text-white transition-colors">
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
-            </svg>
-            Volver
-          </button>
+          <div class="shrink-0 flex items-center gap-3">
+            <button (click)="resync()" [disabled]="resyncing()" title="Actualizar novedades desde Whakoom"
+              class="flex items-center gap-2 text-sm text-[#606060] hover:text-white disabled:opacity-50 transition-colors">
+              <svg class="w-4 h-4" [class.animate-spin]="resyncing()" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992V4.356M2.985 19.644v-4.992h4.993m-4.372-1.05a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99m-.001 0h-4.99m-.024 4.51a8.25 8.25 0 01-13.803 3.7l-3.181-3.182m0 0h4.99m-4.99 0v4.99" />
+              </svg>
+              <span class="hidden sm:inline">{{ resyncing() ? 'Actualizando…' : 'Actualizar' }}</span>
+            </button>
+            <button (click)="back()"
+              class="flex items-center gap-2 text-sm text-[#606060] hover:text-white transition-colors">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+              </svg>
+              Volver
+            </button>
+          </div>
         </header>
 
         <!-- Tabs — scrollable on mobile -->
@@ -884,6 +893,8 @@ export class NovedadesComponent implements OnInit {
   editionShowReviews = signal(false);
   editionReviewsLimit = signal(3);
 
+  resyncing = signal(false);
+
   ngOnInit() {
     this.loadMine();
     this.loadAll();
@@ -892,6 +903,23 @@ export class NovedadesComponent implements OnInit {
   }
 
   back() { this.location.back(); }
+
+  // Fuerza el resync del catálogo de colecciones seguidas en Whakoom y recarga
+  // las novedades. Lo mismo que hace el cron diario, pero a demanda.
+  resync() {
+    if (this.resyncing()) return;
+    this.resyncing.set(true);
+    this.api.post<{ synced: number; failed: number; total: number }>('/collections/resync', {}).subscribe({
+      next: () => {
+        this.resyncing.set(false);
+        this.loadMine();
+        this.loadAll();
+        this.loadWanted();
+        this.loadAtrasados();
+      },
+      error: () => this.resyncing.set(false),
+    });
+  }
 
   private thisMonth(): { year: number; month: number } {
     const d = new Date();
