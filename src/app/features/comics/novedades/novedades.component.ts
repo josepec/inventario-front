@@ -218,16 +218,16 @@ interface WantedRow {
                 </div>
               }
               <!-- Atrasados: publicados sin comprar + Lo quiero de meses pasados -->
-              @if (atrasados().length > 0 || wantedPast().length > 0) {
+              @if (atrasadosVisibles().length > 0 || wantedPast().length > 0) {
                 <div class="mt-6">
                   <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3 flex items-center gap-2">
                     Atrasados
                     <span class="inline-flex items-center justify-center text-[10px] font-bold min-w-[1.25rem] h-4 px-1 rounded-full bg-[#7c3aed33] text-[#a78bfa]">
-                      {{ atrasados().reduce(acumulaAtrasados, 0) + wantedPast().length }}
+                      {{ atrasadosVisibles().reduce(acumulaAtrasados, 0) + wantedPast().length }}
                     </span>
                   </h3>
                   <div class="flex flex-col gap-2">
-                    @for (col of atrasados(); track col.collection_id) {
+                    @for (col of atrasadosVisibles(); track col.collection_id) {
                       <div class="group flex items-center gap-3 bg-[#111] hover:bg-[#161616] border border-[#1a1a1a] hover:border-[#2a2a2a] rounded-xl px-3 py-2.5 cursor-pointer transition-colors"
                         (click)="router.navigate(['/app/collections', col.collection_id])">
                         <div class="shrink-0 w-9 h-[54px] rounded-lg overflow-hidden bg-[#1a1a1a]">
@@ -847,6 +847,24 @@ export class NovedadesComponent implements OnInit {
   wantedPast = signal<WantedPastItem[]>([]);
   atrasadosLoading = signal(false);
   acumulaAtrasados = (acc: number, col: AtrasadoCollection) => acc + col.missing_issues.length;
+
+  // Atrasados sin los números que ya salen arriba en "Mis novedades" del mes
+  // actual (mismo número dentro de la misma colección): evita duplicar arriba/abajo.
+  atrasadosVisibles = computed(() => {
+    const arriba = new Set(
+      this.mine()
+        .filter(i => i.local_collection_id != null && i.number)
+        .map(i => `${i.local_collection_id}#${Number(i.number)}`)
+    );
+    return this.atrasados()
+      .map(col => ({
+        ...col,
+        missing_issues: col.missing_issues.filter(
+          iss => !arriba.has(`${col.collection_id}#${Number(iss.number)}`)
+        ),
+      }))
+      .filter(col => col.missing_issues.length > 0);
+  });
 
   groups = signal<NewTitleGroup[]>([]);
   allLoading = signal(false);
