@@ -3,6 +3,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { BrowserMultiFormatReader } from '@zxing/browser';
+import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { ApiService, PaginatedResponse } from '../../../shared/services/api.service';
 import { Book } from '../../../shared/models/book.model';
 import { environment } from '../../../../environments/environment';
@@ -25,6 +26,9 @@ interface GBResult {
   cover: string | null;
   price: number | null;
   currency: string | null;
+  binding?: string | null;
+  /** Catalogos que han aportado datos a la ficha. */
+  sources?: string[];
 }
 
 interface Facets {
@@ -598,7 +602,7 @@ interface Facets {
                     <div class="w-56 h-24 border-2 border-[#7c3aed] rounded-lg opacity-50"></div>
                   </div>
                   <p class="absolute bottom-2 inset-x-0 text-center text-xs text-[#606060]">
-                    Apunta el codigo de barras al centro
+                    {{ scannerHint() }}
                   </p>
                 </div>
               }
@@ -731,8 +735,10 @@ export class BooksListComponent implements OnInit, OnDestroy {
 
   // Barcode scanner
   scannerActive = signal(false);
-  private barcodeReader = new BrowserMultiFormatReader();
+  scannerHint = signal('');
   private scannerControls: { stop(): void } | null = null;
+  private scannerStream: MediaStream | null = null;
+  private scannerRaf = 0;
 
   ngOnDestroy() {
     this.stopScanner();
@@ -871,6 +877,28 @@ export class BooksListComponent implements OnInit, OnDestroy {
 
   // ── Barcode scanner ────────────────────────────────────────────────────
 
+  /**
+   * El codigo de barras de un libro es un EAN-13 (el ISBN). Restringir los
+   * formatos evita que el decodificador pierda tiempo probando QR, Aztec o
+   * PDF417 en cada fotograma, que es lo que hacia que costase tanto enfocar.
+   */
+  private static readonly BARCODE_FORMATS = [
+    BarcodeFormat.EAN_13, BarcodeFormat.EAN_8,
+    BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
+  ];
+
+  /** Los EAN-13 son finos: sin resolucion alta y enfoque continuo no se leen. */
+  private static readonly CAMERA_CONSTRAINTS: MediaStreamConstraints = {
+    video: {
+      facingMode: { ideal: 'environment' },
+      width: { ideal: 1920 },
+      height: { ideal: 1080 },
+      // @ts-expect-error focusMode aun no esta en los tipos de TS
+      focusMode: 'continuous',
+    },
+    audio: false,
+  };
+
   toggleScanner() {
     if (this.scannerActive()) {
       this.stopScanner();
@@ -880,28 +908,88 @@ export class BooksListComponent implements OnInit, OnDestroy {
   }
 
   private stopScanner() {
+    if (this.scannerRaf) { cancelAnimationFrame(this.scannerRaf); this.scannerRaf = 0; }
     this.scannerControls?.stop();
     this.scannerControls = null;
+    this.scannerStream?.getTracks().forEach(t => t.stop());
+    this.scannerStream = null;
     this.scannerActive.set(false);
+    this.scannerHint.set('');
   }
 
-  private startScanner() {
+  private async startScanner() {
     this.scannerActive.set(true);
-    setTimeout(() => {
-      const video = this.scannerVideoRef?.nativeElement;
-      if (!video) { this.scannerActive.set(false); return; }
+    this.scannerHint.set('Apunta el codigo de barras al centro');
+    this.gbError.set('');
 
-      this.barcodeReader.decodeFromVideoDevice(undefined, video, (result, _err) => {
-        if (result) {
-          this.zone.run(() => {
-            this.gbQuery = result.getText();
-            this.gbError.set('');
-            this.stopScanner();
-            this.searchGB();
-          });
+    // Un tick para que Angular pinte el <video> antes de engancharle la camara.
+    await new Promise(r => setTimeout(r, 0));
+    const video = this.scannerVideoRef?.nativeElement;
+    if (!video) { this.scannerActive.set(false); return; }
+
+    try {
+      // BarcodeDetector es nativo del navegador (Chrome/Android) y va mucho
+      // mas fino que decodificar en JS. ZXing queda de reserva.
+      const Detector = (window as any).BarcodeDetector;
+      if (Detector && (await Detector.getSupportedFormats?.())?.includes('ean_13')) {
+        await this.scanWithNativeDetector(video, new Detector({ formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e'] }));
+      } else {
+        await this.scanWithZxing(video);
+      }
+    } catch (err: any) {
+      this.zone.run(() => {
+        this.stopScanner();
+        this.gbError.set(err?.name === 'NotAllowedError'
+          ? 'No has dado permiso de camara'
+          : 'No se ha podido abrir la camara');
+      });
+    }
+  }
+
+  private async scanWithNativeDetector(video: HTMLVideoElement, detector: any) {
+    this.scannerStream = await navigator.mediaDevices.getUserMedia(BooksListComponent.CAMERA_CONSTRAINTS);
+    video.srcObject = this.scannerStream;
+    await video.play();
+
+    const tick = async () => {
+      if (!this.scannerActive()) return;
+      try {
+        const codes = await detector.detect(video);
+        if (codes?.length) {
+          this.zone.run(() => this.onBarcode(codes[0].rawValue));
+          return;
         }
-      }).then(controls => { this.scannerControls = controls; });
-    }, 100);
+      } catch {
+        // Un fotograma ilegible (video aun sin dimensiones) no es un error.
+      }
+      this.scannerRaf = requestAnimationFrame(() => { void tick(); });
+    };
+    this.scannerRaf = requestAnimationFrame(() => { void tick(); });
+  }
+
+  private async scanWithZxing(video: HTMLVideoElement) {
+    const hints = new Map<DecodeHintType, unknown>([
+      [DecodeHintType.POSSIBLE_FORMATS, BooksListComponent.BARCODE_FORMATS],
+      // Mas lento por fotograma, pero lee codigos torcidos o mal iluminados.
+      [DecodeHintType.TRY_HARDER, true],
+    ]);
+    const reader = new BrowserMultiFormatReader(hints);
+
+    this.scannerStream = await navigator.mediaDevices.getUserMedia(BooksListComponent.CAMERA_CONSTRAINTS);
+    this.scannerControls = await reader.decodeFromStream(this.scannerStream, video, (result) => {
+      if (result) this.zone.run(() => this.onBarcode(result.getText()));
+    });
+  }
+
+  /** Codigo leido: se resuelve como ISBN, no como busqueda de texto. */
+  private onBarcode(raw: string) {
+    const code = raw.replace(/[^0-9Xx]/g, '').toUpperCase();
+    if (!code) return;
+
+    navigator.vibrate?.(60);
+    this.stopScanner();
+    this.gbQuery = code;
+    this.lookupIsbn(code);
   }
 
   // ── Modal ──────────────────────────────────────────────────────────────
@@ -920,14 +1008,46 @@ export class BooksListComponent implements OnInit, OnDestroy {
   }
 
   searchGB() {
-    if (!this.gbQuery.trim()) return;
+    const q = this.gbQuery.trim();
+    if (!q) return;
+
+    // Un ISBN pegado a mano merece la busqueda por ISBN, que ademas recupera
+    // precio y portada de las fuentes que no cubre la busqueda por texto.
+    if (/^[\d-\s]{10,17}[\dXx]?$/.test(q) && q.replace(/[^0-9Xx]/g, '').length >= 10) {
+      this.lookupIsbn(q.replace(/[^0-9Xx]/g, '').toUpperCase());
+      return;
+    }
+
     this.gbLoading.set(true); this.gbError.set(''); this.gbDetail.set(null);
-    this.http.get<{ data: GBResult[]; total: number }>(`${this.base}/google-books/search`, {
-      params: { q: this.gbQuery.trim() },
+    this.http.get<{ data: GBResult[]; total: number; error?: string | null }>(`${this.base}/google-books/search`, {
+      params: { q },
     }).subscribe({
       next: res => {
         this.gbResults.set(res.data); this.gbTotal.set(res.total);
         this.gbSearched.set(true); this.gbLoading.set(false);
+        // Si hubo fallo de fuente pero aun asi hay resultados, no molestamos.
+        if (res.error && res.data.length === 0) this.gbError.set(res.error);
+      },
+      error: () => { this.gbError.set('Error al buscar'); this.gbLoading.set(false); }
+    });
+  }
+
+  /** Ficha por ISBN: Google + Open Library + CEGAL + Apple Books fusionados. */
+  private lookupIsbn(isbn: string) {
+    this.gbLoading.set(true); this.gbError.set(''); this.gbDetail.set(null);
+    this.http.get<{ data: GBResult | null; error?: string | null }>(
+      `${this.base}/google-books/isbn/${encodeURIComponent(isbn)}`
+    ).subscribe({
+      next: res => {
+        this.gbResults.set(res.data ? [res.data] : []);
+        this.gbTotal.set(res.data ? 1 : 0);
+        this.gbSearched.set(true); this.gbLoading.set(false);
+        if (res.data) {
+          // Con un solo resultado no tiene sentido hacer elegir al usuario.
+          this.selectResult(res.data);
+        } else {
+          this.gbError.set(res.error ?? `Ningun catalogo tiene el ISBN ${isbn}`);
+        }
       },
       error: () => { this.gbError.set('Error al buscar'); this.gbLoading.set(false); }
     });
