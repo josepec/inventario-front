@@ -1057,6 +1057,41 @@ export class BooksListComponent implements OnInit, OnDestroy {
     this.gbDetail.set(result);
     this.gbExistingId.set(null);
     this.checkIfExists(result);
+
+    // Los resultados de una busqueda por texto traen la portada tal cual la da
+    // el catalogo, sin comprobar. Al elegir uno se pide la ficha completa por
+    // ISBN, que ademas resuelve la portada contra todas las fuentes.
+    const isbn = result.isbn13 || result.isbn;
+    if (isbn && !result.sources?.includes('cover-cdn')) {
+      this.http.get<{ data: GBResult | null }>(
+        `${this.base}/google-books/isbn/${encodeURIComponent(isbn)}`
+      ).subscribe({
+        next: res => {
+          // Solo si sigue siendo el mismo libro: el usuario puede haber
+          // pulsado otro resultado mientras llegaba la respuesta.
+          if (res.data && this.gbDetail()?.googleId === result.googleId) {
+            this.gbDetail.set(this.mergeResult(result, res.data));
+          }
+        },
+      });
+    }
+  }
+
+  /**
+   * La ficha por ISBN manda, pero sin borrar lo que el resultado de busqueda
+   * ya tenia y ella no trae. La portada es la excepcion: la del ISBN esta
+   * verificada, asi que se queda con ella aunque venga vacia.
+   */
+  private mergeResult(base: GBResult, detail: GBResult): GBResult {
+    const empty = (v: unknown) => v === null || v === undefined || v === ''
+      || (Array.isArray(v) && v.length === 0);
+
+    const out = { ...base } as any;
+    for (const [k, v] of Object.entries(detail)) {
+      if (!empty(v)) out[k] = v;
+    }
+    out.cover = detail.cover;
+    return out as GBResult;
   }
 
   private checkIfExists(d: GBResult) {
