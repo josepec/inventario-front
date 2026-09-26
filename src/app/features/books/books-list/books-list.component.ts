@@ -7,6 +7,8 @@ import { BarcodeFormat, DecodeHintType } from '@zxing/library';
 import { ApiService, PaginatedResponse } from '../../../shared/services/api.service';
 import { Book } from '../../../shared/models/book.model';
 import { environment } from '../../../../environments/environment';
+import { CoverPickerComponent } from '../../../shared/components/cover-picker/cover-picker.component';
+import { CoversService } from '../../../shared/services/covers.service';
 
 interface GBResult {
   googleId: string;
@@ -42,7 +44,7 @@ interface Facets {
 @Component({
   selector: 'app-books-list',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, CoverPickerComponent],
   template: `
     <div class="p-4 md:p-8 max-w-7xl mx-auto">
 
@@ -495,10 +497,19 @@ interface Facets {
                 </button>
 
                 <div class="flex gap-4 md:gap-5">
-                  @if (gbDetail()!.cover) {
-                    <img [src]="gbDetail()!.cover" alt="Portada"
-                      class="w-24 md:w-28 shrink-0 rounded-lg border border-[#2a2a2a] object-cover aspect-[2/3]" />
-                  }
+                  <div class="w-24 md:w-28 shrink-0">
+                    @if (gbDetail()!.cover) {
+                      <img [src]="gbDetail()!.cover" alt="Portada"
+                        class="w-full rounded-lg border border-[#2a2a2a] object-cover aspect-[2/3]" />
+                    } @else {
+                      <div class="w-full aspect-[2/3] rounded-lg border border-[#2a2a2a] bg-[#161616]
+                                  flex items-center justify-center text-[10px] text-[#505050]">Sin portada</div>
+                    }
+                    <button type="button" (click)="coverPickerOpen.set(true)"
+                      class="w-full mt-1.5 text-[11px] text-[#7c3aed] hover:text-[#a78bfa] transition-colors">
+                      Elegir otra portada
+                    </button>
+                  </div>
                   <div class="flex-1 min-w-0">
                     <h3 class="text-white font-semibold text-sm md:text-base leading-tight">{{ gbDetail()!.title }}</h3>
                     @if (gbDetail()!.subtitle) {
@@ -656,6 +667,15 @@ interface Facets {
         </div>
       </div>
     }
+    @if (coverPickerOpen() && gbDetail()) {
+      <app-cover-picker
+        [isbn]="gbDetail()!.isbn13 || gbDetail()!.isbn"
+        [title]="gbDetail()!.title"
+        [author]="gbDetail()!.authors.join(', ') || null"
+        [current]="gbDetail()!.cover"
+        (picked)="pickCover($event)"
+        (closed)="coverPickerOpen.set(false)" />
+    }
   `
 })
 export class BooksListComponent implements OnInit, OnDestroy {
@@ -663,6 +683,7 @@ export class BooksListComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private covers = inject(CoversService);
   private zone = inject(NgZone);
   private base = environment.apiUrl;
 
@@ -727,6 +748,7 @@ export class BooksListComponent implements OnInit, OnDestroy {
   gbResults = signal<GBResult[]>([]);
   gbTotal = signal(0);
   gbDetail = signal<GBResult | null>(null);
+  coverPickerOpen = signal(false);
   gbLoading = signal(false);
   gbSearched = signal(false);
   gbError = signal('');
@@ -1087,7 +1109,17 @@ export class BooksListComponent implements OnInit, OnDestroy {
     });
   }
 
+  /** La portada elegida a mano no la pisa la ficha por ISBN que llega después. */
+  private manualCover = false;
+
+  pickCover(url: string) {
+    this.manualCover = true;
+    this.gbDetail.set({ ...this.gbDetail()!, cover: url });
+    this.coverPickerOpen.set(false);
+  }
+
   selectResult(result: GBResult) {
+    this.manualCover = false;
     this.gbDetail.set(result);
     this.gbExistingId.set(null);
     this.checkIfExists(result);
@@ -1104,7 +1136,9 @@ export class BooksListComponent implements OnInit, OnDestroy {
           // Solo si sigue siendo el mismo libro: el usuario puede haber
           // pulsado otro resultado mientras llegaba la respuesta.
           if (res.data && this.gbDetail()?.googleId === result.googleId) {
-            this.gbDetail.set(this.mergeResult(result, res.data));
+            const merged = this.mergeResult(result, res.data);
+            if (this.manualCover) merged.cover = this.gbDetail()!.cover;
+            this.gbDetail.set(merged);
           }
         },
       });
@@ -1176,8 +1210,8 @@ export class BooksListComponent implements OnInit, OnDestroy {
     };
 
     if (d.cover) {
-      this.http.post<{ key: string }>(`${this.base}/covers/upload`, { url: d.cover }).subscribe({
-        next: r => save(`${this.base}/covers/${r.key}`),
+      this.covers.persist(d.cover).subscribe({
+        next: url => save(url),
         error: () => save(d.cover!),
       });
     } else {

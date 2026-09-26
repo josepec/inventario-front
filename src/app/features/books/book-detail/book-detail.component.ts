@@ -4,11 +4,13 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../shared/services/api.service';
 import { Book } from '../../../shared/models/book.model';
+import { CoverPickerComponent } from '../../../shared/components/cover-picker/cover-picker.component';
+import { CoversService } from '../../../shared/services/covers.service';
 
 @Component({
   selector: 'app-book-detail',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, CoverPickerComponent],
   template: `
     <div class="p-4 md:p-8 max-w-5xl mx-auto">
 
@@ -104,10 +106,11 @@ import { Book } from '../../../shared/models/book.model';
                     </div>
                   }
                 </div>
-                @if (editing()) {
-                  <input [(ngModel)]="draft.cover_url" type="url" placeholder="URL de portada"
-                    class="edit-input mt-2 text-xs" />
-                }
+                <button type="button" (click)="pickerOpen.set(true)" [disabled]="savingCover()"
+                  class="w-full mt-2 py-1.5 rounded-xl text-xs text-[#a0a0a0] hover:text-white bg-[#161616]
+                         border border-[#2a2a2a] hover:bg-[#1f1f1f] disabled:opacity-40 transition-colors">
+                  {{ savingCover() ? 'Guardando portada...' : 'Cambiar portada' }}
+                </button>
               </div>
 
               <!-- Rating + status card -->
@@ -203,8 +206,20 @@ import { Book } from '../../../shared/models/book.model';
                   </div>
                   <div class="grid grid-cols-2 gap-3">
                     <div>
-                      <label class="edit-label">Saga</label>
-                      <input [(ngModel)]="draft.saga" type="text" placeholder="Ej: El Senor de los Anillos" class="edit-input" />
+                      <label class="edit-label flex items-center justify-between">
+                        Saga
+                        @if (book()!.isbn13 || book()!.isbn) {
+                          <button type="button" (click)="detectSaga()" [disabled]="detectingSaga()"
+                            class="text-[#7c3aed] hover:text-[#a78bfa] disabled:opacity-40 transition-colors">
+                            {{ detectingSaga() ? 'Buscando...' : 'Detectar' }}
+                          </button>
+                        }
+                      </label>
+                      <input [(ngModel)]="draft.saga" type="text" list="bookSagas" placeholder="Ej: El Senor de los Anillos" class="edit-input" />
+                      <datalist id="bookSagas">
+                        @for (s of sagaOptions(); track s) { <option [value]="s"></option> }
+                      </datalist>
+                      @if (sagaMsg()) { <p class="text-[10px] text-[#606060] mt-1">{{ sagaMsg() }}</p> }
                     </div>
                     <div>
                       <label class="edit-label">Numero en saga</label>
@@ -347,6 +362,15 @@ import { Book } from '../../../shared/models/book.model';
       }
 
     </div>
+    @if (pickerOpen() && book()) {
+      <app-cover-picker
+        [isbn]="book()!.isbn13 || book()!.isbn"
+        [title]="book()!.title"
+        [author]="book()!.author"
+        [current]="editing() ? draft.cover_url : book()!.cover_url"
+        (picked)="onCoverPicked($event)"
+        (closed)="pickerOpen.set(false)" />
+    }
   `,
   styles: [`
     .edit-input {
@@ -364,6 +388,7 @@ export class BookDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private location = inject(Location);
+  private covers = inject(CoversService);
 
   book = signal<Book | null>(null);
   loading = signal(true);
@@ -372,6 +397,11 @@ export class BookDetailComponent implements OnInit {
   notesOpen = signal(false);
   notesText = '';
   savingNotes = signal(false);
+  pickerOpen = signal(false);
+  savingCover = signal(false);
+  sagaOptions = signal<string[]>([]);
+  detectingSaga = signal(false);
+  sagaMsg = signal('');
 
   draft = {
     title: '', author: '', translator: '', illustrator: '',
@@ -411,7 +441,54 @@ export class BookDetailComponent implements OnInit {
       cover_url: b.cover_url ?? '', notes: b.notes ?? '',
       read_status: b.read_status ?? 'unread', owned: b.owned ?? false,
     };
+    this.sagaMsg.set('');
     this.editing.set(true);
+    if (!this.sagaOptions().length) {
+      this.api.get<{ sagas: string[] }>('/books/facets').subscribe({ next: f => this.sagaOptions.set(f.sagas) });
+    }
+  }
+
+  /** Copia la portada elegida a R2; editando va al borrador, si no se guarda ya. */
+  onCoverPicked(url: string) {
+    this.pickerOpen.set(false);
+    this.savingCover.set(true);
+    this.covers.persist(url).subscribe({
+      next: stored => {
+        if (this.editing()) {
+          this.draft.cover_url = stored;
+          this.savingCover.set(false);
+          return;
+        }
+        const b = this.book()!;
+        this.api.put<Book>(`/books/${b.id}`, { ...b, cover_url: stored }).subscribe({
+          next: updated => { this.book.set(updated); this.savingCover.set(false); },
+          error: () => this.savingCover.set(false),
+        });
+      },
+      error: () => { this.savingCover.set(false); alert('No se pudo descargar esa imagen'); },
+    });
+  }
+
+  /** Vuelve a pedir la ficha por ISBN solo para sacar la saga (Amazon la da estructurada). */
+  detectSaga() {
+    const isbn = this.book()!.isbn13 || this.book()!.isbn;
+    if (!isbn) return;
+    this.detectingSaga.set(true);
+    this.sagaMsg.set('');
+    this.api.get<{ data: { saga: string | null; sagaNumber: number | null } | null }>(
+      `/google-books/isbn/${encodeURIComponent(isbn)}`
+    ).subscribe({
+      next: res => {
+        this.detectingSaga.set(false);
+        if (res.data?.saga) {
+          this.draft.saga = res.data.saga;
+          this.draft.saga_number = res.data.sagaNumber;
+        } else {
+          this.sagaMsg.set('Ningun catalogo lo situa en una saga');
+        }
+      },
+      error: () => { this.detectingSaga.set(false); this.sagaMsg.set('Error al buscar'); },
+    });
   }
 
   cancelEditing() { this.editing.set(false); }
