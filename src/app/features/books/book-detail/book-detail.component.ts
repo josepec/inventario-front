@@ -465,7 +465,10 @@ export class BookDetailComponent implements OnInit {
           error: () => this.savingCover.set(false),
         });
       },
-      error: () => { this.savingCover.set(false); alert('No se pudo descargar esa imagen'); },
+      error: err => {
+        this.savingCover.set(false);
+        alert('No se pudo guardar esa imagen' + (err?.error?.error ? `: ${err.error.error}` : ''));
+      },
     });
   }
 
