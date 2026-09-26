@@ -745,10 +745,23 @@ export class BooksListComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit() {
+    // Búsqueda, filtros, orden y página viven en la URL (ver updateUrl), así al volver
+    // del detalle con "atrás" la lista queda como estaba
     const qp = this.route.snapshot.queryParamMap;
+    const numOrNull = (k: string) => { const v = qp.get(k); return v == null || v === '' || isNaN(+v) ? null : +v; };
+    this.search = qp.get('q') ?? '';
+    this.filterStatus = qp.get('status') ?? '';
     if (qp.get('author')) this.filterAuthor.set(qp.get('author')!);
     if (qp.get('publisher')) this.filterPublisher.set(qp.get('publisher')!);
+    if (qp.get('genre')) this.filterGenre.set(qp.get('genre')!);
     if (qp.get('saga')) this.filterSaga.set(qp.get('saga')!);
+    this.filterPriceMin.set(numOrNull('price_min'));
+    this.filterPriceMax.set(numOrNull('price_max'));
+    this.filterRatingMin.set(numOrNull('rating'));
+    this.filterNoPrice.set(qp.get('no_price') === '1');
+    if (qp.get('sort')) this.sortField.set(qp.get('sort')!);
+    if (qp.get('order') === 'asc' || qp.get('order') === 'desc') this.sortOrder.set(qp.get('order') as 'asc' | 'desc');
+    this.page.set(Math.max(1, numOrNull('page') ?? 1));
     this.loadFacets();
     this.load();
   }
@@ -761,6 +774,7 @@ export class BooksListComponent implements OnInit, OnDestroy {
 
   load() {
     this.loading.set(true);
+    this.updateUrl();
     const params: any = {
       page: this.page(), limit: this.limit,
       search: this.search || undefined,
@@ -780,6 +794,26 @@ export class BooksListComponent implements OnInit, OnDestroy {
       next: res => { this.books.set(res.data); this.total.set(res.total); this.loading.set(false); },
       error: () => this.loading.set(false)
     });
+  }
+
+  private updateUrl() {
+    const isDefaultSort = this.sortField() === 'created_at' && this.sortOrder() === 'desc';
+    const qp: Record<string, string | number | null> = {
+      q: this.search || null,
+      status: this.filterStatus || null,
+      author: this.filterAuthor() || null,
+      publisher: this.filterPublisher() || null,
+      genre: this.filterGenre() || null,
+      saga: this.filterSaga() || null,
+      price_min: this.filterPriceMin(),
+      price_max: this.filterPriceMax(),
+      rating: this.filterRatingMin(),
+      no_price: this.filterNoPrice() ? '1' : null,
+      sort: isDefaultSort ? null : this.sortField(),
+      order: isDefaultSort ? null : this.sortOrder(),
+      page: this.page() > 1 ? this.page() : null,
+    };
+    this.router.navigate([], { queryParams: qp, queryParamsHandling: 'merge', replaceUrl: true });
   }
 
   onSearch() {

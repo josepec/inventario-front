@@ -935,13 +935,28 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   private scannerControls: { stop(): void } | null = null;
 
   ngOnInit() {
+    // Búsqueda, filtros, orden y página viven en la URL (ver updateUrl), así al volver
+    // del detalle con "atrás" la lista queda como estaba
     const qp = this.route.snapshot.queryParamMap;
     if (qp.get('tab') === 'collections') {
       this.tab.set('collections');
       this.loadColStatuses();
     }
+    const numOrNull = (k: string) => { const v = qp.get(k); return v == null || v === '' || isNaN(+v) ? null : +v; };
+    this.search = qp.get('q') ?? '';
+    this.filterStatus = qp.get('status') ?? '';
     if (qp.get('author')) this.filterAuthor.set(qp.get('author')!);
     if (qp.get('publisher')) this.filterPublisher.set(qp.get('publisher')!);
+    this.filterPriceMin.set(numOrNull('price_min'));
+    this.filterPriceMax.set(numOrNull('price_max'));
+    this.filterRatingMin.set(numOrNull('rating'));
+    this.filterNoPrice.set(qp.get('no_price') === '1');
+    this.colTrackingFilter.set(qp.get('tracking') ?? '');
+    this.colStatusFilter.set(qp.get('col_status') ?? '');
+    this.colReadFilter.set(qp.get('col_read') ?? '');
+    if (qp.get('sort')) this.sortField.set(qp.get('sort')!);
+    if (qp.get('order') === 'asc' || qp.get('order') === 'desc') this.sortOrder.set(qp.get('order') as 'asc' | 'desc');
+    this.page.set(Math.max(1, numOrNull('page') ?? 1));
     this.loadFacets();
     this.load();
   }
@@ -954,7 +969,6 @@ export class ComicsListComponent implements OnInit, OnDestroy {
     this.filterPriceMin.set(null); this.filterPriceMax.set(null);
     this.colTrackingFilter.set(''); this.colStatusFilter.set(''); this.colReadFilter.set('');
     if (t === 'collections' && this.colStatusOptions().length === 0) this.loadColStatuses();
-    this.router.navigate([], { queryParams: { tab: t === 'collections' ? 'collections' : null }, queryParamsHandling: 'merge', replaceUrl: true });
     this.load();
   }
 
@@ -964,6 +978,7 @@ export class ComicsListComponent implements OnInit, OnDestroy {
       this.loadCollections();
       return;
     } else {
+      this.updateUrl();
       this.api.get<PaginatedResponse<Comic>>('/comics', {
         page: this.page(), limit: this.limit,
         search: this.search || undefined,
@@ -981,11 +996,11 @@ export class ComicsListComponent implements OnInit, OnDestroy {
         error: () => this.loading.set(false),
       });
     }
-    this.updateUrl();
   }
 
   loadCollections() {
     this.loading.set(true);
+    this.updateUrl();
     const p: Record<string, string> = {
       page: this.page().toString(), limit: this.limit.toString(),
     };
@@ -1058,9 +1073,24 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   }
 
   private updateUrl() {
-    const qp: Record<string, string | null> = {
+    const isDefaultSort = this.sortField() === 'created_at' && this.sortOrder() === 'desc';
+    const cols = this.tab() === 'collections';
+    const qp: Record<string, string | number | null> = {
+      tab: cols ? 'collections' : null,
+      q: this.search || null,
+      status: this.filterStatus || null,
       author: this.filterAuthor() || null,
       publisher: this.filterPublisher() || null,
+      price_min: this.filterPriceMin(),
+      price_max: this.filterPriceMax(),
+      rating: this.filterRatingMin(),
+      no_price: this.filterNoPrice() ? '1' : null,
+      tracking: cols ? this.colTrackingFilter() || null : null,
+      col_status: cols ? this.colStatusFilter() || null : null,
+      col_read: cols ? this.colReadFilter() || null : null,
+      sort: isDefaultSort ? null : this.sortField(),
+      order: isDefaultSort ? null : this.sortOrder(),
+      page: this.page() > 1 ? this.page() : null,
     };
     this.router.navigate([], { queryParams: qp, queryParamsHandling: 'merge', replaceUrl: true });
   }
@@ -1120,13 +1150,14 @@ export class ComicsListComponent implements OnInit, OnDestroy {
   private checkIfExists(d: any) {
     const q = d.isbn || d.title;
     if (!q) return;
-    const params: any = { limit: '1' };
+    const params: any = { limit: '10' };
     if (d.isbn) params.search = d.isbn;
     else params.search = d.title;
     this.api.get<{ data: any[] }>('/comics', params).subscribe({
       next: res => {
+        const norm = (v: string | null | undefined) => (v ?? '').replace(/[^0-9Xx]/g, '').toUpperCase();
         const match = res.data?.find((c: any) =>
-          (d.isbn && c.isbn === d.isbn) ||
+          (d.isbn && norm(c.isbn) === norm(d.isbn)) ||
           (c.title === d.title && c.number === (d.number ? Number(d.number) : null))
         );
         if (match) this.wkExistingId.set(match.id);

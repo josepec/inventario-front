@@ -481,7 +481,12 @@ export class ComicDetailComponent implements OnInit {
     return guionista?.name || authors[0]?.name || this.comic()?.writer || '';
   });
 
-  goBack() { this.location.back(); }
+  // "Atrás" conserva búsqueda y filtros de la lista (van en la URL); si la ficha se abrió
+  // directamente no hay historial dentro de la app y se va a la lista
+  goBack() {
+    if ((history.state?.navigationId ?? 1) > 1) this.location.back();
+    else this.router.navigate(['/app/comics']);
+  }
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id')!;

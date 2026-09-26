@@ -1,4 +1,5 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
+import { Location } from '@angular/common';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../shared/services/api.service';
@@ -20,13 +21,13 @@ import { Book } from '../../../shared/models/book.model';
       @if (!loading() && book()) {
         <!-- Back + actions -->
         <div class="flex items-center justify-between mb-5 md:mb-8">
-          <a routerLink="/app/books"
+          <button (click)="goBack()"
             class="flex items-center gap-2 text-sm text-[#606060] hover:text-white transition-colors">
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
               <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
             </svg>
             Volver
-          </a>
+          </button>
           <div class="flex items-center gap-2">
             @if (!editing()) {
               <button (click)="toggleReadStatus()" type="button"
@@ -362,6 +363,7 @@ export class BookDetailComponent implements OnInit {
   private api = inject(ApiService);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
+  private location = inject(Location);
 
   book = signal<Book | null>(null);
   loading = signal(true);
@@ -379,6 +381,13 @@ export class BookDetailComponent implements OnInit {
     isbn: '', isbn13: '', ean: '',
     cover_url: '', notes: '', read_status: 'unread' as string, owned: false,
   };
+
+  // "Atrás" conserva búsqueda y filtros de la lista (van en la URL); si la ficha se abrió
+  // directamente no hay historial dentro de la app y se va a la lista
+  goBack() {
+    if ((history.state?.navigationId ?? 1) > 1) this.location.back();
+    else this.router.navigate(['/app/books']);
+  }
 
   ngOnInit() {
     const id = this.route.snapshot.paramMap.get('id')!;
