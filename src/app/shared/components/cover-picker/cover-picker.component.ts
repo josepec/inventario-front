@@ -2,6 +2,7 @@ import { Component, OnInit, computed, inject, input, output, signal } from '@ang
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CoverOption, CoversService } from '../../services/covers.service';
+import { CoverCropperComponent } from '../cover-cropper/cover-cropper.component';
 
 /** Por debajo de este ancho la portada se ve pixelada en la ficha. */
 const LOW_RES_WIDTH = 400;
@@ -10,7 +11,7 @@ const LOW_RES_WIDTH = 400;
  * Modal para elegir portada entre todas las fuentes. Una ficha por ISBN puede
  * traer bien los datos y la portada de otra edición, así que se enseñan todas
  * con su resolución real y el usuario elige. También admite pegar una URL o
- * subir una foto propia.
+ * subir una foto propia, que antes pasa por el recorte con perspectiva.
  *
  * Emite la URL elegida tal cual (externa o ya en R2 si se subió un fichero);
  * quien la guarda decide cuándo copiarla a R2 con CoversService.persist.
@@ -18,7 +19,7 @@ const LOW_RES_WIDTH = 400;
 @Component({
   selector: 'app-cover-picker',
   standalone: true,
-  imports: [FormsModule, NgTemplateOutlet],
+  imports: [FormsModule, NgTemplateOutlet, CoverCropperComponent],
   template: `
     <div class="fixed inset-0 z-[60] flex items-end md:items-center justify-center">
       <div class="absolute inset-0 bg-black/70" (click)="closed.emit()"></div>
@@ -106,6 +107,10 @@ const LOW_RES_WIDTH = 400;
         </div>
       </div>
     </div>
+
+    @if (cropFile()) {
+      <app-cover-cropper [file]="cropFile()!" (done)="upload($event)" (cancel)="cropFile.set(null)" />
+    }
 
     <ng-template #card let-o>
       @if (!broken().has(o.url)) {
@@ -202,9 +207,19 @@ export class CoverPickerComponent implements OnInit {
     if (url) this.picked.emit(url);
   }
 
+  /** Foto elegida, pendiente de recortar. */
+  cropFile = signal<File | null>(null);
+
   onFile(e: Event) {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file) return;
+    const input = e.target as HTMLInputElement;
+    const file = input.files?.[0];
+    // Sin esto, volver a elegir la misma foto tras cancelar no dispara (change)
+    input.value = '';
+    if (file) this.cropFile.set(file);
+  }
+
+  upload(file: File) {
+    this.cropFile.set(null);
     this.uploading.set(true);
     this.error.set('');
     this.covers.uploadFile(file).subscribe({
