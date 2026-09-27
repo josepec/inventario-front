@@ -89,19 +89,36 @@ const LOW_RES_WIDTH = 400;
                 class="px-4 py-2 rounded-xl text-xs font-semibold text-white bg-[#7c3aed] hover:bg-[#6d28d9]
                        disabled:opacity-40 disabled:cursor-not-allowed transition-colors">Usar</button>
             </div>
-            <label class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs cursor-pointer
-                          text-[#a0a0a0] hover:text-white bg-[#161616] border border-[#2a2a2a] hover:bg-[#1f1f1f] transition-colors">
-              @if (uploading()) {
+            @if (uploading()) {
+              <div class="flex items-center justify-center gap-2 py-2.5 text-xs text-[#a0a0a0]">
                 <div class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                 Subiendo...
-              } @else {
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-                </svg>
-                Subir foto o escaneo
-              }
-              <input type="file" accept="image/*" class="hidden" (change)="onFile($event)" [disabled]="uploading()" />
-            </label>
+              </div>
+            } @else {
+              <div class="flex gap-2">
+                <!-- capture abre directamente la cámara trasera en el móvil; en escritorio
+                     no hay cámara que abrir, así que solo se ofrece en pantallas táctiles -->
+                @if (isTouch) {
+                  <label class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-semibold cursor-pointer
+                                text-white bg-[#7c3aed] hover:bg-[#6d28d9] transition-colors">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" />
+                    </svg>
+                    Hacer foto
+                    <input type="file" accept="image/*" capture="environment" class="hidden" (change)="onFile($event)" />
+                  </label>
+                }
+                <label class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs cursor-pointer
+                              text-[#a0a0a0] hover:text-white bg-[#161616] border border-[#2a2a2a] hover:bg-[#1f1f1f] transition-colors">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
+                  </svg>
+                  {{ isTouch ? 'De la galeria' : 'Subir foto o escaneo' }}
+                  <input type="file" accept="image/*" class="hidden" (change)="onFile($event)" />
+                </label>
+              </div>
+            }
             @if (error()) { <p class="text-xs text-[#ef4444]">{{ error() }}</p> }
           </section>
         </div>
@@ -206,6 +223,9 @@ export class CoverPickerComponent implements OnInit {
     const url = this.manualUrl.trim();
     if (url) this.picked.emit(url);
   }
+
+  /** Móvil o tablet: ahí tiene sentido abrir la cámara directamente. */
+  readonly isTouch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
 
   /** Foto elegida, pendiente de recortar. */
   cropFile = signal<File | null>(null);
