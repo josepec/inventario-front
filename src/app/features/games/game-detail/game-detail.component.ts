@@ -144,17 +144,26 @@ type GameEdit = Pick<Game, 'igdb_id' | 'igdb_url' | 'title' | 'cover_url' | 'sum
                     <p class="text-[#a0a0a0] leading-relaxed whitespace-pre-line">{{ g.summary }}</p>
                   </div>
                 }
-                @if (g.igdb_url) {
-                  <div class="col-span-2">
-                    <a [href]="g.igdb_url" target="_blank" rel="noopener" class="text-xs text-[#8b5cf6] hover:text-[#a78bfa]">Ver en IGDB →</a>
-                  </div>
-                }
+                <div class="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+                  @if (!g.igdb_id) {
+                    <span class="text-xs text-[#f59e0b]">Sin ficha de IGDB</span>
+                  }
+                  <button type="button" (click)="startEditing(true)"
+                    class="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors"
+                    [class]="g.igdb_id ? 'border-[#2a2a2a] text-[#a0a0a0] hover:text-white hover:bg-[#1f1f1f]'
+                                       : 'border-[#7c3aed] text-white bg-[#7c3aed22] hover:bg-[#7c3aed44]'">
+                    Rellenar desde IGDB
+                  </button>
+                  @if (g.igdb_url) {
+                    <a [href]="g.igdb_url" target="_blank" rel="noopener" class="ml-auto text-xs text-[#8b5cf6] hover:text-[#a78bfa]">Ver en IGDB →</a>
+                  }
+                </div>
               </div>
             } @else {
               <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-5 grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                   <label class="field-label">Rellenar desde IGDB</label>
-                  <input [(ngModel)]="igdbQuery" (ngModelChange)="searchIgdb()" type="text"
+                  <input id="igdb-search" [(ngModel)]="igdbQuery" (ngModelChange)="searchIgdb()" type="text"
                     placeholder="Busca la ficha correcta..." class="field-input" />
                   @if (igdbResults().length) {
                     <ul class="mt-2 max-h-72 overflow-y-auto space-y-0.5">
@@ -477,7 +486,8 @@ export class GameDetailComponent implements OnInit {
     this.update({ notes: this.notes || null });
   }
 
-  startEditing() {
+  /** Con `searchIgdb`, abre ya buscando en IGDB por el título. */
+  startEditing(searchIgdb = false) {
     const g = this.game()!;
     this.edit = {
       igdb_id: g.igdb_id, igdb_url: g.igdb_url, title: g.title, cover_url: g.cover_url, summary: g.summary, genres: g.genres, developer: g.developer,
@@ -486,6 +496,15 @@ export class GameDetailComponent implements OnInit {
     this.igdbQuery = g.title;
     this.igdbResults.set([]);
     this.editing.set(true);
+    if (searchIgdb) {
+      this.searchIgdb();
+      setTimeout(() => {
+        const input = document.getElementById('igdb-search') as HTMLInputElement | null;
+        input?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        input?.focus({ preventScroll: true });
+        input?.select();
+      });
+    }
   }
 
   // ── Rehacer la ficha desde IGDB (importaciones que no la encontraron o cogieron otra) ──
