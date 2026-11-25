@@ -53,6 +53,18 @@ export const routes: Routes = [
         path: 'books/:id',
         loadComponent: () => import('./features/books/book-detail/book-detail.component').then(m => m.BookDetailComponent),
       },
+      {
+        path: 'games',
+        loadComponent: () => import('./features/games/games-list/games-list.component').then(m => m.GamesListComponent),
+      },
+      {
+        path: 'games/new',
+        loadComponent: () => import('./features/games/game-form/game-form.component').then(m => m.GameFormComponent),
+      },
+      {
+        path: 'games/:id',
+        loadComponent: () => import('./features/games/game-detail/game-detail.component').then(m => m.GameDetailComponent),
+      },
     ]
   },
   { path: '**', redirectTo: '/app/dashboard' }

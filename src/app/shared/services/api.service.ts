@@ -32,7 +32,7 @@ export class ApiService {
   private http = inject(HttpClient);
   private base = environment.apiUrl;
 
-  get<T>(path: string, filters?: ApiFilters): Observable<T> {
+  get<T>(path: string, filters?: ApiFilters | Record<string, string | number | boolean | undefined>): Observable<T> {
     let params = new HttpParams();
     if (filters) {
       Object.entries(filters).forEach(([k, v]) => {

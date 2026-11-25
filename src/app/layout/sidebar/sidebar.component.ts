@@ -63,6 +63,16 @@ interface NavItem {
           <span>Libros</span>
         </a>
 
+        <a routerLink="/app/games" routerLinkActive="bg-[#7c3aed1a] text-[#8b5cf6]"
+          class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#a0a0a0]
+                 hover:bg-[#1f1f1f] hover:text-white transition-colors duration-150">
+          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M6 9h3m-1.5-1.5v3M15.75 9h.008v.008h-.008V9zm2.25 2.25h.008v.008H18v-.008zM6.6 5.25h10.8a3.6 3.6 0 013.53 2.9l1.02 5.1a2.7 2.7 0 01-4.74 2.27l-1.06-1.27a1.5 1.5 0 00-1.15-.54h-5.99a1.5 1.5 0 00-1.15.54l-1.06 1.27a2.7 2.7 0 01-4.74-2.27l1.02-5.1A3.6 3.6 0 016.6 5.25z" />
+          </svg>
+          <span>Videojuegos</span>
+        </a>
+
       </nav>
 
       <!-- Logout -->

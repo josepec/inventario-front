@@ -61,6 +61,18 @@ interface BooksDashboard {
   statsStartDate: string | null;
 }
 
+interface GamesDashboard {
+  totals: { games: number; completed: number; playing: number; pending: number; abandoned: number; physical: number; digital: number };
+  monthly: { added: { month: string; count: number }[]; completed: { month: string; count: number }[] };
+  byPlatform: { platform: string; count: number }[];
+  byGenre: { genre: string; count: number }[];
+  recentGames: { id: number; title: string; cover_url: string | null; status: string; created_at: string }[];
+  spending: { total: number; priced: number };
+  thisYear: { added: number; completed: number };
+  prevYear: { added: number; completed: number };
+  statsStartDate: string | null;
+}
+
 @Component({
   selector: 'app-dashboard',
   standalone: true,
@@ -96,6 +108,11 @@ interface BooksDashboard {
             class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
             [class]="activeTab() === 'books' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
             Libros
+          </button>
+          <button (click)="switchToGames()"
+            class="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            [class]="activeTab() === 'games' ? 'bg-[#7c3aed] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+            Videojuegos
           </button>
         </div>
 
@@ -574,6 +591,194 @@ interface BooksDashboard {
           </div>
         }
 
+        <!-- ═══════════ VIDEOJUEGOS TAB ═══════════ -->
+        @if (activeTab() === 'games' && gamesData(); as gd) {
+          @if (gd.totals.games === 0) {
+            <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-8 text-center mb-6">
+              <p class="text-sm text-[#a0a0a0] mb-1">Todavía no hay videojuegos.</p>
+              <p class="text-xs text-[#606060] mb-5">Búscalos en IGDB y añade las copias que tienes, en físico o en digital.</p>
+              <a routerLink="/app/games/new"
+                class="inline-flex px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#7c3aed] hover:bg-[#6d28d9] transition-colors">
+                Añadir el primero
+              </a>
+            </div>
+          } @else {
+            <!-- KPI Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+              <a routerLink="/app/games" class="bg-[#161616] border border-[#1e1e1e] hover:border-[#7c3aed44] rounded-2xl p-4 transition-colors">
+                <p class="text-2xl md:text-3xl font-bold text-white">{{ gd.totals.games }}</p>
+                <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">Juegos</p>
+              </a>
+              <a routerLink="/app/games" [queryParams]="{status: 'completed'}" class="bg-[#161616] border border-[#1e1e1e] hover:border-[#7c3aed44] rounded-2xl p-4 transition-colors">
+                <p class="text-2xl md:text-3xl font-bold text-[#22c55e]">{{ gd.totals.completed }}</p>
+                <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">Pasados</p>
+              </a>
+              <a routerLink="/app/games" [queryParams]="{status: 'playing'}" class="bg-[#161616] border border-[#1e1e1e] hover:border-[#7c3aed44] rounded-2xl p-4 transition-colors">
+                <p class="text-2xl md:text-3xl font-bold text-[#38bdf8]">{{ gd.totals.playing }}</p>
+                <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">Jugando</p>
+              </a>
+              <a routerLink="/app/games" [queryParams]="{status: 'pending'}" class="bg-[#161616] border border-[#1e1e1e] hover:border-[#7c3aed44] rounded-2xl p-4 transition-colors">
+                <p class="text-2xl md:text-3xl font-bold text-[#f59e0b]">{{ gd.totals.pending }}</p>
+                <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">Sin empezar</p>
+              </a>
+            </div>
+
+            <!-- Progress bar -->
+            <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 mb-6">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-[#606060] uppercase tracking-wider font-semibold">Juegos pasados</span>
+                <span class="text-sm text-white font-bold">{{ gameCompletedPct() }}%</span>
+              </div>
+              <div class="h-2.5 bg-[#2a2a2a] rounded-full overflow-hidden">
+                <div class="h-full bg-[#22c55e] transition-all duration-700" [style.width.%]="gameCompletedPct()"></div>
+              </div>
+              <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] text-[#606060]">
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#22c55e] inline-block"></span> Pasados ({{ gd.totals.completed }})</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#38bdf8] inline-block"></span> Jugando ({{ gd.totals.playing }})</span>
+                <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#2a2a2a] inline-block"></span> Sin empezar ({{ gd.totals.pending }})</span>
+                @if (gd.totals.abandoned) {
+                  <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] inline-block"></span> Abandonados ({{ gd.totals.abandoned }})</span>
+                }
+              </div>
+            </div>
+
+            <!-- Charts row -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+              <!-- Monthly evolution -->
+              <div class="lg:col-span-2 bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 flex flex-col">
+                <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-4">Evolucion mensual</h3>
+                @if (!gd.statsStartDate) {
+                  <div class="flex-1 flex flex-col items-center justify-center text-center">
+                    <p class="text-sm text-[#606060] mb-3">Activa el seguimiento cuando termines de inventariar</p>
+                    <button (click)="activateStats()" [disabled]="activatingStats()"
+                      class="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-40 transition-colors">
+                      @if (activatingStats()) { Activando... } @else { Activar seguimiento mensual }
+                    </button>
+                  </div>
+                } @else {
+                  <div class="mt-auto">
+                  <div class="h-48 flex gap-1.5">
+                    @for (bar of gameMonthlyBars(); track bar.month) {
+                      <div class="flex-1 flex flex-col items-center relative group">
+                        <div class="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity bg-[#1e1e1e] border border-[#2a2a2a] rounded-md px-2.5 py-1.5 text-[10px] text-white whitespace-nowrap z-10 shadow-lg">
+                          <div class="font-semibold text-[#d0d0d0] mb-1">{{ bar.fullLabel }}</div>
+                          <div class="flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-[#7c3aed]"></span>Añadidos: <span class="font-semibold text-white">{{ bar.added }}</span></div>
+                          <div class="flex items-center gap-1.5 mt-0.5"><span class="w-1.5 h-1.5 rounded-full bg-[#22c55e]"></span>Pasados: <span class="font-semibold text-white">{{ bar.read }}</span></div>
+                        </div>
+                        <div class="w-full flex-1 flex flex-col justify-end gap-px">
+                          @if (bar.read > 0) {
+                            <div class="w-full bg-[#22c55e] rounded-t-sm min-h-[2px] transition-all duration-500" [style.height.%]="bar.readPct"></div>
+                          }
+                          @if (bar.added > 0) {
+                            <div class="w-full bg-[#7c3aed] rounded-t-sm min-h-[2px] transition-all duration-500" [style.height.%]="bar.addedPct"></div>
+                          }
+                        </div>
+                        <span class="text-[8px] md:text-[9px] text-[#404040] mt-1 leading-none">{{ bar.label }}</span>
+                      </div>
+                    }
+                  </div>
+                  <div class="flex gap-4 mt-3 text-[10px] text-[#606060]">
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#7c3aed] inline-block"></span> Añadidos</span>
+                    <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#22c55e] inline-block"></span> Pasados</span>
+                  </div>
+                  </div>
+                }
+              </div>
+
+              <!-- Por plataforma + formato -->
+              <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
+                <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-4">Por plataforma</h3>
+                <div class="space-y-2.5">
+                  @for (p of gamePlatformBars(); track p.platform) {
+                    <a [routerLink]="['/app/games']" [queryParams]="{platform: p.platform}" class="flex items-center gap-2 group">
+                      <span class="text-[11px] font-semibold text-[#a0a0a0] group-hover:text-white w-9 shrink-0">{{ p.platform }}</span>
+                      <div class="flex-1 h-2 bg-[#2a2a2a] rounded-full overflow-hidden">
+                        <div class="h-full bg-[#7c3aed] rounded-full transition-all duration-500" [style.width.%]="p.pct"></div>
+                      </div>
+                      <span class="text-[10px] text-[#606060] w-6 text-right shrink-0">{{ p.count }}</span>
+                    </a>
+                  }
+                </div>
+                <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-[#1e1e1e]">
+                  <a routerLink="/app/games" [queryParams]="{format: 'physical'}" class="text-center rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#7c3aed44] py-2.5 transition-colors">
+                    <p class="text-lg font-bold text-white">{{ gd.totals.physical }}</p>
+                    <p class="text-[10px] text-[#606060] uppercase tracking-wider">Físico</p>
+                  </a>
+                  <a routerLink="/app/games" [queryParams]="{format: 'digital'}" class="text-center rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#7c3aed44] py-2.5 transition-colors">
+                    <p class="text-lg font-bold text-white">{{ gd.totals.digital }}</p>
+                    <p class="text-[10px] text-[#606060] uppercase tracking-wider">Digital</p>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <!-- Año + géneros -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
+                <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-4">{{ currentYear }}</h3>
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <p class="text-2xl font-bold text-white">{{ gd.thisYear.added }}</p>
+                    <p class="text-[10px] text-[#606060] uppercase tracking-wider">Añadidos</p>
+                    <p class="text-[10px] text-[#404040] mt-0.5">{{ currentYear - 1 }}: {{ gd.prevYear.added }}</p>
+                  </div>
+                  <div>
+                    <p class="text-2xl font-bold text-[#22c55e]">{{ gd.thisYear.completed }}</p>
+                    <p class="text-[10px] text-[#606060] uppercase tracking-wider">Pasados</p>
+                    <p class="text-[10px] text-[#404040] mt-0.5">{{ currentYear - 1 }}: {{ gd.prevYear.completed }}</p>
+                  </div>
+                </div>
+                @if (gd.spending.priced > 0) {
+                  <div class="mt-4 pt-3 border-t border-[#1e1e1e] flex items-baseline justify-between">
+                    <span class="text-[10px] text-[#606060] uppercase tracking-wider">Gastado (con precio)</span>
+                    <span class="text-sm font-bold text-white">{{ gd.spending.total | number:'1.0-0' }} €</span>
+                  </div>
+                }
+              </div>
+              <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
+                <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Géneros</h3>
+                @if (gd.byGenre.length) {
+                  <div class="space-y-2">
+                    @for (g of gd.byGenre; track g.genre) {
+                      <a [routerLink]="['/app/games']" [queryParams]="{genre: g.genre}" class="flex items-center justify-between group">
+                        <span class="text-xs text-[#a0a0a0] group-hover:text-white truncate transition-colors">{{ g.genre }}</span>
+                        <span class="text-xs text-[#606060] shrink-0 ml-2">{{ g.count }}</span>
+                      </a>
+                    }
+                  </div>
+                } @else {
+                  <p class="text-xs text-[#404040] text-center py-6">Sin géneros</p>
+                }
+              </div>
+            </div>
+
+            <!-- Últimos añadidos -->
+            @if (gd.recentGames.length > 0) {
+              <div class="mb-6">
+                <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-3">Últimos añadidos</h3>
+                <div class="grid grid-cols-4 sm:grid-cols-6 gap-2 md:gap-3">
+                  @for (g of gd.recentGames; track g.id) {
+                    <a [routerLink]="['/app/games', g.id]" class="group">
+                      <div class="aspect-[3/4] rounded-xl overflow-hidden bg-[#161616] border border-[#1e1e1e] group-hover:border-[#7c3aed]/50 transition-colors">
+                        @if (g.cover_url) {
+                          <img [src]="g.cover_url" [alt]="g.title" class="w-full h-full object-cover transition-transform group-hover:scale-105" loading="lazy" />
+                        }
+                      </div>
+                      <p class="mt-1 text-[9px] md:text-[10px] text-[#606060] group-hover:text-[#a0a0a0] truncate transition-colors">{{ g.title }}</p>
+                    </a>
+                  }
+                </div>
+              </div>
+            }
+          }
+        }
+
+        @if (activeTab() === 'games' && !gamesData() && !loading()) {
+          <div class="flex justify-center py-20">
+            <div class="w-8 h-8 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        }
+
         <!-- Quick actions -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <a routerLink="/app/comics"
@@ -767,7 +972,26 @@ export class DashboardComponent implements OnInit {
   booksData = signal<BooksDashboard | null>(null);
   loading = signal(true);
   activatingStats = signal(false);
-  activeTab = signal<'comics' | 'books'>('comics');
+  activeTab = signal<'comics' | 'books' | 'games'>('comics');
+  gamesData = signal<GamesDashboard | null>(null);
+  private gamesLoaded = false;
+
+  gameCompletedPct = computed(() => {
+    const d = this.gamesData();
+    return d && d.totals.games > 0 ? Math.round((d.totals.completed / d.totals.games) * 100) : 0;
+  });
+
+  // Mismas barras que cómics y libros: "pasados" ocupa el sitio de "leídos".
+  gameMonthlyBars = computed(() => {
+    const m = this.gamesData()?.monthly;
+    return this.buildMonthlyBars(m ? { added: m.added, read: m.completed } : undefined);
+  });
+
+  gamePlatformBars = computed(() => {
+    const rows = this.gamesData()?.byPlatform ?? [];
+    const max = Math.max(...rows.map(r => r.count), 1);
+    return rows.map(r => ({ ...r, pct: (r.count / max) * 100 }));
+  });
   spendingDetailOpen = signal<'comics' | 'books' | null>(null);
   currentYear = new Date().getFullYear();
 
@@ -856,6 +1080,17 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  switchToGames() {
+    this.activeTab.set('games');
+    if (!this.gamesLoaded) {
+      this.gamesLoaded = true;
+      this.api.get<GamesDashboard>('/stats/dashboard/games').subscribe({
+        next: d => this.gamesData.set(d),
+        error: () => { this.gamesLoaded = false; },
+      });
+    }
+  }
+
   activateStats() {
     this.activatingStats.set(true);
     this.http.post<{ date: string }>(`${this.base}/stats/settings/stats-start`, {}).subscribe({
@@ -864,6 +1099,8 @@ export class DashboardComponent implements OnInit {
         if (c) this.comicsData.set({ ...c, statsStartDate: res.date });
         const b = this.booksData();
         if (b) this.booksData.set({ ...b, statsStartDate: res.date });
+        const g = this.gamesData();
+        if (g) this.gamesData.set({ ...g, statsStartDate: res.date });
         this.activatingStats.set(false);
       },
       error: () => this.activatingStats.set(false),

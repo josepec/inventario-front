@@ -48,6 +48,16 @@ import { AuthService } from '../../core/auth/auth.service';
           <span class="text-[10px] font-medium">Libros</span>
         </a>
 
+        <a routerLink="/app/games" routerLinkActive #rla4="routerLinkActive"
+          class="flex-1 flex flex-col items-center justify-center gap-1 py-2 transition-colors"
+          [class]="rla4.isActive ? 'text-[#8b5cf6]' : 'text-[#404040] hover:text-[#a0a0a0]'">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M6 9h3m-1.5-1.5v3M15.75 9h.008v.008h-.008V9zm2.25 2.25h.008v.008H18v-.008zM6.6 5.25h10.8a3.6 3.6 0 013.53 2.9l1.02 5.1a2.7 2.7 0 01-4.74 2.27l-1.06-1.27a1.5 1.5 0 00-1.15-.54h-5.99a1.5 1.5 0 00-1.15.54l-1.06 1.27a2.7 2.7 0 01-4.74-2.27l1.02-5.1A3.6 3.6 0 016.6 5.25z" />
+          </svg>
+          <span class="text-[10px] font-medium">Juegos</span>
+        </a>
+
         <button type="button" (click)="auth.logout()"
           class="flex-1 flex flex-col items-center justify-center gap-1 py-2
                  text-[#404040] hover:text-[#a0a0a0] transition-colors">
