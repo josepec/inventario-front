@@ -1,6 +1,7 @@
-import { Component, input } from '@angular/core';
+import { Component, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { GameCopyDraft, GAME_PLATFORMS } from '../../../shared/models/game.model';
+import { BarcodeScannerComponent } from '../../../shared/components/barcode-scanner/barcode-scanner.component';
 
 /**
  * Campos de una copia (plataforma, formato, edición, compra). Edita el objeto
@@ -9,7 +10,7 @@ import { GameCopyDraft, GAME_PLATFORMS } from '../../../shared/models/game.model
 @Component({
   selector: 'app-game-copy-editor',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, BarcodeScannerComponent],
   template: `
     @let c = copy();
     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -52,7 +53,18 @@ import { GameCopyDraft, GAME_PLATFORMS } from '../../../shared/models/game.model
       @if (c.format === 'physical') {
         <div>
           <label class="field-label">EAN</label>
-          <input [(ngModel)]="c.ean" type="text" inputmode="numeric" placeholder="Código de barras" class="field-input font-mono" />
+          <div class="flex gap-1.5">
+            <input [(ngModel)]="c.ean" type="text" inputmode="numeric" placeholder="Código de barras" class="field-input font-mono min-w-0" />
+            <button type="button" (click)="scanning.set(!scanning())" title="Escanear código de barras"
+              class="px-2.5 rounded-xl border transition-colors shrink-0"
+              [class]="scanning()
+                ? 'bg-[#7c3aed22] border-[#7c3aed] text-[#8b5cf6]'
+                : 'bg-[#1a1a1a] border-[#2a2a2a] text-[#606060] hover:text-[#8b5cf6] hover:border-[#7c3aed44]'">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 4.5v15m3-15v15m4.5-15v15m3-15v15m3.75-15v15" />
+              </svg>
+            </button>
+          </div>
         </div>
       } @else {
         <div class="flex items-end pb-2.5">
@@ -63,6 +75,16 @@ import { GameCopyDraft, GAME_PLATFORMS } from '../../../shared/models/game.model
         </div>
       }
     </div>
+    @if (scanning() && c.format === 'physical') {
+      <div class="mt-3">
+        <app-barcode-scanner [height]="160"
+          (scanned)="c.ean = $event; scanning.set(false); scanError.set(null)"
+          (failed)="scanning.set(false); scanError.set($event)" />
+      </div>
+    }
+    @if (scanError()) {
+      <p class="text-[11px] text-[#ef4444] mt-2">{{ scanError() }}</p>
+    }
     @if (!suggested().includes(c.platform) && suggested().length) {
       <p class="text-[10px] text-[#606060] mt-2">* IGDB no lo da para esa plataforma: revisa que sea la correcta.</p>
     }
@@ -81,4 +103,6 @@ export class GameCopyEditorComponent {
   /** Plataformas en las que IGDB dice que salió: las demás se marcan con *. */
   suggested = input<string[]>([]);
   readonly platforms = GAME_PLATFORMS;
+  scanning = signal(false);
+  scanError = signal<string | null>(null);
 }

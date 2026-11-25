@@ -101,3 +101,38 @@ export function emptyCopy(platform: GamePlatform = 'PS5'): GameCopyDraft {
     acquired_at: null, is_free: false, source: 'manual', notes: null,
   };
 }
+
+/** GET /games/barcode/:ean */
+export interface BarcodeLookup {
+  ean: string;
+  /** Ya hay una copia con ese código. */
+  owned: { id: number; title: string } | null;
+  /** El producto según la tienda (Amazon.es o UPCitemdb). */
+  product: { raw: string; name: string; title: string; platform: GamePlatform | null; source: string } | null;
+  data: IgdbSearchResult[];
+  error?: string;
+}
+
+const fold = (w: string) => w.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/**
+ * La edición es lo que le sobra al nombre del producto respecto al título del
+ * juego: "God of War Ragnarök Edición Lanzamiento" − "God of War Ragnarök".
+ * Si el producto no empieza por el título (otro idioma, otra forma de
+ * escribirlo), no se adivina.
+ */
+export function editionFromProduct(productName: string, gameTitle: string): string | null {
+  const want = gameTitle.split(/\s+/).map(fold).filter(Boolean);
+  const words = productName.split(/\s+/);
+  let i = 0, matched = 0;
+  for (; i < words.length && matched < want.length; i++) {
+    const w = fold(words[i]);
+    if (!w) continue;
+    if (w !== want[matched]) return null;
+    matched++;
+  }
+  if (matched < want.length) return null;
+  const rest = words.slice(i).join(' ').replace(/^[\s:\-–,.]+|[\s:\-–,.]+$/g, '').trim();
+  if (!rest || /^(edici[oó]n\s+)?(est[aá]ndar|standard)(\s+edition)?$/i.test(rest)) return null;
+  return rest;
+}

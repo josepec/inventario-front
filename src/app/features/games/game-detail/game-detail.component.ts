@@ -6,7 +6,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ApiService } from '../../../shared/services/api.service';
 import { CoversService } from '../../../shared/services/covers.service';
 import {
-  Game, GameCopy, GameCopyDraft, GameStatus, GAME_FORMAT_LABEL, GAME_STATUS_LABEL, GAME_STATUS_STYLE, emptyCopy,
+  Game, GameCopy, GameCopyDraft, GamePlatform, GameStatus, GAME_FORMAT_LABEL, GAME_PLATFORMS, GAME_STATUS_LABEL,
+  GAME_STATUS_STYLE, emptyCopy,
 } from '../../../shared/models/game.model';
 import { GameCopyEditorComponent } from '../game-copy-editor/game-copy-editor.component';
 
@@ -288,8 +289,22 @@ export class GameDetailComponent implements OnInit {
 
   ngOnInit() {
     this.id = Number(this.route.snapshot.paramMap.get('id'));
-    const addCopy = this.route.snapshot.queryParamMap.get('addCopy');
-    this.load(() => { if (addCopy) this.newCopy(); });
+    const qp = this.route.snapshot.queryParamMap;
+    this.load(() => {
+      if (!qp.get('addCopy')) return;
+      this.newCopy();
+      // Viene del escáner del alta: la copia ya trae su código y lo que se sacó de él.
+      const d = this.copyDraft();
+      const ean = qp.get('ean');
+      if (d && ean) {
+        const platform = qp.get('platform') as GamePlatform | null;
+        this.copyDraft.set({
+          ...d, ean, source: 'scanner', format: 'physical',
+          platform: platform && GAME_PLATFORMS.includes(platform) ? platform : d.platform,
+          edition: qp.get('edition') || null,
+        });
+      }
+    });
   }
 
   private load(after?: () => void) {

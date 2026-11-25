@@ -3,7 +3,7 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ApiService, PaginatedResponse } from '../../../shared/services/api.service';
 import {
-  Game, GamePlatform, GameStatus, GAME_PLATFORMS, GAME_STATUS_LABEL, GAME_STATUS_STYLE,
+  Game, GamePlatform, GameStatus, GAME_FORMAT_LABEL, GAME_PLATFORMS, GAME_STATUS_LABEL, GAME_STATUS_STYLE,
 } from '../../../shared/models/game.model';
 
 interface Facets {
@@ -37,7 +37,7 @@ const PAGE_SIZE = 42;
         </a>
       </div>
 
-      <!-- Búsqueda y filtros -->
+      <!-- Búsqueda, estado, orden y filtros (mismo patrón que libros) -->
       <div class="flex flex-col gap-2 mb-5 md:mb-8">
         <div class="relative">
           <svg class="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#404040]"
@@ -45,7 +45,7 @@ const PAGE_SIZE = 42;
             <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
           </svg>
           <input [(ngModel)]="search" (ngModelChange)="onSearch()"
-            type="text" placeholder="Buscar por título, saga, desarrolladora o EAN..."
+            type="text" placeholder="Buscar por título, saga, desarrolladora, EAN..."
             class="w-full bg-[#161616] border border-[#2a2a2a] rounded-xl pl-10 pr-4 py-2.5 text-sm
                    text-white placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors" />
         </div>
@@ -61,35 +61,112 @@ const PAGE_SIZE = 42;
             }
           </div>
 
-          <select [(ngModel)]="platform" (ngModelChange)="reload()" class="filter-select">
-            <option value="">Todas las plataformas</option>
-            @for (p of platforms; track p) {
-              <option [value]="p">{{ p }}{{ platformCount(p) }}</option>
+          <div class="flex items-center bg-[#161616] border border-[#2a2a2a] rounded-xl p-1 gap-0.5 overflow-x-auto max-w-full">
+            @for (opt of sortOptions; track opt.value) {
+              <button (click)="toggleSort(opt.value)"
+                class="px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors flex items-center gap-1"
+                [class]="sortField === opt.value ? 'bg-[#2a2a2a] text-white' : 'text-[#606060] hover:text-[#a0a0a0]'">
+                {{ opt.label }}
+                @if (sortField === opt.value) {
+                  <span class="text-[10px]">{{ sortOrder === 'desc' ? '↓' : '↑' }}</span>
+                }
+              </button>
             }
-          </select>
+          </div>
 
-          <select [(ngModel)]="format" (ngModelChange)="reload()" class="filter-select">
-            <option value="">Físico y digital</option>
-            <option value="physical">Físico</option>
-            <option value="digital">Digital</option>
-          </select>
-
-          @if (facets()?.genres?.length) {
-            <select [(ngModel)]="genre" (ngModelChange)="reload()" class="filter-select">
-              <option value="">Todos los géneros</option>
-              @for (g of facets()!.genres; track g) { <option [value]="g">{{ g }}</option> }
-            </select>
-          }
-
-          <select [(ngModel)]="sortKey" (ngModelChange)="reload()" class="filter-select ml-auto">
-            <option value="created_at:desc">Últimos añadidos</option>
-            <option value="title:asc">Título (A-Z)</option>
-            <option value="first_release_date:desc">Salida (más nuevos)</option>
-            <option value="first_release_date:asc">Salida (más antiguos)</option>
-            <option value="completed_at:desc">Pasados recientemente</option>
-            <option value="rating:desc">Mejor valorados</option>
-          </select>
+          <button (click)="filtersExpanded.set(!filtersExpanded())" type="button"
+            class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors"
+            [class]="filtersExpanded() || activeFilterCount() > 0
+              ? 'bg-[#7c3aed1a] border-[#7c3aed33] text-[#8b5cf6]'
+              : 'bg-[#161616] border-[#2a2a2a] text-[#606060] hover:text-[#a0a0a0]'">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3c2.755 0 5.455.232 8.083.678.533.09.917.556.917 1.096v1.044a2.25 2.25 0 01-.659 1.591l-5.432 5.432a2.25 2.25 0 00-.659 1.591v2.927a2.25 2.25 0 01-1.244 2.013L9.75 21v-6.568a2.25 2.25 0 00-.659-1.591L3.659 7.409A2.25 2.25 0 013 5.818V4.774c0-.54.384-1.006.917-1.096A48.32 48.32 0 0112 3z" />
+            </svg>
+            Filtros
+            @if (activeFilterCount() > 0) {
+              <span class="w-4 h-4 bg-[#7c3aed] text-white text-[10px] rounded-full flex items-center justify-center font-bold">{{ activeFilterCount() }}</span>
+            }
+          </button>
         </div>
+
+        <!-- Filtros activos -->
+        @if (activeFilterCount() > 0 && !filtersExpanded()) {
+          <div class="flex flex-wrap gap-1.5">
+            @if (platform) {
+              <span class="filter-tag">{{ platform }}
+                <button (click)="platform = ''; reload()" class="hover:text-white text-base leading-none">&times;</button></span>
+            }
+            @if (format) {
+              <span class="filter-tag">{{ formatLabel[format] }}
+                <button (click)="format = ''; reload()" class="hover:text-white text-base leading-none">&times;</button></span>
+            }
+            @if (genre) {
+              <span class="filter-tag">{{ genre }}
+                <button (click)="genre = ''; reload()" class="hover:text-white text-base leading-none">&times;</button></span>
+            }
+            @if (franchise) {
+              <span class="filter-tag">{{ franchise }}
+                <button (click)="franchise = ''; reload()" class="hover:text-white text-base leading-none">&times;</button></span>
+            }
+            <button (click)="clearAllFilters()" class="text-xs text-[#606060] hover:text-white transition-colors ml-1">
+              Limpiar todo
+            </button>
+          </div>
+        }
+
+        <!-- Panel de filtros -->
+        @if (filtersExpanded()) {
+          <div class="bg-[#161616] border border-[#2a2a2a] rounded-2xl p-4 space-y-4">
+            <div class="flex flex-wrap gap-x-6 gap-y-3">
+              <div>
+                <label class="panel-label">Plataforma</label>
+                <div class="flex flex-wrap gap-1">
+                  <button (click)="platform = ''; reload()" class="chip" [class.chip-on]="!platform">Todas</button>
+                  @for (p of platforms; track p) {
+                    <button (click)="platform = platform === p ? '' : p; reload()" class="chip" [class.chip-on]="platform === p">
+                      {{ p }}@if (platformCount(p); as n) { <span class="opacity-60"> {{ n }}</span> }
+                    </button>
+                  }
+                </div>
+              </div>
+              <div>
+                <label class="panel-label">Formato</label>
+                <div class="flex gap-1">
+                  <button (click)="format = ''; reload()" class="chip" [class.chip-on]="!format">Todos</button>
+                  <button (click)="format = format === 'physical' ? '' : 'physical'; reload()" class="chip" [class.chip-on]="format === 'physical'">Físico</button>
+                  <button (click)="format = format === 'digital' ? '' : 'digital'; reload()" class="chip" [class.chip-on]="format === 'digital'">Digital</button>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="panel-label">Género</label>
+                <input type="text" list="gameGenresList" [value]="genre"
+                  (change)="genre = $any($event.target).value; reload()"
+                  placeholder="Todos" class="panel-input" />
+                <datalist id="gameGenresList">
+                  @for (g of facets()?.genres ?? []; track g) { <option [value]="g"></option> }
+                </datalist>
+              </div>
+              <div>
+                <label class="panel-label">Saga</label>
+                <input type="text" list="gameFranchisesList" [value]="franchise"
+                  (change)="franchise = $any($event.target).value; reload()"
+                  placeholder="Todas" class="panel-input" />
+                <datalist id="gameFranchisesList">
+                  @for (f of facets()?.franchises ?? []; track f) { <option [value]="f"></option> }
+                </datalist>
+              </div>
+            </div>
+            @if (activeFilterCount() > 0) {
+              <div class="flex justify-end">
+                <button (click)="clearAllFilters()" class="text-xs text-[#606060] hover:text-white transition-colors">
+                  Limpiar filtros
+                </button>
+              </div>
+            }
+          </div>
+        }
       </div>
 
       @if (loading() && games().length === 0) {
@@ -154,11 +231,17 @@ const PAGE_SIZE = 42;
     </div>
   `,
   styles: [`
-    .filter-select {
-      @apply bg-[#161616] border border-[#2a2a2a] rounded-xl px-3 py-2 text-xs text-[#a0a0a0]
-             focus:outline-none focus:border-[#7c3aed] transition-colors;
+    .filter-tag { @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs bg-[#7c3aed1a] text-[#8b5cf6]; }
+    .panel-label { @apply block text-[10px] text-[#606060] mb-1 uppercase tracking-wider; }
+    .panel-input {
+      @apply w-full bg-[#0d0d0d] border border-[#2a2a2a] rounded-lg px-2.5 py-1.5 text-xs text-white
+             placeholder:text-[#404040] focus:outline-none focus:border-[#7c3aed] transition-colors;
     }
-    .filter-select option { background: #161616; }
+    .chip {
+      @apply px-2.5 py-1 rounded-lg text-xs font-medium border border-[#2a2a2a] bg-[#0d0d0d] text-[#606060]
+             hover:text-[#a0a0a0] transition-colors;
+    }
+    .chip-on { @apply bg-[#7c3aed1a] border-[#7c3aed33] text-[#8b5cf6] hover:text-[#8b5cf6]; }
   `],
 })
 export class GamesListComponent implements OnInit {
@@ -168,6 +251,7 @@ export class GamesListComponent implements OnInit {
   readonly platforms = GAME_PLATFORMS;
   readonly statusLabel = GAME_STATUS_LABEL;
   readonly statusStyle = GAME_STATUS_STYLE;
+  readonly formatLabel: Record<string, string> = GAME_FORMAT_LABEL;
   readonly statusFilters: { value: '' | GameStatus; label: string }[] = [
     { value: '', label: 'Todos' },
     { value: 'pending', label: 'Sin empezar' },
@@ -175,18 +259,28 @@ export class GamesListComponent implements OnInit {
     { value: 'completed', label: 'Pasados' },
     { value: 'abandoned', label: 'Abandonados' },
   ];
+  readonly sortOptions = [
+    { value: 'created_at', label: 'Recientes' },
+    { value: 'title', label: 'Título' },
+    { value: 'first_release_date', label: 'Salida' },
+    { value: 'completed_at', label: 'Pasado' },
+    { value: 'rating', label: 'Nota' },
+  ];
 
   games = signal<Game[]>([]);
   total = signal(0);
   loading = signal(false);
   facets = signal<Facets | null>(null);
+  filtersExpanded = signal(false);
 
   search = '';
   status: '' | GameStatus = '';
   platform = '';
   format = '';
   genre = '';
-  sortKey = 'created_at:desc';
+  franchise = '';
+  sortField = 'created_at';
+  sortOrder: 'asc' | 'desc' = 'desc';
   private page = 1;
   private searchTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -196,17 +290,37 @@ export class GamesListComponent implements OnInit {
     this.status = (qp.get('status') as GameStatus | null) ?? '';
     this.genre = qp.get('genre') ?? '';
     this.format = qp.get('format') ?? '';
+    this.franchise = qp.get('franchise') ?? '';
     this.api.get<Facets>('/games/facets').subscribe({ next: f => this.facets.set(f) });
     this.reload();
   }
 
-  hasFilters() {
-    return !!(this.search || this.status || this.platform || this.format || this.genre);
+  /** Los del panel; estado, orden y búsqueda van aparte, como en libros. */
+  activeFilterCount() {
+    return [this.platform, this.format, this.genre, this.franchise].filter(Boolean).length;
   }
 
-  platformCount(p: GamePlatform) {
-    const n = this.facets()?.platforms.find(x => x.platform === p)?.count;
-    return n ? ` (${n})` : '';
+  hasFilters() {
+    return !!(this.search || this.status || this.activeFilterCount());
+  }
+
+  clearAllFilters() {
+    this.platform = ''; this.format = ''; this.genre = ''; this.franchise = '';
+    this.reload();
+  }
+
+  toggleSort(field: string) {
+    if (this.sortField === field) {
+      this.sortOrder = this.sortOrder === 'desc' ? 'asc' : 'desc';
+    } else {
+      this.sortField = field;
+      this.sortOrder = field === 'title' ? 'asc' : 'desc';
+    }
+    this.reload();
+  }
+
+  platformCount(p: GamePlatform): number | null {
+    return this.facets()?.platforms.find(x => x.platform === p)?.count ?? null;
   }
 
   onSearch() {
@@ -225,13 +339,13 @@ export class GamesListComponent implements OnInit {
   }
 
   private fetch(append: boolean) {
-    const [sort, order] = this.sortKey.split(':');
-    const params: Record<string, string | number> = { page: this.page, limit: PAGE_SIZE, sort, order };
+    const params: Record<string, string | number> = { page: this.page, limit: PAGE_SIZE, sort: this.sortField, order: this.sortOrder };
     if (this.search) params['search'] = this.search;
     if (this.status) params['status'] = this.status;
     if (this.platform) params['platform'] = this.platform;
     if (this.format) params['format'] = this.format;
     if (this.genre) params['genre'] = this.genre;
+    if (this.franchise) params['franchise'] = this.franchise;
 
     this.loading.set(true);
     this.api.get<PaginatedResponse<Game>>('/games', params).subscribe({
