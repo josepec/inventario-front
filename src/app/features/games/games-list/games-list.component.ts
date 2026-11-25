@@ -35,6 +35,14 @@ const PAGE_SIZE = 42;
             </svg>
             <span class="hidden sm:inline">Trofeos</span>
           </a>
+          <a routerLink="/app/games/psn" title="Importar compras de PSN"
+            class="flex items-center gap-2 bg-[#161616] hover:bg-[#1a1a1a] border border-[#2a2a2a]
+                   text-[#a0a0a0] hover:text-white font-semibold text-sm rounded-xl px-4 py-2.5 transition-colors duration-200">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+            </svg>
+            <span class="hidden sm:inline">PSN</span>
+          </a>
           <a routerLink="/app/games/new"
             class="flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white
                    font-semibold text-sm rounded-xl px-4 py-2.5 md:px-5 transition-colors duration-200">

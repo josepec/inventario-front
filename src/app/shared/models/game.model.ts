@@ -71,6 +71,61 @@ export interface Game {
   trophy_progress: number | null;
   copies?: GameCopy[];
   trophy_lists?: TrophyList[];
+  dlcs?: GameDlc[];
+}
+
+/** DLC comprado en la PSN Store (game_dlcs). */
+export interface GameDlc {
+  id: number;
+  name: string;
+  platform: 'PS3' | 'PS4' | 'PS5' | null;
+  acquired_at: string | null;
+  icon_url: string | null;
+}
+
+// ── Compras de PSN (GET /games/psn/library) ──
+
+export type PsnPlatform = 'PS3' | 'PS4' | 'PS5';
+export type PsnKind = 'game' | 'app' | 'demo' | 'extra';
+
+export interface PsnCopy {
+  platform: PsnPlatform;
+  title_id: string;
+  product_id: string;
+  acquired_at: string | null;
+  is_free: boolean;
+  icon_url: string | null;
+  name: string;
+}
+
+export interface PsnCandidate {
+  key: string;
+  title: string;
+  kind: PsnKind;
+  copies: PsnCopy[];
+  dlc_count: number;
+  /** Todas sus copias ya están en la colección. */
+  imported: boolean;
+  /** El juego de la colección al que se sumarían las copias. */
+  game_id: number | null;
+  game_title: string | null;
+}
+
+export interface PsnDlc {
+  entitlement_id: string;
+  title_id: string;
+  name: string;
+  platform: PsnPlatform | null;
+  acquired_at: string | null;
+  icon_url: string | null;
+}
+
+export interface PsnImportResult {
+  game_id: number;
+  title: string;
+  created: boolean;
+  copies_added: number;
+  igdb: boolean;
 }
 
 /** Una lista de trofeos de PSN (game_trophy_lists). */

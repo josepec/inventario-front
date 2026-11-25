@@ -66,6 +66,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/games/game-trophies/game-trophies.component').then(m => m.GameTrophiesComponent),
       },
       {
+        path: 'games/psn',
+        loadComponent: () => import('./features/games/game-psn/game-psn.component').then(m => m.GamePsnComponent),
+      },
+      {
         path: 'games/:id',
         loadComponent: () => import('./features/games/game-detail/game-detail.component').then(m => m.GameDetailComponent),
       },

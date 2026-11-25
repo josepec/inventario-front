@@ -7,12 +7,13 @@ import { ApiService } from '../../../shared/services/api.service';
 import { CoversService } from '../../../shared/services/covers.service';
 import {
   Game, GameCopy, GameCopyDraft, GamePlatform, GameStatus, GAME_FORMAT_LABEL, GAME_PLATFORMS, GAME_STATUS_LABEL, TrophyList,
+  IgdbGameDetail, IgdbSearchResult,
   GAME_STATUS_STYLE, emptyCopy,
 } from '../../../shared/models/game.model';
 import { GameCopyEditorComponent } from '../game-copy-editor/game-copy-editor.component';
 import { TrophyListRowComponent } from '../trophy-list-row/trophy-list-row.component';
 
-type GameEdit = Pick<Game, 'title' | 'cover_url' | 'summary' | 'genres' | 'developer' | 'publisher' | 'franchise' | 'first_release_date'>;
+type GameEdit = Pick<Game, 'igdb_id' | 'igdb_url' | 'title' | 'cover_url' | 'summary' | 'genres' | 'developer' | 'publisher' | 'franchise' | 'first_release_date'>;
 
 @Component({
   selector: 'app-game-detail',
@@ -151,6 +152,37 @@ type GameEdit = Pick<Game, 'title' | 'cover_url' | 'summary' | 'genres' | 'devel
               </div>
             } @else {
               <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-5 grid grid-cols-2 gap-4">
+                <div class="col-span-2">
+                  <label class="field-label">Rellenar desde IGDB</label>
+                  <input [(ngModel)]="igdbQuery" (ngModelChange)="searchIgdb()" type="text"
+                    placeholder="Busca la ficha correcta..." class="field-input" />
+                  @if (igdbResults().length) {
+                    <ul class="mt-2 max-h-72 overflow-y-auto space-y-0.5">
+                      @for (r of igdbResults(); track r.igdb_id) {
+                        <li>
+                          <button type="button" (click)="pickIgdb(r)" [disabled]="!!r.local_id && r.local_id !== g.id"
+                            class="w-full flex items-center gap-3 px-2 py-1.5 rounded-lg text-left hover:bg-[#1f1f1f] disabled:opacity-40 disabled:hover:bg-transparent"
+                            [style.background]="edit.igdb_id === r.igdb_id ? '#7c3aed22' : null">
+                            <div class="w-7 h-9 rounded overflow-hidden bg-[#0d0d0d] shrink-0">
+                              @if (r.cover_url) { <img [src]="r.cover_url" alt="" class="w-full h-full object-cover" loading="lazy" /> }
+                            </div>
+                            <div class="min-w-0 flex-1">
+                              <p class="text-sm text-[#d0d0d0] truncate">{{ r.title }}</p>
+                              <p class="text-[10px] text-[#606060] truncate">
+                                {{ r.year ?? '¿?' }} · {{ r.platforms.join(' · ') }}@if (r.kind) { · {{ r.kind }} }
+                                @if (r.local_id && r.local_id !== g.id) { · ya es otro juego de tu colección }
+                              </p>
+                            </div>
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  }
+                  @if (igdbLoading()) { <p class="text-[11px] text-[#606060] mt-2">Cargando ficha...</p> }
+                  @if (edit.igdb_id !== g.igdb_id && edit.igdb_id) {
+                    <p class="text-[11px] text-[#22c55e] mt-2">Datos rellenados desde IGDB: revisa y guarda.</p>
+                  }
+                </div>
                 <div class="col-span-2">
                   <label class="field-label">Título</label>
                   <input [(ngModel)]="edit.title" type="text" class="field-input" />
@@ -299,6 +331,28 @@ type GameEdit = Pick<Game, 'title' | 'cover_url' | 'summary' | 'genres' | 'devel
                 </div>
               }
             </section>
+
+            @if (g.dlcs?.length) {
+              <!-- DLC (de las compras de PSN) -->
+              <section class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-5">
+                <h2 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-4">
+                  Contenido descargable <span class="text-[#404040]">{{ g.dlcs!.length }}</span>
+                </h2>
+                <ul class="space-y-2">
+                  @for (d of g.dlcs; track d.id) {
+                    <li class="flex items-center gap-3">
+                      <div class="w-9 h-9 rounded-lg overflow-hidden bg-[#0d0d0d] shrink-0">
+                        @if (d.icon_url) { <img [src]="d.icon_url" alt="" class="w-full h-full object-cover" loading="lazy" /> }
+                      </div>
+                      <p class="text-sm text-[#d0d0d0] flex-1 min-w-0 truncate" [title]="d.name">{{ d.name }}</p>
+                      <span class="text-[10px] text-[#606060] shrink-0">
+                        {{ d.platform ?? '' }}@if (d.acquired_at) { · {{ d.acquired_at | date:'d/M/yyyy' }} }
+                      </span>
+                    </li>
+                  }
+                </ul>
+              </section>
+            }
           </div>
         </div>
       }
@@ -331,7 +385,7 @@ export class GameDetailComponent implements OnInit {
   saving = signal(false);
   error = signal<string | null>(null);
   editing = signal(false);
-  edit: GameEdit = { title: '', cover_url: null, summary: null, genres: null, developer: null, publisher: null, franchise: null, first_release_date: null };
+  edit: GameEdit = { igdb_id: null, igdb_url: null, title: '', cover_url: null, summary: null, genres: null, developer: null, publisher: null, franchise: null, first_release_date: null };
   notes = '';
 
   copyDraft = signal<GameCopyDraft | null>(null);
@@ -394,7 +448,7 @@ export class GameDetailComponent implements OnInit {
     this.error.set(null);
     const {
       copies: _c, platforms: _p, formats: _f, copies_count: _n,
-      trophy_lists: _t, has_platinum: _hp, trophy_progress: _tp, ...base
+      trophy_lists: _t, dlcs: _d, has_platinum: _hp, trophy_progress: _tp, ...base
     } = g;
     this.api.put(`/games/${g.id}`, { ...base, ...changes }).subscribe({
       next: () => { this.saving.set(false); done?.(); this.load(); },
@@ -426,10 +480,45 @@ export class GameDetailComponent implements OnInit {
   startEditing() {
     const g = this.game()!;
     this.edit = {
-      title: g.title, cover_url: g.cover_url, summary: g.summary, genres: g.genres, developer: g.developer,
+      igdb_id: g.igdb_id, igdb_url: g.igdb_url, title: g.title, cover_url: g.cover_url, summary: g.summary, genres: g.genres, developer: g.developer,
       publisher: g.publisher, franchise: g.franchise, first_release_date: g.first_release_date,
     };
+    this.igdbQuery = g.title;
+    this.igdbResults.set([]);
     this.editing.set(true);
+  }
+
+  // ── Rehacer la ficha desde IGDB (importaciones que no la encontraron o cogieron otra) ──
+
+  igdbQuery = '';
+  igdbResults = signal<IgdbSearchResult[]>([]);
+  igdbLoading = signal(false);
+  private igdbTimer: ReturnType<typeof setTimeout> | undefined;
+
+  searchIgdb() {
+    clearTimeout(this.igdbTimer);
+    const q = this.igdbQuery.trim();
+    if (q.length < 2) { this.igdbResults.set([]); return; }
+    this.igdbTimer = setTimeout(() => {
+      this.api.get<{ data: IgdbSearchResult[] }>('/games/igdb/search', { q })
+        .subscribe({ next: r => this.igdbResults.set(r.data) });
+    }, 350);
+  }
+
+  pickIgdb(r: IgdbSearchResult) {
+    this.igdbLoading.set(true);
+    this.api.get<IgdbGameDetail>(`/games/igdb/${r.igdb_id}`).subscribe({
+      next: d => {
+        this.igdbLoading.set(false);
+        this.edit = {
+          igdb_id: d.igdb_id, igdb_url: d.igdb_url, title: d.title,
+          cover_url: d.cover_url ?? this.edit.cover_url, summary: d.summary, genres: d.genres,
+          developer: d.developer, publisher: d.publisher, franchise: d.franchise,
+          first_release_date: d.first_release_date,
+        };
+      },
+      error: () => this.igdbLoading.set(false),
+    });
   }
 
   saveEdit() {
