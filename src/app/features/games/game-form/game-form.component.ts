@@ -1,5 +1,5 @@
-import { Component, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
@@ -278,10 +278,22 @@ function defaultPlatform(platforms: GamePlatform[]): GamePlatform {
     select.field-input option { background: #161616; }
   `],
 })
-export class GameFormComponent {
+export class GameFormComponent implements OnInit {
   private api = inject(ApiService);
   private covers = inject(CoversService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
+
+  /** Viene de Trofeos → "Añadir juego": esa lista se vincula al guardar. */
+  private trophyListId: number | null = null;
+
+  ngOnInit() {
+    const qp = this.route.snapshot.queryParamMap;
+    const list = Number(qp.get('trophyList'));
+    this.trophyListId = Number.isFinite(list) && list > 0 ? list : null;
+    const q = qp.get('q')?.trim();
+    if (q) { this.query = q; this.runSearch(q); }
+  }
 
   readonly statuses: GameStatus[] = ['pending', 'playing', 'completed', 'abandoned'];
   readonly statusLabel = GAME_STATUS_LABEL;
@@ -383,6 +395,14 @@ export class GameFormComponent {
   }
 
   pick(r: IgdbSearchResult) {
+    if (r.local_id && this.trophyListId) {
+      // Desde Trofeos y el juego ya está: solo se vincula la lista.
+      this.api.put(`/games/trophies/lists/${this.trophyListId}`, { game_id: r.local_id }).subscribe({
+        next: () => this.router.navigate(['/app/games', r.local_id]),
+        error: () => this.router.navigate(['/app/games', r.local_id]),
+      });
+      return;
+    }
     if (r.local_id) {
       // Ya está en la colección: se le añade la copia en su ficha (con el código, si se escaneó).
       const s = this.scan();
@@ -449,7 +469,7 @@ export class GameFormComponent {
         ? await firstValueFrom(this.covers.persist(this.draft.cover_url)).catch(() => this.draft.cover_url)
         : null;
       const copies = this.copies().map(c => ({ ...c, price: c.is_free ? null : c.price }));
-      const res = await firstValueFrom(this.api.post<{ id: number }>('/games', { ...this.draft, cover_url: cover, copies }));
+      const res = await firstValueFrom(this.api.post<{ id: number }>('/games', { ...this.draft, cover_url: cover, copies, trophy_list_id: this.trophyListId }));
       this.router.navigate(['/app/games', res.id]);
     } catch (e) {
       this.saving.set(false);

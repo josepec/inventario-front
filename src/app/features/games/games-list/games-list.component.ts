@@ -26,15 +26,25 @@ const PAGE_SIZE = 42;
           <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">Videojuegos</h1>
           <p class="text-[#606060] mt-0.5 text-sm">{{ total() }} {{ total() === 1 ? 'juego' : 'juegos' }} en tu colección</p>
         </div>
-        <a routerLink="/app/games/new"
-          class="flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white
-                 font-semibold text-sm rounded-xl px-4 py-2.5 md:px-5 transition-colors duration-200 shrink-0">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-          </svg>
-          <span class="hidden sm:inline">Añadir juego</span>
-          <span class="sm:hidden">Añadir</span>
-        </a>
+        <div class="flex items-center gap-2 shrink-0">
+          <a routerLink="/app/games/trophies"
+            class="flex items-center gap-2 bg-[#161616] hover:bg-[#1a1a1a] border border-[#2a2a2a]
+                   text-[#a0a0a0] hover:text-white font-semibold text-sm rounded-xl px-4 py-2.5 transition-colors duration-200">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M7.73 9.728a6.726 6.726 0 002.748 1.35m8.272-6.842V4.5c0 2.108-.966 3.99-2.48 5.228m2.48-5.492a46.32 46.32 0 012.916.52 6.003 6.003 0 01-5.395 4.972m0 0a6.726 6.726 0 01-2.749 1.35m0 0a6.772 6.772 0 01-3.044 0" />
+            </svg>
+            <span class="hidden sm:inline">Trofeos</span>
+          </a>
+          <a routerLink="/app/games/new"
+            class="flex items-center gap-2 bg-[#7c3aed] hover:bg-[#6d28d9] text-white
+                   font-semibold text-sm rounded-xl px-4 py-2.5 md:px-5 transition-colors duration-200">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span class="hidden sm:inline">Añadir juego</span>
+            <span class="sm:hidden">Añadir</span>
+          </a>
+        </div>
       </div>
 
       <!-- Búsqueda, estado, orden y filtros (mismo patrón que libros) -->
@@ -206,6 +216,14 @@ const PAGE_SIZE = 42;
                 @if (g.status !== 'pending') {
                   <span class="absolute top-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded border backdrop-blur-sm"
                     [class]="statusStyle[g.status]">{{ statusLabel[g.status] }}</span>
+                }
+                @if (g.has_platinum) {
+                  <span class="absolute bottom-1.5 left-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/75 text-[#a5b4fc]"
+                    title="Platino conseguido">PLATINO</span>
+                } @else if (g.trophy_progress != null && g.trophy_progress > 0) {
+                  <div class="absolute inset-x-0 bottom-0 h-1 bg-black/60" [title]="'Trofeos: ' + g.trophy_progress + '%'">
+                    <div class="h-full bg-[#7c3aed]" [style.width.%]="g.trophy_progress"></div>
+                  </div>
                 }
                 @if (g.formats.includes('digital')) {
                   <span class="absolute top-1.5 right-1.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-black/70 text-[#a0a0a0]"

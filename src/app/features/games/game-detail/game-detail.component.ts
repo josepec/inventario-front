@@ -6,17 +6,18 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { ApiService } from '../../../shared/services/api.service';
 import { CoversService } from '../../../shared/services/covers.service';
 import {
-  Game, GameCopy, GameCopyDraft, GamePlatform, GameStatus, GAME_FORMAT_LABEL, GAME_PLATFORMS, GAME_STATUS_LABEL,
+  Game, GameCopy, GameCopyDraft, GamePlatform, GameStatus, GAME_FORMAT_LABEL, GAME_PLATFORMS, GAME_STATUS_LABEL, TrophyList,
   GAME_STATUS_STYLE, emptyCopy,
 } from '../../../shared/models/game.model';
 import { GameCopyEditorComponent } from '../game-copy-editor/game-copy-editor.component';
+import { TrophyListRowComponent } from '../trophy-list-row/trophy-list-row.component';
 
 type GameEdit = Pick<Game, 'title' | 'cover_url' | 'summary' | 'genres' | 'developer' | 'publisher' | 'franchise' | 'first_release_date'>;
 
 @Component({
   selector: 'app-game-detail',
   standalone: true,
-  imports: [FormsModule, DatePipe, GameCopyEditorComponent],
+  imports: [FormsModule, DatePipe, GameCopyEditorComponent, TrophyListRowComponent],
   template: `
     <div class="p-4 md:p-8 max-w-5xl mx-auto">
 
@@ -247,6 +248,57 @@ type GameEdit = Pick<Game, 'title' | 'cover_url' | 'summary' | 'genres' | 'devel
                 }
               </div>
             </section>
+
+            <!-- Trofeos de PSN -->
+            <section class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xs text-[#606060] uppercase tracking-wider font-semibold">Trofeos</h2>
+                @if (!linking()) {
+                  <button type="button" (click)="openLinking()" class="text-xs text-[#8b5cf6] hover:text-[#a78bfa]">+ Vincular lista</button>
+                }
+              </div>
+
+              @if (!g.trophy_lists?.length && !linking()) {
+                <p class="text-xs text-[#606060]">Sin listas de trofeos. Se vinculan solas si el título coincide con el de PSN; si no, vincúlala a mano.</p>
+              }
+              <div class="space-y-4">
+                @for (l of g.trophy_lists ?? []; track l.id) {
+                  <div class="group">
+                    <app-trophy-list-row [list]="l" [showTitle]="l.title !== g.title" />
+                    <div class="flex justify-end mt-1">
+                      <button type="button" (click)="unlinkList(l)"
+                        class="text-[10px] text-[#404040] hover:text-[#ef4444] opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity">
+                        Desvincular
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+
+              @if (linking()) {
+                <div class="mt-3 pt-3 border-t border-[#1e1e1e]">
+                  <div class="flex items-center gap-2 mb-3">
+                    <input [(ngModel)]="linkQuery" (ngModelChange)="searchLists()" type="text" autofocus
+                      placeholder="Buscar en tus listas de trofeos sin vincular..." class="field-input" />
+                    <button type="button" (click)="linking.set(false)" class="px-3 py-2 text-xs text-[#a0a0a0] hover:text-white shrink-0">Cerrar</button>
+                  </div>
+                  @if (candidates().length) {
+                    <ul class="space-y-1 max-h-80 overflow-y-auto">
+                      @for (l of candidates(); track l.id) {
+                        <li>
+                          <button type="button" (click)="linkList(l)"
+                            class="w-full text-left px-2 py-2 -mx-2 rounded-xl hover:bg-[#1f1f1f] transition-colors">
+                            <app-trophy-list-row [list]="l" />
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  } @else {
+                    <p class="text-xs text-[#606060]">No hay listas sin vincular con ese nombre.</p>
+                  }
+                </div>
+              }
+            </section>
           </div>
         </div>
       }
@@ -340,7 +392,10 @@ export class GameDetailComponent implements OnInit {
     if (!g) return;
     this.saving.set(true);
     this.error.set(null);
-    const { copies: _c, platforms: _p, formats: _f, copies_count: _n, ...base } = g;
+    const {
+      copies: _c, platforms: _p, formats: _f, copies_count: _n,
+      trophy_lists: _t, has_platinum: _hp, trophy_progress: _tp, ...base
+    } = g;
     this.api.put(`/games/${g.id}`, { ...base, ...changes }).subscribe({
       next: () => { this.saving.set(false); done?.(); this.load(); },
       error: (e: HttpErrorResponse) => { this.saving.set(false); this.error.set(e.error?.error ?? 'No se pudo guardar'); },
@@ -391,6 +446,43 @@ export class GameDetailComponent implements OnInit {
     const g = this.game();
     if (!g || !confirm(`¿Eliminar "${g.title}" y sus copias?`)) return;
     this.api.delete(`/games/${g.id}`).subscribe({ next: () => this.router.navigate(['/app/games']) });
+  }
+
+  // ── Trofeos ──
+
+  linking = signal(false);
+  linkQuery = '';
+  candidates = signal<TrophyList[]>([]);
+  private linkTimer: ReturnType<typeof setTimeout> | undefined;
+
+  openLinking() {
+    this.linking.set(true);
+    this.linkQuery = this.game()?.title ?? '';
+    // Con el título entero rara vez coincide (si no, ya estaría vinculada): se
+    // empieza por la primera palabra significativa.
+    this.linkQuery = this.linkQuery.split(/[\s:]+/).find(w => w.length > 3) ?? this.linkQuery;
+    this.fetchCandidates();
+  }
+
+  searchLists() {
+    clearTimeout(this.linkTimer);
+    this.linkTimer = setTimeout(() => this.fetchCandidates(), 300);
+  }
+
+  private fetchCandidates() {
+    this.api.get<{ data: TrophyList[] }>('/games/trophies/lists', { state: 'pending', q: this.linkQuery.trim() })
+      .subscribe({ next: r => this.candidates.set(r.data) });
+  }
+
+  linkList(l: TrophyList) {
+    this.api.put(`/games/trophies/lists/${l.id}`, { game_id: this.id }).subscribe({
+      next: () => { this.linking.set(false); this.load(); },
+    });
+  }
+
+  unlinkList(l: TrophyList) {
+    if (!confirm(`¿Desvincular la lista de trofeos "${l.title}" (${l.platforms})?`)) return;
+    this.api.put(`/games/trophies/lists/${l.id}`, { game_id: null }).subscribe({ next: () => this.load() });
   }
 
   // ── Copias ──

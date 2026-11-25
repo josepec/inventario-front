@@ -66,8 +66,42 @@ export interface Game {
   platforms: GamePlatform[];
   formats: GameFormat[];
   copies_count: number;
+  /** De sus listas de trofeos de PSN. */
+  has_platinum: boolean;
+  trophy_progress: number | null;
   copies?: GameCopy[];
+  trophy_lists?: TrophyList[];
 }
+
+/** Una lista de trofeos de PSN (game_trophy_lists). */
+export interface TrophyList {
+  id: number;
+  np_communication_id: string;
+  title: string;
+  icon_url: string | null;
+  /** "PS5", "PS4,PS5", "PS3" */
+  platforms: string;
+  progress: number;
+  earned_platinum: number; earned_gold: number; earned_silver: number; earned_bronze: number;
+  defined_platinum: number; defined_gold: number; defined_silver: number; defined_bronze: number;
+  platinum_at: string | null;
+  last_played_at: string | null;
+  game_id: number | null;
+  link_state: 'auto' | 'manual' | 'ignored' | null;
+  game_title?: string | null;
+}
+
+export interface TrophyStatus {
+  synced_at: string | null;
+  connected: boolean;
+  total: number;
+  linked: number;
+  pending: number;
+  ignored: number;
+  platinums: number;
+}
+
+export const TROPHY_COLORS = { platinum: '#a5b4fc', gold: '#f59e0b', silver: '#a0a0a0', bronze: '#c2773b' } as const;
 
 export interface IgdbSearchResult {
   igdb_id: number;

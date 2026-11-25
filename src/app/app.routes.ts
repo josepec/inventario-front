@@ -62,6 +62,10 @@ export const routes: Routes = [
         loadComponent: () => import('./features/games/game-form/game-form.component').then(m => m.GameFormComponent),
       },
       {
+        path: 'games/trophies',
+        loadComponent: () => import('./features/games/game-trophies/game-trophies.component').then(m => m.GameTrophiesComponent),
+      },
+      {
         path: 'games/:id',
         loadComponent: () => import('./features/games/game-detail/game-detail.component').then(m => m.GameDetailComponent),
       },

@@ -62,7 +62,7 @@ interface BooksDashboard {
 }
 
 interface GamesDashboard {
-  totals: { games: number; completed: number; playing: number; pending: number; abandoned: number; physical: number; digital: number };
+  totals: { games: number; completed: number; playing: number; pending: number; abandoned: number; platinums: number; physical: number; digital: number };
   monthly: { added: { month: string; count: number }[]; completed: { month: string; count: number }[] };
   byPlatform: { platform: string; count: number }[];
   byGenre: { genre: string; count: number }[];
@@ -638,6 +638,11 @@ interface GamesDashboard {
                 <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#2a2a2a] inline-block"></span> Sin empezar ({{ gd.totals.pending }})</span>
                 @if (gd.totals.abandoned) {
                   <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-[#ef4444] inline-block"></span> Abandonados ({{ gd.totals.abandoned }})</span>
+                }
+                @if (gd.totals.platinums) {
+                  <a routerLink="/app/games/trophies" class="ml-auto flex items-center gap-1 text-[#a5b4fc] hover:text-white">
+                    <span class="w-2 h-2 rounded-full bg-[#a5b4fc] inline-block"></span> {{ gd.totals.platinums }} {{ gd.totals.platinums === 1 ? 'platino' : 'platinos' }}
+                  </a>
                 }
               </div>
             </div>
