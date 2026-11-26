@@ -104,6 +104,16 @@ function defaultPlatform(platforms: GamePlatform[]): GamePlatform {
                 } @else {
                   <p class="text-[#606060]">No encuentro ese código en ninguna tienda. Busca el juego por su nombre y la copia se guardará con este código.</p>
                 }
+                @if (!lookingUp() && !searching()) {
+                  <p class="mt-1.5 text-[#a0a0a0]">
+                    @if (results().length) {
+                      <span class="text-[#8b5cf6] font-medium">Elige abajo cuál es</span> para añadirlo con este código.
+                    } @else if (s.product) {
+                      No está en IGDB con ese nombre: cambia la búsqueda o
+                      <button type="button" (click)="manual()" class="text-[#8b5cf6] hover:text-[#a78bfa] font-medium">añádelo sin ficha</button>.
+                    }
+                  </p>
+                }
               </div>
               <button type="button" (click)="clearScan()" title="Quitar código" class="text-[#606060] hover:text-white text-base leading-none">&times;</button>
             </div>
