@@ -1,12 +1,13 @@
 import { Component, input } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { TrophyList, TROPHY_COLORS } from '../../../shared/models/game.model';
+import { GameIconComponent } from '../game-icon/game-icon.component';
 
 /** Una lista de trofeos de PSN: icono, plataformas, progreso y recuento por tipo. */
 @Component({
   selector: 'app-trophy-list-row',
   standalone: true,
-  imports: [DatePipe],
+  imports: [DatePipe, GameIconComponent],
   template: `
     @let l = list();
     <div class="flex items-center gap-3 min-w-0">
@@ -20,9 +21,9 @@ import { TrophyList, TROPHY_COLORS } from '../../../shared/models/game.model';
           }
           <span class="text-[10px] font-semibold text-[#8b5cf6] shrink-0">{{ l.platforms.split(',').join(' · ') }}</span>
           @if (l.earned_platinum > 0) {
-            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 bg-[#a5b4fc1a] text-[#a5b4fc]"
+            <span class="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 bg-[#a5b4fc1a] text-[#a5b4fc]"
               [title]="l.platinum_at ? 'Platino el ' + (l.platinum_at | date:'d/M/yyyy') : 'Platino'">
-              Platino@if (l.platinum_at) { · {{ l.platinum_at | date:'d MMM yyyy' }} }
+              <app-game-icon name="platinum" />Platino@if (l.platinum_at) { · {{ l.platinum_at | date:'d MMM yyyy' }} }
             </span>
           }
         </div>

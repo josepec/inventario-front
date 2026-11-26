@@ -5,6 +5,7 @@ import { ApiService, PaginatedResponse } from '../../../shared/services/api.serv
 import {
   Game, GamePlatform, GameStatus, GAME_FORMAT_LABEL, GAME_PLATFORMS, GAME_STATUS_LABEL, GAME_STATUS_STYLE,
 } from '../../../shared/models/game.model';
+import { GameIconComponent } from '../game-icon/game-icon.component';
 
 interface Facets {
   platforms: { platform: GamePlatform; count: number }[];
@@ -16,7 +17,7 @@ interface Facets {
 @Component({
   selector: 'app-games-list',
   standalone: true,
-  imports: [RouterLink, FormsModule],
+  imports: [RouterLink, FormsModule, GameIconComponent],
   template: `
     <div class="p-4 md:p-8 max-w-7xl mx-auto">
 
@@ -319,10 +320,15 @@ interface Facets {
                         }
                       </span>
                     </div>
-                  } @else if (g.formats.includes('digital')) {
-                    <!-- Formato (top-left) -->
-                    <div class="absolute top-2 left-2 bg-black/70 px-1.5 py-0.5 rounded text-[9px] font-bold text-[#a0a0a0]"
-                      [title]="g.formats.length > 1 ? 'Físico y digital' : 'Digital'">{{ g.formats.length > 1 ? 'F+D' : 'DIG' }}</div>
+                  } @else if (g.formats.length) {
+                    <!-- Formato (top-left): disco = físico, nube = digital -->
+                    <div class="absolute top-2 left-2 flex gap-1">
+                      @for (f of g.formats; track f) {
+                        <span class="w-5 h-5 rounded-full bg-black/70 flex items-center justify-center text-white/85">
+                          <app-game-icon [name]="f" />
+                        </span>
+                      }
+                    </div>
                   }
                   <!-- Estado (top-right, como el leído de libros) -->
                   <div class="absolute top-2 right-2">
@@ -340,8 +346,9 @@ interface Facets {
                     </div>
                   }
                   @if (g.has_platinum) {
-                    <div class="absolute bottom-1.5 right-1.5 bg-black/70 px-1.5 py-0.5 rounded text-[9px] font-bold text-[#a5b4fc]"
-                      title="Platino conseguido">PLATINO</div>
+                    <span class="absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full bg-[#a5b4fc] flex items-center justify-center text-[#1e1b4b]">
+                      <app-game-icon name="platinum" />
+                    </span>
                   } @else if (g.trophy_progress != null && g.trophy_progress > 0) {
                     <div class="absolute inset-x-0 bottom-0 h-1 bg-black/60" [title]="'Trofeos: ' + g.trophy_progress + '%'">
                       <div class="h-full bg-[#7c3aed]" [style.width.%]="g.trophy_progress"></div>
@@ -385,8 +392,13 @@ interface Facets {
                 <p class="text-sm font-semibold text-white truncate">{{ g.title }}</p>
                 <p class="text-xs text-[#606060] truncate">{{ g.platforms.join(' · ') || 'Sin copias' }}</p>
               </div>
+              @for (f of g.formats; track f) {
+                <span class="text-[#606060] shrink-0"><app-game-icon [name]="f" size="w-4 h-4" /></span>
+              }
               @if (g.has_platinum) {
-                <span class="text-[10px] font-bold text-[#a5b4fc] shrink-0">PLATINO</span>
+                <span class="w-5 h-5 rounded-full bg-[#a5b4fc] flex items-center justify-center text-[#1e1b4b] shrink-0">
+                  <app-game-icon name="platinum" />
+                </span>
               }
               @if (g.rating) {
                 <span class="text-xs text-[#f59e0b] shrink-0">{{ g.rating }}★</span>

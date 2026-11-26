@@ -29,7 +29,7 @@ const LOW_RES_WIDTH = 400;
         <div class="flex items-center justify-between px-5 pt-5 pb-3">
           <div>
             <h2 class="text-base font-bold text-white">Elegir portada</h2>
-            @if (isbn()) { <p class="text-xs text-[#606060] mt-0.5">ISBN {{ isbn() }}</p> }
+            @if (isbn() && !gameId()) { <p class="text-xs text-[#606060] mt-0.5">ISBN {{ isbn() }}</p> }
           </div>
           <button type="button" (click)="closed.emit()" class="text-[#606060] hover:text-white transition-colors p-1">
             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -55,7 +55,7 @@ const LOW_RES_WIDTH = 400;
             }
 
             <section>
-              <h3 class="section-title">De este ISBN</h3>
+              <h3 class="section-title">{{ gameId() ? 'De tu juego' : 'De este ISBN' }}</h3>
               @if (byIsbn().length) {
                 <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   @for (o of byIsbn(); track o.url) {
@@ -63,13 +63,13 @@ const LOW_RES_WIDTH = 400;
                   }
                 </div>
               } @else {
-                <p class="text-xs text-[#606060]">Ninguna fuente tiene portada para este ISBN.</p>
+                <p class="text-xs text-[#606060]">{{ gameId() ? 'Ninguna fuente tiene portada para este juego.' : 'Ninguna fuente tiene portada para este ISBN.' }}</p>
               }
             </section>
 
             @if (others().length) {
               <section>
-                <h3 class="section-title">Otras ediciones</h3>
+                <h3 class="section-title">{{ gameId() ? 'Otras' : 'Otras ediciones' }}</h3>
                 <p class="text-[11px] text-[#505050] -mt-1 mb-2">Encontradas por título: pueden no coincidir con tu edición.</p>
                 <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                   @for (o of others(); track o.url) {
@@ -162,6 +162,8 @@ export class CoverPickerComponent implements OnInit {
   title = input<string | null>(null);
   author = input<string | null>(null);
   current = input<string | null>(null);
+  /** Para un juego: las fuentes son las de videojuegos (IGDB, PS Store, Amazon.es). */
+  gameId = input<number | null>(null);
 
   picked = output<string>();
   closed = output<void>();
@@ -188,7 +190,8 @@ export class CoverPickerComponent implements OnInit {
   });
 
   ngOnInit() {
-    this.covers.options(this.isbn(), this.title(), this.author()).subscribe({
+    const gameId = this.gameId();
+    (gameId ? this.covers.gameOptions(gameId) : this.covers.options(this.isbn(), this.title(), this.author())).subscribe({
       next: data => { this.options.set(data); this.loading.set(false); },
       error: () => { this.error.set('No se pudieron cargar las portadas'); this.loading.set(false); },
     });

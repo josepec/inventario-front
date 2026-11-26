@@ -13,13 +13,15 @@ import {
 } from '../../../shared/models/game.model';
 import { GameCopyEditorComponent } from '../game-copy-editor/game-copy-editor.component';
 import { TrophyListRowComponent } from '../trophy-list-row/trophy-list-row.component';
+import { CoverPickerComponent } from '../../../shared/components/cover-picker/cover-picker.component';
+import { GameIconComponent } from '../game-icon/game-icon.component';
 
 type GameEdit = Pick<Game, 'igdb_id' | 'igdb_url' | 'title' | 'cover_url' | 'summary' | 'genres' | 'developer' | 'publisher' | 'franchise' | 'first_release_date'>;
 
 @Component({
   selector: 'app-game-detail',
   standalone: true,
-  imports: [FormsModule, DatePipe, GameCopyEditorComponent, TrophyListRowComponent],
+  imports: [FormsModule, DatePipe, GameCopyEditorComponent, TrophyListRowComponent, CoverPickerComponent, GameIconComponent],
   template: `
     <div class="p-4 md:p-8 max-w-5xl mx-auto">
 
@@ -78,6 +80,11 @@ type GameEdit = Pick<Game, 'igdb_id' | 'igdb_url' | 'title' | 'cover_url' | 'sum
                     <span class="text-xs text-[#404040]">Sin portada</span>
                   }
                 </div>
+                <button type="button" (click)="pickerOpen.set(true)" [disabled]="savingCover()"
+                  class="w-full mt-2 py-1.5 rounded-xl text-xs text-[#a0a0a0] hover:text-white bg-[#161616]
+                         border border-[#2a2a2a] hover:bg-[#1f1f1f] disabled:opacity-40 transition-colors">
+                  {{ savingCover() ? 'Guardando portada...' : 'Cambiar portada' }}
+                </button>
               </div>
 
               <div class="flex-1 min-w-0 space-y-4">
@@ -256,7 +263,8 @@ type GameEdit = Pick<Game, 'igdb_id' | 'igdb_url' | 'title' | 'cover_url' | 'sum
                     <div class="flex items-center gap-3 rounded-xl px-3 py-2.5 bg-[#0d0d0d] border border-[#1e1e1e]">
                       <span class="text-[11px] font-bold px-2 py-1 rounded-md bg-[#1f1f1f] text-white shrink-0 w-11 text-center">{{ c.platform }}</span>
                       <div class="flex-1 min-w-0">
-                        <p class="text-sm text-[#d0d0d0] truncate">
+                        <p class="text-sm text-[#d0d0d0] truncate flex items-center gap-1.5">
+                          <app-game-icon [name]="c.format" size="w-3.5 h-3.5" class="text-[#a0a0a0] shrink-0" />
                           {{ formatLabel[c.format] }} · {{ c.edition || 'Estándar' }}
                           @if (c.is_free) { <span class="text-[10px] font-semibold text-[#22c55e] ml-1">GRATIS</span> }
                         </p>
@@ -381,6 +389,14 @@ type GameEdit = Pick<Game, 'igdb_id' | 'igdb_url' | 'title' | 'cover_url' | 'sum
         </div>
       }
     </div>
+    @if (pickerOpen() && game()) {
+      <app-cover-picker
+        [gameId]="game()!.id"
+        [title]="game()!.title"
+        [current]="editing() ? edit.cover_url : game()!.cover_url"
+        (picked)="onCoverPicked($event)"
+        (closed)="pickerOpen.set(false)" />
+    }
   `,
   styles: [`
     .info-label { @apply text-[10px] text-[#606060] uppercase tracking-wider mb-0.5; }
@@ -564,6 +580,27 @@ export class GameDetailComponent implements OnInit {
     } else {
       send(cover);
     }
+  }
+
+  // ── Portada (el mismo selector que libros) ──
+
+  pickerOpen = signal(false);
+  savingCover = signal(false);
+
+  onCoverPicked(url: string) {
+    this.pickerOpen.set(false);
+    this.savingCover.set(true);
+    this.covers.persist(url).subscribe({
+      next: stored => {
+        this.savingCover.set(false);
+        if (this.editing()) { this.edit.cover_url = stored; return; }
+        this.update({ cover_url: stored });
+      },
+      error: err => {
+        this.savingCover.set(false);
+        this.error.set('No se pudo guardar esa imagen' + (err?.error?.error ? `: ${err.error.error}` : ''));
+      },
+    });
   }
 
   confirmDelete() {

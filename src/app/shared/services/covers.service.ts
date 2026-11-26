@@ -27,6 +27,11 @@ export class CoversService {
       .pipe(map(r => r.data));
   }
 
+  /** Portadas de un juego de la colección: IGDB, PS Store, Amazon.es... */
+  gameOptions(gameId: number): Observable<CoverOption[]> {
+    return this.http.get<{ data: CoverOption[] }>(`${this.base}/games/${gameId}/covers`).pipe(map(r => r.data));
+  }
+
   isStored(url: string): boolean {
     return url.startsWith(`${this.base}/covers/`);
   }
