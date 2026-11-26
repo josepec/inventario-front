@@ -239,8 +239,13 @@ type GameEdit = Pick<Game, 'igdb_id' | 'igdb_url' | 'title' | 'cover_url' | 'sum
             <section class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-5">
               <div class="flex items-center justify-between mb-4">
                 <h2 class="text-xs text-[#606060] uppercase tracking-wider font-semibold">Lo que tengo</h2>
-                @if (!copyDraft()) {
-                  <button type="button" (click)="newCopy()" class="text-xs text-[#8b5cf6] hover:text-[#a78bfa]">+ Añadir copia</button>
+                @if (!copyDraft() && !moving()) {
+                  <div class="flex items-center gap-4">
+                    @if (g.copies?.length) {
+                      <button type="button" (click)="openMoving()" class="text-xs text-[#606060] hover:text-white">Mover a otro juego</button>
+                    }
+                    <button type="button" (click)="newCopy()" class="text-xs text-[#8b5cf6] hover:text-[#a78bfa]">+ Añadir copia</button>
+                  </div>
                 }
               </div>
 
@@ -297,6 +302,49 @@ type GameEdit = Pick<Game, 'igdb_id' | 'igdb_url' | 'title' | 'cover_url' | 'sum
                   </div>
                 }
               </div>
+
+              @if (moving()) {
+                <!-- Mover copias a otro juego (p. ej. la digital de PSN a la ficha de la Deluxe física) -->
+                <div class="mt-3 pt-3 border-t border-[#1e1e1e]">
+                  <p class="text-xs text-[#a0a0a0] mb-2">Qué copias</p>
+                  <div class="space-y-1 mb-3">
+                    @for (c of g.copies ?? []; track c.id) {
+                      <label class="flex items-center gap-2 text-sm text-[#d0d0d0] cursor-pointer">
+                        <input type="checkbox" [checked]="moveIds().has(c.id)" (change)="toggleMove(c.id)" class="accent-[#7c3aed]" />
+                        <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-[#1f1f1f] text-white">{{ c.platform }}</span>
+                        <app-game-icon [name]="c.format" size="w-3.5 h-3.5" class="text-[#a0a0a0]" />
+                        {{ formatLabel[c.format] }} · {{ c.edition || 'Estándar' }}
+                      </label>
+                    }
+                  </div>
+                  <p class="text-xs text-[#a0a0a0] mb-2">A qué juego</p>
+                  <div class="flex items-center gap-2 mb-3">
+                    <input [(ngModel)]="moveQuery" (ngModelChange)="searchMoveTargets()" type="text" autofocus
+                      placeholder="Buscar en tus juegos..." class="field-input" />
+                    <button type="button" (click)="moving.set(false)" class="px-3 py-2 text-xs text-[#a0a0a0] hover:text-white shrink-0">Cerrar</button>
+                  </div>
+                  @if (moveTargets().length) {
+                    <ul class="space-y-1 max-h-80 overflow-y-auto">
+                      @for (t of moveTargets(); track t.id) {
+                        <li>
+                          <button type="button" (click)="moveCopies(t)" [disabled]="!moveIds().size || saving()"
+                            class="w-full flex items-center gap-3 text-left px-2 py-2 -mx-2 rounded-xl hover:bg-[#1f1f1f] transition-colors disabled:opacity-40">
+                            <div class="w-8 h-11 rounded-md overflow-hidden bg-[#0d0d0d] shrink-0">
+                              @if (t.cover_url) { <img [src]="t.cover_url" alt="" class="w-full h-full object-cover" loading="lazy" /> }
+                            </div>
+                            <div class="min-w-0">
+                              <p class="text-sm text-[#d0d0d0] truncate">{{ t.title }}</p>
+                              <p class="text-[11px] text-[#606060] truncate">{{ t.platforms.join(' · ') }}</p>
+                            </div>
+                          </button>
+                        </li>
+                      }
+                    </ul>
+                  } @else if (moveQuery.trim()) {
+                    <p class="text-xs text-[#606060]">No hay otros juegos con ese nombre.</p>
+                  }
+                </div>
+              }
             </section>
 
             <!-- Trofeos de PSN -->
@@ -672,6 +720,71 @@ export class GameDetailComponent implements OnInit {
   unlinkList(l: TrophyList) {
     if (!confirm(`¿Desvincular la lista de trofeos "${l.title}" (${l.platforms})?`)) return;
     this.api.put(`/games/trophies/lists/${l.id}`, { game_id: null }).subscribe({ next: () => this.load() });
+  }
+
+  // ── Mover copias a otro juego ──
+
+  moving = signal(false);
+  moveIds = signal<Set<number>>(new Set());
+  moveQuery = '';
+  moveTargets = signal<Game[]>([]);
+  private moveTimer: ReturnType<typeof setTimeout> | undefined;
+
+  openMoving() {
+    const g = this.game();
+    if (!g) return;
+    this.cancelCopy();
+    this.moveIds.set(new Set((g.copies ?? []).map(c => c.id)));
+    // Lo normal es que el otro tenga un título parecido: se empieza por la primera palabra.
+    this.moveQuery = g.title.split(/[\s:]+/).find(w => w.length > 3) ?? g.title;
+    this.moving.set(true);
+    this.fetchMoveTargets();
+  }
+
+  toggleMove(id: number) {
+    const s = new Set(this.moveIds());
+    if (!s.delete(id)) s.add(id);
+    this.moveIds.set(s);
+  }
+
+  searchMoveTargets() {
+    clearTimeout(this.moveTimer);
+    this.moveTimer = setTimeout(() => this.fetchMoveTargets(), 300);
+  }
+
+  private fetchMoveTargets() {
+    const q = this.moveQuery.trim();
+    if (!q) { this.moveTargets.set([]); return; }
+    this.api.get<{ data: Game[] }>('/games', { search: q, sort: 'title', order: 'asc', limit: 20 })
+      .subscribe({ next: r => this.moveTargets.set(r.data.filter(x => x.id !== this.id)) });
+  }
+
+  moveCopies(target: Game) {
+    const g = this.game();
+    const ids = [...this.moveIds()];
+    if (!g || !ids.length) return;
+    const n = ids.length === 1 ? 'la copia' : `las ${ids.length} copias`;
+    if (!confirm(`¿Mover ${n} a "${target.title}"?`)) return;
+    // Sin copias la ficha no pinta nada: se ofrece borrarla (sus DLC y trofeos pasan también).
+    const deleteEmpty = ids.length === (g.copies?.length ?? 0)
+      && confirm(`"${g.title}" se queda sin copias. ¿La borro? Sus DLC y listas de trofeos pasarán a "${target.title}".`);
+    this.saving.set(true);
+    this.api.post<{ moved: number; deleted: boolean }>(`/games/${g.id}/copies/move`, { copy_ids: ids, to: target.id, delete_empty: deleteEmpty })
+      .subscribe({
+        next: r => {
+          this.saving.set(false);
+          this.moving.set(false);
+          if (!r.deleted) { this.load(); return; }
+          // A la ficha del otro (misma ruta: el componente se reutiliza, así que se recarga a mano).
+          this.id = target.id;
+          this.router.navigate(['/app/games', target.id], { replaceUrl: true });
+          this.load();
+        },
+        error: (err: HttpErrorResponse) => {
+          this.saving.set(false);
+          this.error.set(err.error?.error ?? 'No se pudieron mover las copias');
+        },
+      });
   }
 
   // ── Copias ──
