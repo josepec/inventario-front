@@ -312,3 +312,14 @@ export function monthLabel(key: string): string {
   const [y, m] = key.split('-').map(Number);
   return `${MONTHS[m - 1][0].toUpperCase()}${MONTHS[m - 1].slice(1)} ${y}`;
 }
+
+/** Un deseado de la PS Store (GET /games/psn/wishlist), con su juego de IGDB si se encontró. */
+export interface PsnWish {
+  product_id: string;
+  name: string;
+  platforms: GamePlatform[];
+  cover_url: string | null;
+  igdb_id: number | null;
+  owned_id: number | null;
+  wanted: boolean;
+}

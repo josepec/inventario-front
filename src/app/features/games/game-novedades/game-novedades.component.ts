@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ApiService } from '../../../shared/services/api.service';
-import { GameRelease, GameWish, IgdbSearchResult, monthLabel, releaseLabel } from '../../../shared/models/game.model';
+import { GameRelease, GameWish, IgdbSearchResult, PsnWish, monthLabel, releaseLabel } from '../../../shared/models/game.model';
 
 type Tab = 'mine' | 'calendar' | 'wanted' | 'search';
 
@@ -133,6 +133,61 @@ const TBD = 'tbd';
 
       <!-- Lo quiero -->
       @if (tab() === 'wanted') {
+        <div class="flex justify-end mb-3">
+          @if (!psnWishes()) {
+            <button type="button" (click)="loadPsnWishes()" [disabled]="psnLoading()"
+              class="flex items-center gap-2 bg-[#161616] hover:bg-[#1a1a1a] border border-[#2a2a2a] text-[#a0a0a0] hover:text-white font-semibold text-xs rounded-xl px-3 py-2 transition-colors disabled:opacity-50">
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              {{ psnLoading() ? 'Leyendo tu lista de la PS Store…' : 'Importar de la PS Store' }}
+            </button>
+          }
+        </div>
+
+        @if (psnWishes(); as list) {
+          <!-- Deseados de la PS Store: elegir cuáles pasan a "Lo quiero" -->
+          <section class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 mb-6">
+            <div class="flex items-center justify-between mb-3">
+              <h2 class="text-xs text-[#606060] uppercase tracking-wider font-semibold">Tu lista de deseos de la PS Store</h2>
+              <button type="button" (click)="psnWishes.set(null)" class="text-xs text-[#606060] hover:text-white">Cerrar</button>
+            </div>
+            @if (!list.length) {
+              <p class="text-sm text-[#606060]">Tu lista de deseos de la PS Store está vacía.</p>
+            } @else {
+              <ul class="space-y-1 max-h-[28rem] overflow-y-auto -mx-2">
+                @for (w of list; track w.product_id) {
+                  <li>
+                    <label class="flex items-center gap-3 px-2 py-2 rounded-xl"
+                      [class]="psnSelectable(w) ? 'hover:bg-[#1f1f1f] cursor-pointer' : 'opacity-50'">
+                      <input type="checkbox" [disabled]="!psnSelectable(w)" [checked]="psnSelected().has(w.product_id)"
+                        (change)="togglePsn(w.product_id)" class="accent-[#7c3aed]" />
+                      <div class="w-9 h-9 rounded-lg overflow-hidden bg-[#0d0d0d] shrink-0">
+                        @if (w.cover_url) { <img [src]="w.cover_url" alt="" class="w-full h-full object-cover" loading="lazy" /> }
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <p class="text-sm text-[#d0d0d0] truncate">{{ w.name }}</p>
+                        <p class="text-[11px] text-[#606060] truncate">
+                          {{ w.platforms.join(' · ') }}
+                          @if (!w.igdb_id) { · <span class="text-[#f59e0b]">no está en IGDB</span> }
+                          @else if (w.owned_id) { · <span class="text-[#4ade80]">ya lo tienes</span> }
+                          @else if (w.wanted) { · <span class="text-[#a78bfa]">ya en Lo quiero</span> }
+                        </p>
+                      </div>
+                    </label>
+                  </li>
+                }
+              </ul>
+              <div class="flex justify-end mt-3">
+                <button type="button" (click)="importPsn()" [disabled]="!psnSelected().size || importing()"
+                  class="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-[#7c3aed] hover:bg-[#6d28d9] disabled:opacity-40 transition-colors">
+                  {{ importing() ? 'Añadiendo…' : 'Añadir ' + psnSelected().size + ' a Lo quiero' }}
+                </button>
+              </div>
+            }
+          </section>
+        }
+
         @if (!wishCards().length) {
           <div class="rounded-xl border border-dashed border-[#1f1f1f] py-12 text-center text-sm text-[#666]">
             Aún no quieres nada. Pulsa el corazón en el calendario o búscalo en "Buscar".
@@ -407,6 +462,54 @@ export class GameNovedadesComponent implements OnInit {
         error: (e: HttpErrorResponse) => { this.error.set(e.error?.error ?? 'No se pudo añadir'); done(); },
       });
     }
+  }
+
+  // ── Importar deseados de la PS Store ──
+
+  psnWishes = signal<PsnWish[] | null>(null);
+  psnLoading = signal(false);
+  psnSelected = signal<Set<string>>(new Set());
+  importing = signal(false);
+
+  psnSelectable = (w: PsnWish) => !!w.igdb_id && !w.owned_id && !w.wanted;
+
+  loadPsnWishes() {
+    this.psnLoading.set(true);
+    this.error.set(null);
+    this.api.get<{ data: PsnWish[] }>('/games/psn/wishlist').subscribe({
+      next: r => {
+        this.psnLoading.set(false);
+        this.psnWishes.set(r.data);
+        // Lo que se puede añadir, marcado de entrada.
+        this.psnSelected.set(new Set(r.data.filter(this.psnSelectable).map(w => w.product_id)));
+      },
+      error: (e: HttpErrorResponse) => {
+        this.psnLoading.set(false);
+        this.error.set(e.error?.error ?? 'No se pudo leer tu lista de deseos de la PS Store');
+      },
+    });
+  }
+
+  togglePsn(id: string) {
+    const s = new Set(this.psnSelected());
+    if (!s.delete(id)) s.add(id);
+    this.psnSelected.set(s);
+  }
+
+  /** Uno detrás de otro (cada alta pide su ficha a IGDB). */
+  async importPsn() {
+    const list = this.psnWishes() ?? [];
+    const ids = [...new Set(list.filter(w => this.psnSelected().has(w.product_id) && w.igdb_id).map(w => w.igdb_id!))];
+    this.importing.set(true);
+    for (const igdb_id of ids) {
+      await new Promise<void>(resolve => this.api.post<GameWish>('/games/wishlist', { igdb_id }).subscribe({
+        next: w => { this.wishlist.set([...this.wishlist().filter(x => x.igdb_id !== w.igdb_id), w]); resolve(); },
+        error: () => resolve(),
+      }));
+    }
+    this.importing.set(false);
+    this.psnWishes.set(list.map(w => (w.igdb_id && ids.includes(w.igdb_id) ? { ...w, wanted: true } : w)));
+    this.psnSelected.set(new Set());
   }
 
   haveIt(c: Card) {

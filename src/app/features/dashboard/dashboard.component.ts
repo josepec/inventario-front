@@ -6,6 +6,7 @@ import { ApiService } from '../../shared/services/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { environment } from '../../../environments/environment';
 import { GameIconComponent } from '../games/game-icon/game-icon.component';
+import { GameWish, releaseLabel } from '../../shared/models/game.model';
 
 interface NovedadItem {
   whakoom_comic_id: string;
@@ -775,6 +776,31 @@ interface GamesDashboard {
               </div>
             </div>
 
+            <!-- Próximos que quiero (como "Mis novedades" en cómics) -->
+            @if (gameWishesUpcoming().length > 0) {
+              <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5 mb-6">
+                <div class="flex items-baseline justify-between mb-4">
+                  <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold">Lo que quiero — próximamente</h3>
+                  <a routerLink="/app/games/novedades" class="text-[11px] text-[#8b5cf6] hover:text-[#a78bfa]">Ver novedades →</a>
+                </div>
+                <div class="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-2 md:gap-3">
+                  @for (w of gameWishesUpcoming().slice(0, 8); track w.igdb_id) {
+                    <a routerLink="/app/games/novedades" [queryParams]="{tab: 'wanted'}" class="group">
+                      <div class="relative aspect-[3/4] rounded-lg overflow-hidden bg-[#0d0d0d] border border-[#1f1f1f] group-hover:border-[#7c3aed]/60 transition-colors">
+                        @if (w.cover_url) {
+                          <img [src]="w.cover_url" [alt]="w.title" class="w-full h-full object-cover" loading="lazy" />
+                        }
+                        <span class="absolute bottom-1 left-1 bg-black/80 text-white text-[9px] font-semibold px-1.5 py-0.5 rounded leading-none backdrop-blur-sm">
+                          {{ wishLabel(w) }}
+                        </span>
+                      </div>
+                      <p class="mt-1 text-[9px] md:text-[10px] text-[#606060] group-hover:text-[#a0a0a0] truncate transition-colors">{{ w.title }}</p>
+                    </a>
+                  }
+                </div>
+              </div>
+            }
+
             <!-- Últimos añadidos -->
             @if (gd.recentGames.length > 0) {
               <div class="mb-6">
@@ -1020,6 +1046,16 @@ export class DashboardComponent implements OnInit {
     return this.buildMonthlyBars(m ? { added: m.added, read: m.completed } : undefined);
   });
 
+  /** "Lo quiero" de videojuegos que aún no ha salido (o sin día concreto), por fecha. */
+  gameWishes = signal<GameWish[]>([]);
+  gameWishesUpcoming = computed(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return this.gameWishes()
+      .filter(w => w.release_precision !== 0 || !w.release_date || w.release_date >= today)
+      .sort((a, b) => (a.release_date ?? '9999').localeCompare(b.release_date ?? '9999'));
+  });
+  wishLabel = (w: GameWish) => releaseLabel(w.release_date, w.release_precision);
+
   gamePlatformSegs = computed(() => this.buildDonutSegs(this.gamesData()?.byPlatform ?? [], 'platform'));
 
   /** Las cuatro tarjetas de arriba: total por estado y, debajo, con copia física / digital. */
@@ -1131,6 +1167,9 @@ export class DashboardComponent implements OnInit {
       this.api.get<GamesDashboard>('/stats/dashboard/games').subscribe({
         next: d => this.gamesData.set(d),
         error: () => { this.gamesLoaded = false; },
+      });
+      this.api.get<{ data: GameWish[] }>('/games/wishlist').subscribe({
+        next: r => this.gameWishes.set(r.data),
       });
     }
   }
