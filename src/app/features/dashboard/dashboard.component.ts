@@ -645,6 +645,24 @@ interface GamesDashboard {
                   </a>
                 }
               </div>
+              <!-- El mismo progreso, por formato: barras finas debajo de la del total -->
+              @if (gameCompletedByFormat().length) {
+                <div class="mt-4 pt-3 border-t border-[#1e1e1e] space-y-2">
+                  @for (f of gameCompletedByFormat(); track f.format) {
+                    <a routerLink="/app/games" [queryParams]="{format: f.format, status: 'completed'}" class="flex items-center gap-3 group">
+                      <span class="flex items-center gap-1.5 w-20 shrink-0 text-[11px] text-[#a0a0a0] group-hover:text-white">
+                        <app-game-icon [name]="f.format" size="w-3.5 h-3.5" class="text-[#606060]" />{{ f.label }}
+                      </span>
+                      <div class="flex-1 h-1.5 bg-[#2a2a2a] rounded-full overflow-hidden">
+                        <div class="h-full bg-[#22c55e] rounded-full transition-all duration-700" [style.width.%]="f.pct"></div>
+                      </div>
+                      <span class="text-[11px] text-[#606060] shrink-0 w-24 text-right">
+                        {{ f.completed }}/{{ f.total }} · <span class="text-white font-semibold">{{ f.pct }}%</span>
+                      </span>
+                    </a>
+                  }
+                </div>
+              }
             </div>
 
             <!-- Charts row -->
@@ -980,6 +998,16 @@ export class DashboardComponent implements OnInit {
   activeTab = signal<'comics' | 'books' | 'games'>('comics');
   gamesData = signal<GamesDashboard | null>(null);
   private gamesLoaded = false;
+
+  /** Pasados de los que tienen copia física y de los que la tienen digital (un juego con las dos, en ambas). */
+  gameCompletedByFormat = computed(() => {
+    const d = this.gamesData();
+    if (!d?.byStatusFormat) return [];
+    const done = d.byStatusFormat['completed'] ?? { physical: 0, digital: 0 };
+    return ([['physical', 'Físico', d.totals.physical, done.physical], ['digital', 'Digital', d.totals.digital, done.digital]] as const)
+      .filter(([, , total]) => total > 0)
+      .map(([format, label, total, completed]) => ({ format, label, total, completed, pct: Math.round((completed / total) * 100) }));
+  });
 
   gameCompletedPct = computed(() => {
     const d = this.gamesData();
