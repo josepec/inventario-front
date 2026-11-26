@@ -243,6 +243,32 @@ interface Facets {
         }
       </div>
 
+      <!-- Selection bar -->
+      @if (selectionMode()) {
+        <div class="sticky top-0 z-30 bg-[#111]/95 backdrop-blur border border-[#2a2a2a] rounded-2xl px-4 py-3 mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <button (click)="cancelSelection()" class="text-[#606060] hover:text-white transition-colors">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <span class="text-sm text-white font-medium">{{ selectedIds().size }} seleccionados</span>
+            <button (click)="selectAll()" class="text-xs text-[#8b5cf6] hover:text-[#a78bfa] transition-colors">
+              {{ selectedIds().size === games().length ? 'Deseleccionar todos' : 'Seleccionar todos' }}
+            </button>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            @for (s of bulkStatuses; track s) {
+              <button (click)="bulkSetStatus(s)" [disabled]="bulkUpdating()"
+                class="px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors disabled:opacity-40"
+                [class]="statusStyle[s]">
+                {{ statusLabel[s] }}
+              </button>
+            }
+          </div>
+        </div>
+      }
+
       @if (loading()) {
         <div class="flex justify-center py-20">
           <div class="w-8 h-8 border-2 border-[#7c3aed] border-t-transparent rounded-full animate-spin"></div>
@@ -267,8 +293,12 @@ interface Facets {
         } @else {
           <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 md:gap-4">
             @for (g of games(); track g.id) {
-              <a [routerLink]="['/app/games', g.id]" class="group cursor-pointer relative">
-                <div class="relative aspect-[3/4] rounded-xl overflow-hidden bg-[#161616] mb-1.5">
+              <div class="group cursor-pointer relative"
+                (touchstart)="onPressStart(g.id, $event)" (touchend)="onPressEnd()" (touchmove)="onPressEnd()"
+                (mousedown)="onPressStart(g.id, $event)" (mouseup)="onPressEnd()" (mouseleave)="onPressEnd()"
+                (click)="onItemClick(g.id)">
+                <div class="relative aspect-[3/4] rounded-xl overflow-hidden bg-[#161616] mb-1.5"
+                  [class.ring-2]="selectedIds().has(g.id)" [class.ring-[#7c3aed]]="selectedIds().has(g.id)">
                   @if (g.cover_url) {
                     <img [src]="g.cover_url" [alt]="g.title" loading="lazy"
                       class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
@@ -277,8 +307,20 @@ interface Facets {
                       <p class="text-[10px] text-[#404040] leading-tight">{{ g.title }}</p>
                     </div>
                   }
-                  <!-- Formato (top-left) -->
-                  @if (g.formats.includes('digital')) {
+                  <!-- Selection checkbox (top-left) -->
+                  @if (selectionMode()) {
+                    <div class="absolute top-2 left-2 z-10">
+                      <span class="w-5 h-5 rounded-full flex items-center justify-center border-2 transition-colors"
+                        [class]="selectedIds().has(g.id) ? 'bg-[#7c3aed] border-[#7c3aed]' : 'border-white/50 bg-black/40'">
+                        @if (selectedIds().has(g.id)) {
+                          <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                        }
+                      </span>
+                    </div>
+                  } @else if (g.formats.includes('digital')) {
+                    <!-- Formato (top-left) -->
                     <div class="absolute top-2 left-2 bg-black/70 px-1.5 py-0.5 rounded text-[9px] font-bold text-[#a0a0a0]"
                       [title]="g.formats.length > 1 ? 'Físico y digital' : 'Digital'">{{ g.formats.length > 1 ? 'F+D' : 'DIG' }}</div>
                   }
@@ -309,7 +351,7 @@ interface Facets {
                 </div>
                 <p class="text-xs font-medium text-[#e0e0e0] truncate leading-tight">{{ g.title }}</p>
                 <p class="text-[10px] text-[#606060] truncate">{{ g.platforms.join(' · ') || 'Sin copias' }}</p>
-              </a>
+              </div>
             }
           </div>
         }
@@ -318,9 +360,22 @@ interface Facets {
       @if (!loading() && viewMode() === 'list') {
         <div class="space-y-2">
           @for (g of games(); track g.id) {
-            <a [routerLink]="['/app/games', g.id]"
-              class="flex items-center gap-3 md:gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
-                     rounded-xl px-3 md:px-4 py-3 transition-colors duration-150 cursor-pointer">
+            <div class="flex items-center gap-3 md:gap-4 bg-[#161616] hover:bg-[#1a1a1a] border border-[#1e1e1e]
+                     rounded-xl px-3 md:px-4 py-3 transition-colors duration-150 cursor-pointer"
+              [class.ring-2]="selectedIds().has(g.id)" [class.ring-[#7c3aed]]="selectedIds().has(g.id)"
+              (touchstart)="onPressStart(g.id, $event)" (touchend)="onPressEnd()" (touchmove)="onPressEnd()"
+              (mousedown)="onPressStart(g.id, $event)" (mouseup)="onPressEnd()" (mouseleave)="onPressEnd()"
+              (click)="onItemClick(g.id)">
+              @if (selectionMode()) {
+                <span class="w-5 h-5 rounded-full flex items-center justify-center border-2 shrink-0 transition-colors"
+                  [class]="selectedIds().has(g.id) ? 'bg-[#7c3aed] border-[#7c3aed]' : 'border-[#2a2a2a]'">
+                  @if (selectedIds().has(g.id)) {
+                    <svg class="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                          </svg>
+                  }
+                </span>
+              }
               <div class="w-9 h-12 md:w-10 md:h-14 rounded-lg overflow-hidden bg-[#222] shrink-0">
                 @if (g.cover_url) {
                   <img [src]="g.cover_url" [alt]="g.title" class="w-full h-full object-cover" />
@@ -342,7 +397,7 @@ interface Facets {
                   {{ statusLabel[g.status] }}
                 </span>
               </div>
-            </a>
+            </div>
           }
         </div>
       }
@@ -368,7 +423,7 @@ export class GamesListComponent implements OnInit {
 
   readonly statusLabel = GAME_STATUS_LABEL;
   readonly statusStyle = GAME_STATUS_STYLE;
-  readonly formatLabel: Record<string, string> = GAME_FORMAT_LABEL;
+  readonly formatLabel: Partial<Record<string, string>> = GAME_FORMAT_LABEL;
   readonly statusFilters: { value: '' | GameStatus; label: string }[] = [
     { value: '', label: 'Todos' },
     { value: 'pending', label: 'Sin empezar' },
@@ -518,4 +573,65 @@ export class GamesListComponent implements OnInit {
   }
 
   goTo(p: number) { this.page.set(p); this.load(); }
+
+  // ── Multi-select ──────────────────────────────────────────────────────
+
+  readonly bulkStatuses: GameStatus[] = ['completed', 'playing', 'pending', 'abandoned'];
+  selectionMode = signal(false);
+  selectedIds = signal(new Set<number>());
+  bulkUpdating = signal(false);
+  private pressTimer: ReturnType<typeof setTimeout> | undefined;
+  private pressHandled = false;
+
+  onPressStart(id: number, e: Event) {
+    this.pressHandled = false;
+    if (this.selectionMode()) return;
+    this.pressTimer = setTimeout(() => {
+      this.pressHandled = true;
+      this.selectionMode.set(true);
+      this.selectedIds.set(new Set([id]));
+    }, 500);
+  }
+
+  onPressEnd() { clearTimeout(this.pressTimer); }
+
+  onItemClick(id: number) {
+    if (this.pressHandled) { this.pressHandled = false; return; }
+    if (this.selectionMode()) {
+      const s = new Set(this.selectedIds());
+      if (s.has(id)) s.delete(id); else s.add(id);
+      this.selectedIds.set(s);
+      if (s.size === 0) this.selectionMode.set(false);
+      return;
+    }
+    this.router.navigate(['/app/games', id]);
+  }
+
+  selectAll() {
+    if (this.selectedIds().size === this.games().length) {
+      this.selectedIds.set(new Set());
+      this.selectionMode.set(false);
+    } else {
+      this.selectedIds.set(new Set(this.games().map(g => g.id)));
+    }
+  }
+
+  cancelSelection() {
+    this.selectionMode.set(false);
+    this.selectedIds.set(new Set());
+  }
+
+  bulkSetStatus(status: GameStatus) {
+    const ids = [...this.selectedIds()];
+    if (!ids.length) return;
+    this.bulkUpdating.set(true);
+    this.api.patch('/games/batch', { ids, status }).subscribe({
+      next: () => {
+        this.bulkUpdating.set(false);
+        this.cancelSelection();
+        this.load();
+      },
+      error: () => this.bulkUpdating.set(false),
+    });
+  }
 }

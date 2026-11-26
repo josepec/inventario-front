@@ -469,7 +469,11 @@ export class GameFormComponent implements OnInit {
         ? await firstValueFrom(this.covers.persist(this.draft.cover_url)).catch(() => this.draft.cover_url)
         : null;
       const copies = this.copies().map(c => ({ ...c, price: c.is_free ? null : c.price }));
-      const res = await firstValueFrom(this.api.post<{ id: number }>('/games', { ...this.draft, cover_url: cover, copies, trophy_list_id: this.trophyListId }));
+      const res = await firstValueFrom(this.api.post<{ id: number }>('/games', {
+        ...this.draft, cover_url: cover, copies, trophy_list_id: this.trophyListId,
+        // Con el nombre del producto escaneado (en castellano) casan más listas de trofeos.
+        extra_names: [this.scan()?.product?.title, this.scan()?.product?.name].filter(Boolean),
+      }));
       this.router.navigate(['/app/games', res.id]);
     } catch (e) {
       this.saving.set(false);

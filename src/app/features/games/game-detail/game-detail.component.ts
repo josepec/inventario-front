@@ -3,6 +3,7 @@ import { Location, DatePipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { forkJoin } from 'rxjs';
 import { ApiService } from '../../../shared/services/api.service';
 import { CoversService } from '../../../shared/services/covers.service';
 import {
@@ -300,7 +301,21 @@ type GameEdit = Pick<Game, 'igdb_id' | 'igdb_url' | 'title' | 'cover_url' | 'sum
               </div>
 
               @if (!g.trophy_lists?.length && !linking()) {
-                <p class="text-xs text-[#606060]">Sin listas de trofeos. Se vinculan solas si el título coincide con el de PSN; si no, vincúlala a mano.</p>
+                @if (suggestions().length) {
+                  <p class="text-xs text-[#a0a0a0] mb-2">¿Es alguna de estas listas de tus trofeos?</p>
+                  <ul class="space-y-1">
+                    @for (l of suggestions(); track l.id) {
+                      <li>
+                        <button type="button" (click)="linkList(l)"
+                          class="w-full text-left px-2 py-2 -mx-2 rounded-xl hover:bg-[#1f1f1f] transition-colors">
+                          <app-trophy-list-row [list]="l" />
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <p class="text-xs text-[#606060]">Sin listas de trofeos. Se vinculan solas si el título coincide con el de PSN; si no, vincúlala a mano.</p>
+                }
               }
               <div class="space-y-4">
                 @for (l of g.trophy_lists ?? []; track l.id) {
@@ -426,6 +441,7 @@ export class GameDetailComponent implements OnInit {
     this.api.get<Game>(`/games/${this.id}`).subscribe({
       next: g => {
         this.game.set(g);
+        this.loadSuggestions(g);
         this.notes = g.notes ?? '';
         this.loading.set(false);
         after?.();
@@ -580,6 +596,34 @@ export class GameDetailComponent implements OnInit {
   private fetchCandidates() {
     this.api.get<{ data: TrophyList[] }>('/games/trophies/lists', { state: 'pending', q: this.linkQuery.trim() })
       .subscribe({ next: r => this.candidates.set(r.data) });
+  }
+
+  /**
+   * Sin listas vinculadas: las pendientes que comparten palabras con el título
+   * (las de PSN van a menudo en castellano o abreviadas y no casan solas).
+   */
+  suggestions = signal<TrophyList[]>([]);
+
+  private loadSuggestions(g: Game) {
+    this.suggestions.set([]);
+    if (g.trophy_lists?.length) return;
+    const stop = new Set(['the', 'and', 'edition', 'remastered', 'remaster', 'collection', 'definitive', 'complete',
+      'deluxe', 'game', 'year', 'part', 'with', 'from', 'edicion', 'para']);
+    const words = [...new Set(g.title.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+      .split(/[^a-z0-9]+/).filter(w => w.length > 3 && !stop.has(w)))].slice(0, 3);
+    if (!words.length) return;
+    forkJoin(words.map(q => this.api.get<{ data: TrophyList[] }>('/games/trophies/lists', { state: 'pending', q })))
+      .subscribe({
+        next: results => {
+          const score = new Map<number, { list: TrophyList; hits: number }>();
+          for (const r of results) for (const l of r.data) {
+            const e = score.get(l.id) ?? { list: l, hits: 0 };
+            e.hits++;
+            score.set(l.id, e);
+          }
+          this.suggestions.set([...score.values()].sort((a, b) => b.hits - a.hits).slice(0, 5).map(e => e.list));
+        },
+      });
   }
 
   linkList(l: TrophyList) {
