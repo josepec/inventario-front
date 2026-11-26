@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { ApiService } from '../../shared/services/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { environment } from '../../../environments/environment';
+import { GameIconComponent } from '../games/game-icon/game-icon.component';
 
 interface NovedadItem {
   whakoom_comic_id: string;
@@ -65,6 +66,7 @@ interface GamesDashboard {
   totals: { games: number; completed: number; playing: number; pending: number; abandoned: number; platinums: number; physical: number; digital: number };
   monthly: { added: { month: string; count: number }[]; completed: { month: string; count: number }[] };
   byPlatform: { platform: string; count: number }[];
+  byStatusFormat?: Record<string, { physical: number; digital: number }>;
   byGenre: { genre: string; count: number }[];
   recentGames: { id: number; title: string; cover_url: string | null; status: string; created_at: string }[];
   spending: { total: number; priced: number };
@@ -76,7 +78,7 @@ interface GamesDashboard {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [RouterLink, DecimalPipe],
+  imports: [RouterLink, DecimalPipe, GameIconComponent],
   template: `
     <div class="p-4 md:p-8 max-w-6xl mx-auto">
 
@@ -603,24 +605,22 @@ interface GamesDashboard {
               </a>
             </div>
           } @else {
-            <!-- KPI Cards -->
+            <!-- KPI Cards: el total y, debajo, cuántos tienen copia física y cuántos digital -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-              <a routerLink="/app/games" class="bg-[#161616] border border-[#1e1e1e] hover:border-[#7c3aed44] rounded-2xl p-4 transition-colors">
-                <p class="text-2xl md:text-3xl font-bold text-white">{{ gd.totals.games }}</p>
-                <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">Juegos</p>
-              </a>
-              <a routerLink="/app/games" [queryParams]="{status: 'completed'}" class="bg-[#161616] border border-[#1e1e1e] hover:border-[#7c3aed44] rounded-2xl p-4 transition-colors">
-                <p class="text-2xl md:text-3xl font-bold text-[#22c55e]">{{ gd.totals.completed }}</p>
-                <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">Pasados</p>
-              </a>
-              <a routerLink="/app/games" [queryParams]="{status: 'playing'}" class="bg-[#161616] border border-[#1e1e1e] hover:border-[#7c3aed44] rounded-2xl p-4 transition-colors">
-                <p class="text-2xl md:text-3xl font-bold text-[#38bdf8]">{{ gd.totals.playing }}</p>
-                <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">Jugando</p>
-              </a>
-              <a routerLink="/app/games" [queryParams]="{status: 'pending'}" class="bg-[#161616] border border-[#1e1e1e] hover:border-[#7c3aed44] rounded-2xl p-4 transition-colors">
-                <p class="text-2xl md:text-3xl font-bold text-[#f59e0b]">{{ gd.totals.pending }}</p>
-                <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">Sin empezar</p>
-              </a>
+              @for (k of gameKpis(); track k.label) {
+                <a routerLink="/app/games" [queryParams]="k.status ? {status: k.status} : {}"
+                  class="bg-[#161616] border border-[#1e1e1e] hover:border-[#7c3aed44] rounded-2xl p-4 transition-colors">
+                  <p class="text-2xl md:text-3xl font-bold" [style.color]="k.color">{{ k.total }}</p>
+                  <p class="text-[10px] md:text-xs text-[#606060] mt-1 uppercase tracking-wider">{{ k.label }}</p>
+                  @if (k.physical !== null) {
+                    <div class="flex items-center gap-3 mt-3 pt-2.5 border-t border-[#1e1e1e] text-xs text-[#a0a0a0]"
+                      title="Un juego con copia física y digital cuenta en las dos">
+                      <span class="flex items-center gap-1"><app-game-icon name="physical" size="w-3.5 h-3.5" class="text-[#606060]" />{{ k.physical }}</span>
+                      <span class="flex items-center gap-1"><app-game-icon name="digital" size="w-3.5 h-3.5" class="text-[#606060]" />{{ k.digital }}</span>
+                    </div>
+                  }
+                </a>
+              }
             </div>
 
             <!-- Progress bar -->
@@ -690,29 +690,29 @@ interface GamesDashboard {
                 }
               </div>
 
-              <!-- Por plataforma + formato -->
+              <!-- Por plataforma (como "Por editorial" en cómics) -->
               <div class="bg-[#161616] border border-[#1e1e1e] rounded-2xl p-4 md:p-5">
                 <h3 class="text-xs text-[#606060] uppercase tracking-wider font-semibold mb-4">Por plataforma</h3>
-                <div class="space-y-2.5">
-                  @for (p of gamePlatformBars(); track p.platform) {
-                    <a [routerLink]="['/app/games']" [queryParams]="{platform: p.platform}" class="flex items-center gap-2 group">
-                      <span class="text-[11px] font-semibold text-[#a0a0a0] group-hover:text-white w-9 shrink-0">{{ p.platform }}</span>
-                      <div class="flex-1 h-2 bg-[#2a2a2a] rounded-full overflow-hidden">
-                        <div class="h-full bg-[#7c3aed] rounded-full transition-all duration-500" [style.width.%]="p.pct"></div>
-                      </div>
-                      <span class="text-[10px] text-[#606060] w-6 text-right shrink-0">{{ p.count }}</span>
+                <div class="flex items-center justify-center mb-4">
+                  <svg viewBox="0 0 36 36" class="w-32 h-32 md:w-36 md:h-36">
+                    @for (seg of gamePlatformSegs(); track seg.label) {
+                      <circle cx="18" cy="18" r="14" fill="none" stroke-width="5"
+                        [attr.stroke]="seg.color" [attr.stroke-dasharray]="seg.dash" [attr.stroke-dashoffset]="seg.offset"
+                        class="transition-all duration-500" transform="rotate(-90 18 18)" />
+                    }
+                    <text x="18" y="18.5" text-anchor="middle" dominant-baseline="middle" class="fill-white text-[6px] font-bold">{{ gd.totals.games }}</text>
+                  </svg>
+                </div>
+                <div class="space-y-1.5">
+                  @for (seg of gamePlatformSegs(); track seg.label) {
+                    <a [routerLink]="['/app/games']" [queryParams]="{platform: seg.label}" class="flex items-center justify-between text-[10px] group">
+                      <span class="flex items-center gap-1.5 truncate">
+                        <span class="w-2 h-2 rounded-full shrink-0" [style.background]="seg.color"></span>
+                        <span class="text-[#a0a0a0] group-hover:text-white truncate">{{ seg.label }}</span>
+                      </span>
+                      <span class="text-[#606060] ml-2 shrink-0">{{ seg.count }}</span>
                     </a>
                   }
-                </div>
-                <div class="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-[#1e1e1e]">
-                  <a routerLink="/app/games" [queryParams]="{format: 'physical'}" class="text-center rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#7c3aed44] py-2.5 transition-colors">
-                    <p class="text-lg font-bold text-white">{{ gd.totals.physical }}</p>
-                    <p class="text-[10px] text-[#606060] uppercase tracking-wider">Físico</p>
-                  </a>
-                  <a routerLink="/app/games" [queryParams]="{format: 'digital'}" class="text-center rounded-xl bg-[#0d0d0d] border border-[#1e1e1e] hover:border-[#7c3aed44] py-2.5 transition-colors">
-                    <p class="text-lg font-bold text-white">{{ gd.totals.digital }}</p>
-                    <p class="text-[10px] text-[#606060] uppercase tracking-wider">Digital</p>
-                  </a>
                 </div>
               </div>
             </div>
@@ -992,10 +992,21 @@ export class DashboardComponent implements OnInit {
     return this.buildMonthlyBars(m ? { added: m.added, read: m.completed } : undefined);
   });
 
-  gamePlatformBars = computed(() => {
-    const rows = this.gamesData()?.byPlatform ?? [];
-    const max = Math.max(...rows.map(r => r.count), 1);
-    return rows.map(r => ({ ...r, pct: (r.count / max) * 100 }));
+  gamePlatformSegs = computed(() => this.buildDonutSegs(this.gamesData()?.byPlatform ?? [], 'platform'));
+
+  /** Las cuatro tarjetas de arriba: total por estado y, debajo, con copia física / digital. */
+  gameKpis = computed(() => {
+    const d = this.gamesData();
+    if (!d) return [];
+    // Sin byStatusFormat (back sin desplegar) no se enseña el desglose; con él, el que falte es 0.
+    const f = (st: string): { physical: number | null; digital: number | null } =>
+      d.byStatusFormat ? d.byStatusFormat[st] ?? { physical: 0, digital: 0 } : { physical: null, digital: null };
+    return [
+      { label: 'Juegos', status: null, color: '#ffffff', total: d.totals.games, physical: d.totals.physical, digital: d.totals.digital },
+      { label: 'Pasados', status: 'completed', color: '#22c55e', total: d.totals.completed, ...f('completed') },
+      { label: 'Jugando', status: 'playing', color: '#38bdf8', total: d.totals.playing, ...f('playing') },
+      { label: 'Sin empezar', status: 'pending', color: '#f59e0b', total: d.totals.pending, ...f('pending') },
+    ];
   });
   spendingDetailOpen = signal<'comics' | 'books' | null>(null);
   currentYear = new Date().getFullYear();

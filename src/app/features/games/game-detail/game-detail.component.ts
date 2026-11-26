@@ -521,7 +521,11 @@ export class GameDetailComponent implements OnInit {
 
   copySummary(c: GameCopy) {
     const parts: string[] = [];
-    if (c.acquired_at) parts.push(new Date(c.acquired_at).toLocaleDateString('es-ES'));
+    if (c.acquired_at) {
+      const d = new Date(c.acquired_at).toLocaleDateString('es-ES');
+      // Estimada con el primer trofeo: aproximada hasta que se ponga a mano.
+      parts.push(c.acquired_estimated ? `≈ ${d} (primer trofeo)` : d);
+    }
     if (c.price != null && !c.is_free) parts.push(`${c.price.toFixed(2).replace('.', ',')} €`);
     if (c.store) parts.push(c.store);
     if (c.ean) parts.push(`EAN ${c.ean}`);

@@ -33,6 +33,8 @@ export interface GameCopy {
   price: number | null;
   store: string | null;
   acquired_at: string | null;
+  /** 1 si la fecha de compra es una estimación (el primer trofeo de esa plataforma). */
+  acquired_estimated?: number;
   is_free: boolean;
   source: 'manual' | 'scanner' | 'psn';
   notes: string | null;

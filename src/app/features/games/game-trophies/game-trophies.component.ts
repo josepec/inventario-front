@@ -208,12 +208,14 @@ export class GameTrophiesComponent implements OnInit {
   sync() {
     this.syncing.set(true);
     this.message.set(null);
-    this.api.post<{ lists: number; linked: number; platinumsApplied: number }>('/games/trophies/sync', {}).subscribe({
+    this.api.post<{ lists: number; linked: number; platinumsApplied: number; firstDates?: number; firstDatesPending?: number }>('/games/trophies/sync', {}).subscribe({
       next: r => {
         this.syncing.set(false);
         const parts = [`${r.lists} listas leídas`];
         if (r.linked) parts.push(`${r.linked} vinculadas solas`);
         if (r.platinumsApplied) parts.push(`${r.platinumsApplied} juegos pasados por el platino`);
+        if (r.firstDates) parts.push(`${r.firstDates} fechas de primer trofeo`);
+        if (r.firstDatesPending) parts.push(`faltan ${r.firstDatesPending} (vuelve a sincronizar)`);
         this.message.set({ ok: true, text: parts.join(' · ') });
         this.loadStatus();
         this.loadLists();
