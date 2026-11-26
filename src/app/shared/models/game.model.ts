@@ -199,7 +199,37 @@ export interface BarcodeLookup {
   /** El producto según la tienda (Amazon.es o UPCitemdb). */
   product: { raw: string; name: string; title: string; platform: GamePlatform | null; source: string } | null;
   data: IgdbSearchResult[];
+  /** El igdb_id que el servidor da por bueno (si está claro). */
+  best?: number | null;
   error?: string;
+}
+
+/**
+ * Clave para comparar títulos (como titleKey del back): sin mayúsculas, tildes,
+ * marcas ni puntuación; NFKD pasa "Ⅱ" a "II".
+ */
+export function titleKey(t: string): string {
+  return t.replace(/[™®©]/g, '').normalize('NFKD').replace(/[̀-ͯ]/g, '').toLowerCase()
+    .replace(/&/g, 'and').replace(/[^a-z0-9]/g, '');
+}
+
+/**
+ * El juego de IGDB que corresponde al producto escaneado, si está claro: el
+ * mismo título (mejor si sale en la plataforma del producto) o el único
+ * resultado. Si hay dudas, null y se elige de la lista.
+ */
+export function bestBarcodeMatch(lookup: BarcodeLookup): IgdbSearchResult | null {
+  const results = lookup.data ?? [];
+  if (!results.length) return null;
+  const chosen = lookup.best ? results.find(r => r.igdb_id === lookup.best) : undefined;
+  if (chosen) return chosen;
+  const p = lookup.product;
+  if (p) {
+    const want = new Set([titleKey(p.title), titleKey(p.name)].filter(Boolean));
+    const same = results.filter(r => want.has(titleKey(r.title)));
+    if (same.length) return same.find(r => p.platform && r.platforms.includes(p.platform)) ?? same[0];
+  }
+  return results.length === 1 ? results[0] : null;
 }
 
 const fold = (w: string) => w.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');

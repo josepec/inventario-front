@@ -7,7 +7,7 @@ import { ApiService } from '../../../shared/services/api.service';
 import { CoversService } from '../../../shared/services/covers.service';
 import {
   BarcodeLookup, GameCopyDraft, GamePlatform, GameStatus, GAME_STATUS_LABEL, IgdbGameDetail, IgdbSearchResult,
-  editionFromProduct, emptyCopy,
+  bestBarcodeMatch, editionFromProduct, emptyCopy,
 } from '../../../shared/models/game.model';
 import { GameCopyEditorComponent } from '../game-copy-editor/game-copy-editor.component';
 import { BarcodeScannerComponent } from '../../../shared/components/barcode-scanner/barcode-scanner.component';
@@ -352,6 +352,10 @@ export class GameFormComponent implements OnInit {
         this.query = res.product?.title ?? '';
         this.results.set(res.data);
         if (res.error) this.searchError.set(res.error);
+        // Como en libros: si el código lleva claramente a un juego, se elige
+        // solo y queda la ficha lista para añadir (o su ficha, si ya lo tengo).
+        const best = bestBarcodeMatch(res);
+        if (best) this.pick(best);
       },
       error: (e: HttpErrorResponse) => {
         if (seq !== this.searchSeq) return;
