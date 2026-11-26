@@ -257,3 +257,58 @@ export function editionFromProduct(productName: string, gameTitle: string): stri
   if (!rest || /^(edici[oó]n\s+)?(est[aá]ndar|standard)(\s+edition)?$/i.test(rest)) return null;
   return rest;
 }
+
+// ── Novedades (fase 5): calendario de lanzamientos y "Lo quiero" ────────────
+
+/** Un lanzamiento del calendario de IGDB (GET /games/releases). */
+export interface GameRelease {
+  igdb_id: number;
+  title: string;
+  cover_url: string | null;
+  platforms: GamePlatform[];
+  date: string | null;
+  /** date_format de IGDB: 0 día, 1 mes, 2 año, 3-6 trimestre, 7 sin fecha. */
+  precision: number;
+  hypes: number;
+  kind: string | null;
+  sagas: string[];
+  /** Id en la colección si ya lo tengo. */
+  owned_id: number | null;
+  wanted: boolean;
+  /** La saga tuya a la que pertenece (franquicia de un juego que tienes). */
+  my_saga: string | null;
+}
+
+/** Un juego de "Lo quiero" (GET /games/wishlist). */
+export interface GameWish {
+  id: number;
+  igdb_id: number;
+  title: string;
+  cover_url: string | null;
+  platforms: string | null;
+  franchise: string | null;
+  release_date: string | null;
+  release_precision: number | null;
+  notes: string | null;
+  added_at: string;
+}
+
+const MONTHS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+
+/** "3 dic 2026", "enero 2027", "T1 2027", "2027" o "Sin fecha", según lo que sepa IGDB. */
+export function releaseLabel(date: string | null, precision: number | null): string {
+  if (!date || precision === 7) return 'Sin fecha';
+  const [y, m, d] = date.split('-').map(Number);
+  switch (precision ?? 0) {
+    case 0: return `${d} ${MONTHS[m - 1].slice(0, 3)} ${y}`;
+    case 1: return `${MONTHS[m - 1]} ${y}`;
+    case 2: return String(y);
+    default: return `T${(precision ?? 3) - 2} ${y}`;
+  }
+}
+
+/** "diciembre de 2026" para la cabecera de un mes (clave YYYY-MM). */
+export function monthLabel(key: string): string {
+  const [y, m] = key.split('-').map(Number);
+  return `${MONTHS[m - 1][0].toUpperCase()}${MONTHS[m - 1].slice(1)} ${y}`;
+}

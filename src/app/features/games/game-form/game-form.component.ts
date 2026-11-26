@@ -303,6 +303,11 @@ export class GameFormComponent implements OnInit {
     this.trophyListId = Number.isFinite(list) && list > 0 ? list : null;
     const q = qp.get('q')?.trim();
     if (q) { this.query = q; this.runSearch(q); }
+    // Desde Novedades → "Ya lo tengo": directo a la ficha de ese juego de IGDB.
+    const igdb = Number(qp.get('igdb'));
+    if (Number.isInteger(igdb) && igdb > 0) {
+      this.pick({ igdb_id: igdb, title: '', year: null, cover_url: null, platforms: [], kind: null, local_id: null });
+    }
   }
 
   readonly statuses: GameStatus[] = ['pending', 'playing', 'completed', 'abandoned'];

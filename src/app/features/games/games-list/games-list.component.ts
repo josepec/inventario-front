@@ -27,6 +27,14 @@ interface Facets {
           <p class="text-[#606060] mt-0.5 text-sm">{{ total() }} juegos en tu colección</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
+          <a routerLink="/app/games/novedades" title="Novedades y Lo quiero"
+            class="flex items-center gap-2 bg-[#161616] hover:bg-[#1a1a1a] border border-[#2a2a2a]
+                   text-[#a0a0a0] hover:text-white font-semibold text-sm rounded-xl px-4 py-2.5 transition-colors duration-200">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 7.5V6a3.75 3.75 0 10-7.5 0v1.5m0 0A2.25 2.25 0 002.25 9.75v9a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18.75v-9A2.25 2.25 0 0019.5 7.5h-15zm6.75 3.75h3" />
+            </svg>
+            <span class="hidden sm:inline">Novedades</span>
+          </a>
           <a routerLink="/app/games/trophies"
             class="flex items-center gap-2 bg-[#161616] hover:bg-[#1a1a1a] border border-[#2a2a2a]
                    text-[#a0a0a0] hover:text-white font-semibold text-sm rounded-xl px-4 py-2.5 transition-colors duration-200">
